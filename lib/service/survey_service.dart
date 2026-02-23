@@ -2,13 +2,14 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../utils/storage.dart';
 import 'api.dart';
+import '../models/survey_model.dart';
 
 class SurveyService {
   // Ambil list survey
-  Future<List<dynamic>> getSurveys(
-    String clientSlug,
-    String projectSlug,
-  ) async {
+  Future<List<SurveyModel>> getSurveys(
+  String clientSlug,
+  String projectSlug,
+) async {
     final token = await Storage.getToken();
     final url = Uri.parse(
       "${Api.baseUrl}/clients/$clientSlug/projects/$projectSlug/surveys",
@@ -20,9 +21,13 @@ class SurveyService {
     );
 
     if (res.statusCode == 200) {
-      final body = jsonDecode(res.body);
-      return body['data']; // Ambil array surveys
-    } else {
+  final body = jsonDecode(res.body);
+  final List raw = body['data'] ?? [];
+
+  return raw
+      .map((e) => SurveyModel.fromJson(e))
+      .toList();
+} else {
       throw Exception('Failed to load surveys: ${res.statusCode}');
     }
   }
@@ -50,3 +55,4 @@ class SurveyService {
     }
   }
 }
+

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../service/auth_service.dart';
+import 'list_survey_bpk.dart';
+import 'list_survey_transjakarta.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -195,16 +197,30 @@ class _DashboardPageState extends State<DashboardPage>
                         project: project,
                         animDelay: Duration(milliseconds: 100 + i * 150),
                         onViewSurveys: () {
-                          Navigator.pushNamed(
-                            context,
-                            '/surveys',
-                            arguments: {
-                              'clientSlug': project['client_slug'],
-                              'projectSlug': project['slug'],
-                              'projectTitle': project['title'],
-                            },
-                          );
-                        },
+  if (project['client'] == 'Badan Pemeriksa Keuangan') {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ListSurveyBPK(
+          clientSlug: project['client_slug'],
+          projectSlug: project['slug'],
+          projectTitle: project['title'],
+        ),
+      ),
+    );
+  } else if (project['client'] == 'TransJakarta') {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ListSurveyTransjakarta(
+          clientSlug: project['client_slug'],
+          projectSlug: project['slug'],
+          projectTitle: project['title'],
+        ),
+      ),
+    );
+  }
+},
                       );
                     }),
 
