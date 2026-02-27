@@ -5,7 +5,11 @@ import '../utils/storage.dart';
 import '../service/api.dart';
 import '../models/survey_model.dart';
 import 'province_target_page.dart';
-import '../pages/create_survey_bpk_page.dart';
+import '../pages/create_survey_page.dart';
+import 'add_question_page.dart';
+import 'cek_edit_survey_bpk_page.dart';
+import 'detail_responden_bpk_page.dart';
+import '../pages/monitor_survey_page.dart';
 
 class ListSurveyBPK extends StatefulWidget {
   final String clientSlug;
@@ -86,12 +90,10 @@ class _ListSurveyBPKState extends State<ListSurveyBPK> {
       ),
       child: Column(
         children: [
-          // ── Area hijau: logo + nama client ──────────
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
             child: Stack(
               children: [
-                // Layer 1: gradient background
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
@@ -107,8 +109,6 @@ class _ListSurveyBPKState extends State<ListSurveyBPK> {
                   ),
                   child: const SizedBox(height: 70),
                 ),
-
-                // Layer 2: logo full header sebagai background transparan
                 Positioned.fill(
                   child: Opacity(
                     opacity: 0.30,
@@ -118,8 +118,6 @@ class _ListSurveyBPKState extends State<ListSurveyBPK> {
                     ),
                   ),
                 ),
-
-                // Layer 3: konten (avatar + teks)
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
@@ -166,8 +164,6 @@ class _ListSurveyBPKState extends State<ListSurveyBPK> {
               ],
             ),
           ),
-
-          // ── Area putih: deskripsi + tombol ──────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(
@@ -294,8 +290,6 @@ class _ListSurveyBPKState extends State<ListSurveyBPK> {
                   child: _searchBar(),
                 ),
                 const SizedBox(height: 8),
-
-                // ── Konten dinamis: error / empty / list ──
                 if (errorMessage != null)
                   Expanded(
                     child: Center(
@@ -377,6 +371,24 @@ class _SurveyCard extends StatelessWidget {
     required this.onRefresh,
   });
 
+  // Navigasi ke MonitoringSurveyPage
+  void _navigateToMonitor(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MonitoringSurveyPage(
+          surveyName: survey.name,
+          clientSlug: clientSlug,
+          projectSlug: projectSlug,
+          surveySlug: survey.slug,
+          totalRespon: survey.responseCount,
+          targetLocation: survey.targetLocation,
+          isOpen: survey.isOpen,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -411,32 +423,43 @@ class _SurveyCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50),
+                Material(
+                  color: const Color(0xFF4CAF50),
+                  borderRadius: BorderRadius.circular(20),
+                  child: InkWell(
                     borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.bar_chart_rounded,
-                        color: Colors.white,
-                        size: 16,
+                    onTap: () {
+                      Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                      builder: (_) => const DetailRespondenSurveyBpkPage(),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${survey.responseCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                    );
+                   },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
                       ),
-                    ],
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.bar_chart_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${survey.responseCount}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -485,8 +508,6 @@ class _SurveyCard extends StatelessWidget {
               const SizedBox(height: 12),
               const Divider(height: 1, color: Color(0xFFF0F0F0)),
               const SizedBox(height: 10),
-
-              // Section header
               Row(
                 children: const [
                   Icon(Icons.location_on, color: Color(0xFF4CAF50), size: 16),
@@ -502,8 +523,6 @@ class _SurveyCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-
-              // All Provinces Card
               InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () {
@@ -547,7 +566,6 @@ class _SurveyCard extends StatelessWidget {
                   ),
                 ),
               ),
-
               const SizedBox(height: 12),
             ],
 
@@ -562,27 +580,47 @@ class _SurveyCard extends StatelessWidget {
                     label: 'Cek / Edit',
                     color: const Color(0xFF4CAF50),
                     onTap: () {
-                      // TODO: Navigate to survey detail/edit
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CekEditSurveyBpkPage(
+                            surveyId: survey.slug,
+                            clientSlug: clientSlug,
+                            projectSlug: projectSlug,
+                          ),
+                        ),
+                      );
                     },
                   ),
                 ),
                 const SizedBox(width: 6),
+
+                // Tombol Monitor → navigasi ke MonitoringSurveyPage
                 Expanded(
                   child: _ActionButton(
                     label: 'Monitor',
                     color: const Color(0xFF5C6BC0),
-                    onTap: () {
-                      // TODO: Navigate to monitor page
-                    },
+                    onTap: () => _navigateToMonitor(context),
                   ),
                 ),
                 const SizedBox(width: 6),
+
                 Expanded(
                   child: _ActionButton(
                     label: 'Pertanyaan',
                     color: const Color(0xFFFFA726),
                     onTap: () {
-                      // TODO: Navigate to questions page
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AddQuestionPage(
+                            surveyId: survey.slug,
+                            surveyTitle: survey.name,
+                            clientSlug: clientSlug,
+                            projectSlug: projectSlug,
+                          ),
+                        ),
+                      );
                     },
                   ),
                 ),

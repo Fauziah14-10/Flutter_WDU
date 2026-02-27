@@ -8,7 +8,7 @@ class SurveyModel {
   final String targetLocation;
   final int responseCount;
 
-  // ✅ TAMBAHKAN INI
+  // TAMBAHKAN INI
   final List<ProvinceTarget> provinceTargets;
 
   SurveyModel({

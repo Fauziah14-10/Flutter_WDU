@@ -23,6 +23,7 @@ class SurveyService {
     if (res.statusCode == 200) {
   final body = jsonDecode(res.body);
   final List raw = body['data'] ?? [];
+  
 
   return raw
       .map((e) => SurveyModel.fromJson(e))
@@ -31,6 +32,34 @@ class SurveyService {
       throw Exception('Failed to load surveys: ${res.statusCode}');
     }
   }
+
+  // Ambil jawaban individu (untuk cek / edit)
+Future<Map<String, dynamic>> getSurveyResponse(
+  String clientSlug,
+  String projectSlug,
+  String surveySlug,
+  int responseId,
+) async {
+  final token = await Storage.getToken();
+
+  final url = Uri.parse(
+    "${Api.baseUrl}/clients/$clientSlug/projects/$projectSlug/surveys/$surveySlug/report/$responseId",
+  );
+
+  final res = await http.get(
+    url,
+    headers: {
+      "Authorization": "Bearer $token",
+      "Accept": "application/json",
+    },
+  );
+
+  if (res.statusCode == 200) {
+    return jsonDecode(res.body);
+  } else {
+    throw Exception('Failed to load survey response: ${res.statusCode}');
+  }
+}
 
   // Ambil detail survey / location
   Future<Map<String, dynamic>> getSurveyDetail(

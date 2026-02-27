@@ -4,6 +4,12 @@ import 'package:http/http.dart' as http;
 import '../utils/storage.dart';
 import '../service/api.dart';
 import '../models/survey_model.dart';
+import '../pages/monitor_survey_page.dart';
+import '../pages/create_survey_page.dart';
+import 'detail_responden_transjakarta_page.dart';
+import 'cek_edit_survey_transjakarta_page.dart';
+import 'add_question_page.dart'; // ← import AddQuestionPage
+
 
 class ListSurveyTransjakarta extends StatefulWidget {
   final String clientSlug;
@@ -70,9 +76,6 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
     }
   }
 
-  // ─────────────────────────────────────────────
-  // HEADER
-  // ─────────────────────────────────────────────
   Widget _clientHeader() {
     return Container(
       decoration: BoxDecoration(
@@ -84,16 +87,13 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
       ),
       child: Column(
         children: [
-          // ── Area hijau: logo + nama client ──────────
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
             child: Stack(
               children: [
-                // Layer 1: gradient background
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       colors: [Color(0xFFBFDAD0), Color(0xFFE7F2EE)],
@@ -103,29 +103,20 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
                   ),
                   child: const SizedBox(height: 70),
                 ),
-
-                // Layer 2: logo full header sebagai background transparan
                 Positioned.fill(
                   child: Opacity(
                     opacity: 0.30,
-                    child: Image.asset(
-                      "assets/images/TJ.jpg",
-                      fit: BoxFit.cover,
-                    ),
+                    child: Image.asset("assets/images/TJ.jpg", fit: BoxFit.cover),
                   ),
                 ),
-
-                // Layer 3: konten (avatar + teks)
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                   child: Row(
                     children: [
                       const CircleAvatar(
                         radius: 36,
                         backgroundColor: Colors.white,
-                        backgroundImage:
-                            AssetImage("assets/images/logo_trans.jpeg"),
+                        backgroundImage: AssetImage("assets/images/logo_trans.jpeg"),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -133,9 +124,7 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.projectTitle.isNotEmpty
-                                  ? widget.projectTitle
-                                  : 'TransJakarta',
+                              widget.projectTitle.isNotEmpty ? widget.projectTitle : 'TransJakarta',
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -145,10 +134,7 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
                             const SizedBox(height: 4),
                             const Text(
                               "PT Transportasi Jakarta",
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF3D7A5E),
-                              ),
+                              style: TextStyle(fontSize: 13, color: Color(0xFF3D7A5E)),
                             ),
                           ],
                         ),
@@ -159,8 +145,6 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
               ],
             ),
           ),
-
-          // ── Area putih: deskripsi + tombol ──────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(
@@ -169,25 +153,26 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
                 const Expanded(
                   child: Text(
                     "Survei Pengukuran Capaian SPM Penyelenggaraan PT Transportasi Jakarta Tahun 2026",
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF555555),
-                      height: 1.4,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Color(0xFF555555), height: 1.4),
                   ),
                 ),
                 const SizedBox(width: 16),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black87,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: () {
-                    // TODO: Navigate to tambah kuisioner
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CreateSurveyPage(
+                          clientSlug: widget.clientSlug,
+                          projectSlug: widget.projectSlug,
+                        ),
+                      ),
+                    );
                   },
                   icon: const Icon(Icons.add, color: Colors.white, size: 18),
                   label: const Text(
@@ -203,9 +188,6 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
     );
   }
 
-  // ─────────────────────────────────────────────
-  // SEARCH BAR
-  // ─────────────────────────────────────────────
   Widget _searchBar() {
     return TextField(
       decoration: InputDecoration(
@@ -221,9 +203,6 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
     );
   }
 
-  // ─────────────────────────────────────────────
-  // BUILD
-  // ─────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -232,8 +211,7 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded,
-              color: Color(0xFF333333), size: 20),
+          icon: const Icon(Icons.arrow_back_ios_rounded, color: Color(0xFF333333), size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
@@ -241,16 +219,9 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
           children: [
             Text(
               widget.projectTitle.isNotEmpty ? widget.projectTitle : 'Surveys',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF222222),
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF222222)),
             ),
-            const Text(
-              'Daftar Survey',
-              style: TextStyle(fontSize: 11, color: Color(0xFF888888)),
-            ),
+            const Text('Daftar Survey', style: TextStyle(fontSize: 11, color: Color(0xFF888888))),
           ],
         ),
         bottom: PreferredSize(
@@ -259,9 +230,7 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
         ),
       ),
       body: loading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
-            )
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)))
           : Column(
               children: [
                 Padding(
@@ -274,31 +243,22 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
                   child: _searchBar(),
                 ),
                 const SizedBox(height: 8),
-
-                // ── Konten dinamis: error / empty / list ──
                 if (errorMessage != null)
                   Expanded(
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.error_outline_rounded,
-                              size: 48, color: Colors.red[300]),
+                          Icon(Icons.error_outline_rounded, size: 48, color: Colors.red[300]),
                           const SizedBox(height: 12),
-                          Text(errorMessage!,
-                              style: const TextStyle(color: Color(0xFFAAAAAA))),
+                          Text(errorMessage!, style: const TextStyle(color: Color(0xFFAAAAAA))),
                           const SizedBox(height: 16),
                           ElevatedButton(
                             onPressed: () {
-                              setState(() {
-                                loading = true;
-                                errorMessage = null;
-                              });
+                              setState(() { loading = true; errorMessage = null; });
                               fetchSurveys();
                             },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4CAF50),
-                            ),
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4CAF50)),
                             child: const Text('Coba Lagi'),
                           ),
                         ],
@@ -308,10 +268,7 @@ class _ListSurveyTransjakartaState extends State<ListSurveyTransjakarta> {
                 else if (surveys.isEmpty)
                   const Expanded(
                     child: Center(
-                      child: Text(
-                        'Tidak ada survey ditemukan.',
-                        style: TextStyle(color: Color(0xFFAAAAAA)),
-                      ),
+                      child: Text('Tidak ada survey ditemukan.', style: TextStyle(color: Color(0xFFAAAAAA))),
                     ),
                   )
                 else
@@ -352,6 +309,38 @@ class _SurveyCard extends StatelessWidget {
     required this.onRefresh,
   });
 
+  void _navigateToMonitor(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MonitoringSurveyPage(
+          surveyName: survey.name,
+          clientSlug: clientSlug,
+          projectSlug: projectSlug,
+          surveySlug: survey.slug,
+          totalRespon: survey.responseCount,
+          targetLocation: survey.targetLocation,
+          isOpen: survey.isOpen,
+        ),
+      ),
+    );
+  }
+
+  // ✅ Navigasi ke AddQuestionPage
+  void _navigateToAddQuestion(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddQuestionPage(
+          surveyId: survey.slug,
+          surveyTitle: survey.name,
+          clientSlug: clientSlug,
+          projectSlug: projectSlug,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -359,11 +348,7 @@ class _SurveyCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 3)),
         ],
       ),
       child: Padding(
@@ -371,7 +356,6 @@ class _SurveyCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Title + Response Count ───────────────────
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -386,82 +370,67 @@ class _SurveyCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50),
+                Material(
+                  color: const Color(0xFF4CAF50),
+                  borderRadius: BorderRadius.circular(20),
+                  child: InkWell(
                     borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.bar_chart_rounded,
-                          color: Colors.white, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${survey.responseCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DetailRespondenSurveyTransjakartaPage(),
                         ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${survey.responseCount}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
-
-            // ── Description ──────────────────────────────
             if (survey.description != null)
-              Text(
-                survey.description!,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF777777),
-                  height: 1.4,
-                ),
-              ),
+              Text(survey.description!, style: const TextStyle(fontSize: 13, color: Color(0xFF777777), height: 1.4)),
             const SizedBox(height: 12),
-
-            // ── Target Location + Status ─────────────────
             Row(
               children: [
-                const Icon(Icons.location_on_outlined,
-                    size: 14, color: Color(0xFFAAAAAA)),
+                const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFFAAAAAA)),
                 const SizedBox(width: 4),
                 Expanded(
-                  child: Text(
-                    survey.targetLocation,
-                    style: const TextStyle(
-                        fontSize: 12, color: Color(0xFFAAAAAA)),
-                  ),
+                  child: Text(survey.targetLocation, style: const TextStyle(fontSize: 12, color: Color(0xFFAAAAAA))),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: survey.isOpen
-                        ? const Color(0xFFE8F5E9)
-                        : const Color(0xFFFFEBEE),
+                    color: survey.isOpen ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: survey.isOpen
-                          ? const Color(0xFF4CAF50)
-                          : const Color(0xFFEF5350),
+                      color: survey.isOpen ? const Color(0xFF4CAF50) : const Color(0xFFEF5350),
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 6,
-                        height: 6,
+                        width: 6, height: 6,
                         decoration: BoxDecoration(
-                          color: survey.isOpen
-                              ? const Color(0xFF4CAF50)
-                              : const Color(0xFFEF5350),
+                          color: survey.isOpen ? const Color(0xFF4CAF50) : const Color(0xFFEF5350),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -471,9 +440,7 @@ class _SurveyCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: survey.isOpen
-                              ? const Color(0xFF4CAF50)
-                              : const Color(0xFFEF5350),
+                          color: survey.isOpen ? const Color(0xFF4CAF50) : const Color(0xFFEF5350),
                         ),
                       ),
                     ],
@@ -481,12 +448,9 @@ class _SurveyCard extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
             const SizedBox(height: 10),
-
-            // ── Action Buttons ───────────────────────────
             Row(
               children: [
                 Expanded(
@@ -494,7 +458,16 @@ class _SurveyCard extends StatelessWidget {
                     label: 'Cek / Edit',
                     color: const Color(0xFF4CAF50),
                     onTap: () {
-                      // TODO: Navigate to survey detail/edit
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CekEditTransjakartaPage(
+                            surveyId: survey.slug,
+                            clientSlug: clientSlug,
+                            projectSlug: projectSlug,
+                          ),
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -503,33 +476,22 @@ class _SurveyCard extends StatelessWidget {
                   child: _ActionButton(
                     label: 'Monitor',
                     color: const Color(0xFF5C6BC0),
-                    onTap: () {
-                      // TODO: Navigate to monitor page
-                    },
+                    onTap: () => _navigateToMonitor(context),
                   ),
                 ),
                 const SizedBox(width: 6),
+                // ✅ Tombol Pertanyaan sekarang navigasi ke AddQuestionPage
                 Expanded(
                   child: _ActionButton(
                     label: 'Pertanyaan',
                     color: const Color(0xFFFFA726),
-                    onTap: () {
-                      // TODO: Navigate to questions page
-                    },
+                    onTap: () => _navigateToAddQuestion(context),
                   ),
                 ),
                 const SizedBox(width: 8),
-                _IconActionButton(
-                  icon: Icons.edit_rounded,
-                  color: const Color(0xFF4CAF50),
-                  onTap: () {},
-                ),
+                _IconActionButton(icon: Icons.edit_rounded, color: const Color(0xFF4CAF50), onTap: () {}),
                 const SizedBox(width: 4),
-                _IconActionButton(
-                  icon: Icons.content_copy_rounded,
-                  color: const Color(0xFF42A5F5),
-                  onTap: () {},
-                ),
+                _IconActionButton(icon: Icons.content_copy_rounded, color: const Color(0xFF42A5F5), onTap: () {}),
                 const SizedBox(width: 4),
                 _IconActionButton(
                   icon: Icons.delete_rounded,
@@ -554,8 +516,7 @@ class _SurveyCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal',
-                style: TextStyle(color: Color(0xFF888888))),
+            child: const Text('Batal', style: TextStyle(color: Color(0xFF888888))),
           ),
           ElevatedButton(
             onPressed: () {
@@ -564,8 +525,7 @@ class _SurveyCard extends StatelessWidget {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFEF5350),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('Hapus', style: TextStyle(color: Colors.white)),
           ),
@@ -583,11 +543,7 @@ class _ActionButton extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _ActionButton({
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
+  const _ActionButton({required this.label, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -600,14 +556,7 @@ class _ActionButton extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 7),
           child: Center(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
-              ),
-            ),
+            child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 11)),
           ),
         ),
       ),
@@ -623,11 +572,7 @@ class _IconActionButton extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _IconActionButton({
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
+  const _IconActionButton({required this.icon, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
