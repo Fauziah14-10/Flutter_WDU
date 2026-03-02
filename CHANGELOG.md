@@ -6,12 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
-## [1.1.1] - 2026-03-02
+## [1.2.0] - 2026-03-02
 ### Added
-- Added comprehensive project README and architecture documentation.
-- Integrated system flowcharts from the SIS WDU core system.
-- Refined project folder structure based on the new Architecture Plan.
-- Translated entire CHANGELOG from Indonesian to English for project consistency.
+- Implemented dynamic client fetching from Laravel API in the Dashboard.
+- Added comprehensive debug logging for authentication and API connectivity.
+- Integrated `ClientService` for robust data management.
+
+### Changed
+- Refactored `DashboardPage` to use a reactive loading state.
+- Improved search and filtering logic to support dynamically loaded data.
+- Optimized Dashboard UI by hiding the "Active Projects" section.
+
+### Fixed
+- Resolved missing `Storage` and `Api` imports in `dashboard_page.dart`.
+- Fixed data scope issues in the client list section.
+
+## [1.1.1] - 2026-03-02
 
 ## [1.1.0] - 2026-02-27
 ### Added
