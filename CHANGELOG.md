@@ -21,8 +21,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Resolved missing `Storage` and `Api` imports in `dashboard_page.dart`.
 - Fixed data scope issues in the client list section.
 
-## [1.1.1] - 2026-03-02
-
 ## [1.1.0] - 2026-02-27
 ### Added
 - Added client-specific pages: `project_tj`, `list_survey_BPK`, and `list_survey_transjakarta`.
