@@ -1,48 +1,60 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../utils/storage.dart';
-import 'api.dart';
+import '../core/api/api_client.dart';
+import '../core/constants/endpoints.dart';
+import '../core/utils/storage.dart';
 
 class AuthService {
+  final _api = ApiClient();
+
+  // ── LOGIN ─────────────────────────────────────────────────
+  // POST /api/login
   Future<bool> login(String email, String password) async {
-    final response = await http.post(
-      Uri.parse("${Api.baseUrl}/login"),
-      headers: {"Accept": "application/json"},
-      body: {
-        "email": email,
-        "password": password,
-      },
-    );
+    try {
+      final response = await _api.post(
+        Endpoints.login,
+        body: {'email': email, 'password': password},
+        requireAuth: false,
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      await Storage.saveToken(data['token']);
+      final token  = response.data?['token'] as String?;
+      final userId = response.data?['user']?['id']?.toString();
+
+      if (token == null) return false;
+
+      await StorageHelper.saveToken(token);
+      if (userId != null) await StorageHelper.saveUserId(userId);
+
+      final rememberMe = await StorageHelper.getRememberMe();
+      if (rememberMe) await StorageHelper.saveLastEmail(email);
+
       return true;
+    } on UnauthorizedException {
+      return false;
+    } on ApiException {
+      return false;
     }
-
-    return false;
   }
 
+  // ── GET USER ──────────────────────────────────────────────
+  
   Future<Map<String, dynamic>?> getUser() async {
-    final token = await Storage.getToken();
-
-    final response = await http.get(
-      Uri.parse("${Api.baseUrl}/user"),
-      headers: {
-        "Authorization": "Bearer $token",
-        "Accept": "application/json",
-      },
-    );
-
-    print('AuthService.getUser Status: ${response.statusCode}');
-    if (response.statusCode != 200) {
-      print('AuthService.getUser Error: ${response.body}');
+    try {
+      final response = await _api.get(Endpoints.me);
+      return response.data;              
+    } on UnauthorizedException {
+      await logout();
+      return null;
+    } on ApiException {
+      return null;
     }
+  }
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
+  // ── LOGOUT ────────────────────────────────────────────────
+  Future<void> logout() async {
+    await StorageHelper.clearSecure();
+  }
 
-    return null;
+  // ── CEK STATUS LOGIN ──────────────────────────────────────
+  Future<bool> isLoggedIn() async {
+    return await StorageHelper.hasToken();
   }
 }

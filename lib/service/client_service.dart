@@ -1,35 +1,35 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../utils/storage.dart';
-import 'api.dart';
+import '../core/api/api_client.dart';
+import '../core/constants/endpoints.dart';
+import '../models/client_model.dart';
+import '../models/user_project_model.dart';
 
 class ClientService {
-  Future<List<dynamic>> getClients() async {
-    final token = await Storage.getToken();
+  final _api = ApiClient();
 
-    final response = await http.get(
-      Uri.parse('${Api.baseUrl}/clients'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-    );
+  // client_service.dart
+Future<Map<String, dynamic>> getDashboardData() async {
+  final response = await _api.get(Endpoints.clients);
 
-    print('ClientService.getClients Status: ${response.statusCode}');
-    if (response.statusCode != 200) {
-      print('ClientService.getClients Error: ${response.body}');
-    }
+  print('── GET DASHBOARD ────────────────────');
+  print('response.data: ${response.data}');
+  print('────────────────────────────────────');
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data is Map<String, dynamic> && data['clients'] != null) {
-        return data['clients'];
-      }
-      if (data is List) return data;
-      if (data['data'] != null) return data['data'];
-      return [];
-    } else {
-      throw Exception('Failed to load clients: ${response.statusCode}');
-    }
+  if (response.data == null) {
+    throw Exception('Response data is null');
+  }
+
+  return response.data!;
+}
+
+  Future<List<Client>> getClients() async {
+    final response = await _api.get(Endpoints.clients);
+    final List<dynamic> raw = response.data!['clients'] as List<dynamic>;
+    return raw.map((e) => Client.fromJson(e)).toList();
+  }
+
+  Future<List<UserProject>> getUserProjects() async {
+    final response = await _api.get(Endpoints.clients);
+    final List<dynamic> raw = response.data!['userProjects'] as List<dynamic>;
+    return raw.map((e) => UserProject.fromJson(e)).toList();
   }
 }
