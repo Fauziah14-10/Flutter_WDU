@@ -32,9 +32,9 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SurveyProvider>().loadSurveys(
-            widget.clientSlug,
-            widget.projectSlug,
-          );
+        widget.clientSlug,
+        widget.projectSlug,
+      );
     });
     _searchController.addListener(() {
       setState(() => _query = _searchController.text.toLowerCase());
@@ -49,10 +49,10 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
 
   void _refresh() {
     context.read<SurveyProvider>().loadSurveys(
-          widget.clientSlug,
-          widget.projectSlug,
-          silent: true,
-        );
+      widget.clientSlug,
+      widget.projectSlug,
+      silent: true,
+    );
   }
 
   @override
@@ -62,9 +62,11 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
       body: Consumer<SurveyProvider>(
         builder: (context, provider, _) {
           final filtered = provider.surveys
-              .where((s) =>
-                  s.title.toLowerCase().contains(_query) ||
-                  (s.desc ?? '').toLowerCase().contains(_query))
+              .where(
+                (s) =>
+                    s.title.toLowerCase().contains(_query) ||
+                    (s.desc ?? '').toLowerCase().contains(_query),
+              )
               .toList();
 
           return SingleChildScrollView(
@@ -99,7 +101,9 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                             border: Border.all(color: Colors.white, width: 3),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xff1a7a5e).withOpacity(0.15),
+                                color: const Color(
+                                  0xff1a7a5e,
+                                ).withOpacity(0.15),
                                 blurRadius: 20,
                                 offset: const Offset(0, 4),
                               ),
@@ -157,24 +161,32 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                   width: double.infinity,
                   color: Colors.white,
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 32, vertical: 24),
+                    horizontal: 32,
+                    vertical: 24,
+                  ),
                   child: Column(
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 7),
+                          horizontal: 16,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xff1a7a5e).withOpacity(0.08),
                           border: Border.all(
-                              color: const Color(0xff1a7a5e).withOpacity(0.25),
-                              width: 1.5),
+                            color: const Color(0xff1a7a5e).withOpacity(0.25),
+                            width: 1.5,
+                          ),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.folder_open_rounded,
-                                size: 14, color: Color(0xff1a7a5e)),
+                            Icon(
+                              Icons.folder_open_rounded,
+                              size: 14,
+                              color: Color(0xff1a7a5e),
+                            ),
                             SizedBox(width: 6),
                             Text(
                               'PROJECT NAME',
@@ -195,7 +207,9 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                         decoration: BoxDecoration(
                           color: const Color(0xfff9fafb),
                           border: Border.all(
-                              color: const Color(0xffe5e7eb), width: 1.5),
+                            color: const Color(0xffe5e7eb),
+                            width: 1.5,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -215,7 +229,9 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                 // ══════════════ SEARCH + CARDS ══════════════
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 20),
+                    horizontal: 24,
+                    vertical: 20,
+                  ),
                   child: Column(
                     children: [
                       // Search bar
@@ -223,7 +239,9 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           border: Border.all(
-                              color: const Color(0xffe5e7eb), width: 1.5),
+                            color: const Color(0xffe5e7eb),
+                            width: 1.5,
+                          ),
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
@@ -239,12 +257,19 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                             hintText:
                                 'Cari kuisioner berdasarkan judul atau deskripsi',
                             hintStyle: TextStyle(
-                                fontSize: 13.5, color: Color(0xff9ca3af)),
-                            prefixIcon: Icon(Icons.search,
-                                color: Color(0xff9ca3af), size: 20),
+                              fontSize: 13.5,
+                              color: Color(0xff9ca3af),
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: Color(0xff9ca3af),
+                              size: 20,
+                            ),
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 14),
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
                           ),
                         ),
                       ),
@@ -255,21 +280,27 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 48),
                           child: CircularProgressIndicator(
-                              color: Color(0xff1a7a5e)),
+                            color: Color(0xff1a7a5e),
+                          ),
                         )
                       else if (provider.hasError)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 48),
                           child: Column(
                             children: [
-                              Icon(Icons.error_outline,
-                                  size: 48, color: Colors.red.shade300),
+                              Icon(
+                                Icons.error_outline,
+                                size: 48,
+                                color: Colors.red.shade300,
+                              ),
                               const SizedBox(height: 12),
                               Text(
                                 provider.errorMessage ?? 'Terjadi kesalahan.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                    color: Colors.red.shade400, fontSize: 14),
+                                  color: Colors.red.shade400,
+                                  fontSize: 14,
+                                ),
                               ),
                               const SizedBox(height: 16),
                               ElevatedButton(
@@ -277,10 +308,13 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xff1a7a5e),
                                   shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8)),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
-                                child: const Text('Coba Lagi',
-                                    style: TextStyle(color: Colors.white)),
+                                child: const Text(
+                                  'Coba Lagi',
+                                  style: TextStyle(color: Colors.white),
+                                ),
                               ),
                             ],
                           ),
@@ -290,14 +324,18 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                           padding: const EdgeInsets.symmetric(vertical: 48),
                           child: Column(
                             children: [
-                              Icon(Icons.inbox_outlined,
-                                  size: 48, color: Colors.grey.shade300),
+                              Icon(
+                                Icons.inbox_outlined,
+                                size: 48,
+                                color: Colors.grey.shade300,
+                              ),
                               const SizedBox(height: 12),
                               Text(
                                 'Tidak ada kuisioner.',
                                 style: TextStyle(
-                                    color: Colors.grey.shade400,
-                                    fontSize: 14),
+                                  color: Colors.grey.shade400,
+                                  fontSize: 14,
+                                ),
                               ),
                             ],
                           ),
@@ -336,19 +374,24 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
   }
 
   Widget _defaultLogoIcon() => Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.insert_drive_file_rounded,
-              size: 34,
-              color: const Color(0xff1a7a5e).withOpacity(0.45)),
-          const SizedBox(height: 2),
-          Text('Client Logo',
-              style: TextStyle(
-                  fontSize: 8,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade500)),
-        ],
-      );
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(
+        Icons.insert_drive_file_rounded,
+        size: 34,
+        color: const Color(0xff1a7a5e).withOpacity(0.45),
+      ),
+      const SizedBox(height: 2),
+      Text(
+        'Client Logo',
+        style: TextStyle(
+          fontSize: 8,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey.shade500,
+        ),
+      ),
+    ],
+  );
 
   String _clientDescription(String name) {
     if (name.toLowerCase().contains('bpk') ||

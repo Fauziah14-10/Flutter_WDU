@@ -31,8 +31,8 @@ class Client {
     return Client(
       id: json['id'],
       clientName: json['client_name'] ?? '',
-      image: json['image'],
-      imageUrl: json['image_url'],
+      image: _buildImageUrl(json['image']),
+      imageUrl: _buildImageUrl(json['image_url']),
       alamat: json['alamat'],
       phone: json['phone'],
       slug: json['slug'],
@@ -91,6 +91,15 @@ class Client {
       updatedAt: updatedAt ?? this.updatedAt,
       projects: projects ?? this.projects,
     );
+  }
+
+  static String? _buildImageUrl(String? url) {
+    if (url == null || url.isEmpty) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+
+    // assume sis.wahanadata.co.id domain
+    const base = 'https://sis.wahanadata.co.id';
+    return url.startsWith('/') ? '$base$url' : '$base/$url';
   }
 
   @override
