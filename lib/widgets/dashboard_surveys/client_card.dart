@@ -86,14 +86,22 @@ class ClientCard extends StatelessWidget {
             SizedBox(
               height: 96,
               width: double.infinity,
-              child: client.imageUrl != null
-                  ? Image.network(
-                      client.imageUrl!,
+              child: Builder(
+                builder: (context) {
+                  final url = client.imageUrl ?? client.image;
+                  if (url != null && url.isNotEmpty) {
+                    return Image.network(
+                      url,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          _imagePlaceholder(client.clientName),
-                    )
-                  : _imagePlaceholder(client.clientName),
+                      errorBuilder: (_, error, ___) {
+                        print('Image load error for $url: $error');
+                        return _buildFallback(client.clientName);
+                      },
+                    );
+                  }
+                  return _buildFallback(client.clientName);
+                },
+              ),
             ),
 
             // ── INFO ──
@@ -196,6 +204,19 @@ class ClientCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildFallback(String name) {
+    String nameLower = name.toLowerCase();
+    if (nameLower.contains('transjakarta') ||
+        nameLower.contains('trans jakarta')) {
+      return Image.asset('assets/images/logo_trans.jpeg', fit: BoxFit.cover);
+    } else if (nameLower.contains('bpk') ||
+        nameLower.contains('badan pemeriksa keuangan')) {
+      return Image.asset('assets/images/logo_bpk.png', fit: BoxFit.cover);
+    } else {
+      return _imagePlaceholder(name);
+    }
   }
 
   Widget _imagePlaceholder(String name) {

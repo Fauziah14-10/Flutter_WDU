@@ -2,41 +2,50 @@ import 'package:flutter/material.dart';
 import 'storage.dart';
 
 class AppRouteObserver extends NavigatorObserver {
+  // Stack manual untuk simpan nama + args
+  final List<({String name, Object? args})> _stack = [];
+
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPush(route, previousRoute);
-    _saveRoute(route);
+    final name = route.settings.name;
+    final args = route.settings.arguments;
+    if (name != null) {
+      _stack.add((name: name, args: args));
+    }
+    _persistCurrent();
   }
 
   @override
   void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
     super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
-    if (newRoute != null) {
-      _saveRoute(newRoute);
+    if (_stack.isNotEmpty) _stack.removeLast();
+    final name = newRoute?.settings.name;
+    final args = newRoute?.settings.arguments;
+    if (name != null) {
+      _stack.add((name: name, args: args));
     }
+    _persistCurrent();
   }
 
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPop(route, previousRoute);
-    if (previousRoute != null) {
-      _saveRoute(previousRoute);
-    }
+    if (_stack.isNotEmpty) _stack.removeLast();
+    _persistCurrent(); // simpan route yang sekarang aktif (top of stack)
   }
 
-  void _saveRoute(Route<dynamic> route) {
-    final name = route.settings.name;
-    final args = route.settings.arguments;
-
-    // Don't save login, dashboard, or empty routes as persistence targets
-    // as Dashboard is already handled by 'home'
-    if (name != null &&
-        name != '/' &&
-        name != '/login' &&
-        name != '/dashboard') {
-      StorageHelper.saveLastRoute(name, args);
-    } else if (name == '/login' || name == '/dashboard') {
-      StorageHelper.saveLastRoute(null, null);
+  void _persistCurrent() {
+    // Cari route teratas yang layak disimpan
+    for (final entry in _stack.reversed) {
+      if (entry.name != '/' &&
+          entry.name != '/login' &&
+          entry.name != '/dashboard') {
+        StorageHelper.saveLastRoute(entry.name, entry.args);
+        return;
+      }
     }
+    // Kalau tidak ada route yang layak, hapus
+    StorageHelper.saveLastRoute(null, null);
   }
 }

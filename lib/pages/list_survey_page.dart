@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/survey_provider.dart';
-import 'survey_bpk_page.dart';
+import 'survey_page.dart';
 
 class SurveyListPage extends StatefulWidget {
   final String clientSlug;
   final String clientName;
   final String projectSlug;
   final String projectTitle;
+  final String? clientLogoUrl;
 
   const SurveyListPage({
     super.key,
@@ -15,6 +16,7 @@ class SurveyListPage extends StatefulWidget {
     required this.clientName,
     required this.projectSlug,
     required this.projectTitle,
+    this.clientLogoUrl,
   });
 
   @override
@@ -28,9 +30,9 @@ class _SurveyListPageState extends State<SurveyListPage> {
     // Fetch data via provider saat page dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SurveyProvider>().loadSurveys(
-            widget.clientSlug,
-            widget.projectSlug,
-          );
+        widget.clientSlug,
+        widget.projectSlug,
+      );
     });
   }
 
@@ -42,6 +44,7 @@ class _SurveyListPageState extends State<SurveyListPage> {
       projectSlug: widget.projectSlug,
       clientName: widget.clientName,
       projectName: widget.projectTitle,
+      clientLogoUrl: widget.clientLogoUrl,
     );
   }
 }
