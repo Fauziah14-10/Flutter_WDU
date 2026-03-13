@@ -63,7 +63,10 @@ class ViewSurveyCard extends StatelessWidget {
                 GestureDetector(
                   onTap: onTapResponden,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF4CAF50),
                       borderRadius: BorderRadius.circular(20),
@@ -71,7 +74,11 @@ class ViewSurveyCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 16),
+                        const Icon(
+                          Icons.bar_chart_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           '${survey.responseCount}',
@@ -106,19 +113,29 @@ class ViewSurveyCard extends StatelessWidget {
             // ── LOCATION + STATUS ──
             Row(
               children: [
-                const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFFAAAAAA)),
+                const Icon(
+                  Icons.location_on_outlined,
+                  size: 14,
+                  color: Color(0xFFAAAAAA),
+                ),
                 const SizedBox(width: 4),
                 if (survey.provinceTargets.isEmpty)
                   Expanded(
                     child: Text(
                       survey.targetLocation,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFFAAAAAA)),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFAAAAAA),
+                      ),
                     ),
                   )
                 else
                   const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: isOpen
                         ? const Color(0xFF4CAF50).withOpacity(0.1)
@@ -203,14 +220,20 @@ class ViewSurveyCard extends StatelessWidget {
                   ),
                 ),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFE0E0E0)),
                   ),
                   child: Row(
                     children: [
-                      const Text('All Provinces', style: TextStyle(fontSize: 13)),
+                      const Text(
+                        'All Provinces',
+                        style: TextStyle(fontSize: 13),
+                      ),
                       const Spacer(),
                       Text(
                         'View all',
@@ -246,24 +269,25 @@ class ViewSurveyCard extends StatelessWidget {
                           settings: RouteSettings(
                             name: '/cek_edit_survey',
                             arguments: {
-                              'surveySlug': survey.slug,   // ← surveySlug
+                              'surveySlug': survey.slug, // ← surveySlug
                               'clientSlug': clientSlug,
                               'projectSlug': projectSlug,
-                              'responseId': 0,             // ← int, 0 = belum pilih responden
+                              'responseId':
+                                  0, // ← int, 0 = belum pilih responden
                             },
                           ),
                           builder: (_) => CekEditSurveyPage(
-                            surveySlug: survey.slug,       // ← surveySlug
+                            surveySlug: survey.slug, // ← surveySlug
                             clientSlug: clientSlug,
                             projectSlug: projectSlug,
-                            responseId: 0,                 // ← int
+                            responseId: 0, // ← int
                           ),
                         ),
                       );
                     },
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 24), // Jarak diperbesar lagi menjadi 24
                 Expanded(
                   child: _ActionBtn(
                     label: 'Monitor',
@@ -318,12 +342,12 @@ class _ActionBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 38,
+    height: 38, // Kembali ke ukuran awal (38)
     child: ElevatedButton(
       onPressed: onTap,
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         elevation: 0,
       ),
@@ -333,7 +357,7 @@ class _ActionBtn extends StatelessWidget {
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w700,
-          fontSize: 13,
+          fontSize: 13, // Kembali ke ukuran awal (13)
         ),
       ),
     ),
