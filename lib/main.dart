@@ -10,6 +10,7 @@ import 'pages/province_target_page.dart';
 import 'pages/project_tj_page.dart';
 import 'pages/detail_responden_bpk_page.dart';
 import 'pages/detail_responden_transjakarta_page.dart';
+import 'providers/auth_provider.dart';   // ← TAMBAHKAN IMPORT INI
 import 'providers/survey_provider.dart';
 import 'models/client_model.dart';
 import 'models/provinsi_model.dart';
@@ -21,14 +22,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final isLoggedIn = await StorageHelper.hasToken();
-  final lastRoute = await StorageHelper.getLastRouteName();
-  final lastArgs = await StorageHelper.getLastRouteArgs();
+  final lastRoute  = await StorageHelper.getLastRouteName();
+  final lastArgs   = await StorageHelper.getLastRouteArgs();
 
   runApp(
     MyApp(
-      isLoggedIn: isLoggedIn,
+      isLoggedIn:   isLoggedIn,
       initialRoute: lastRoute,
-      initialArgs: lastArgs,
+      initialArgs:  lastArgs,
     ),
   );
 }
@@ -48,7 +49,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => SurveyProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),    
+        ChangeNotifierProvider(create: (_) => SurveyProvider()),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         navigatorObservers: [AppRouteObserver()],
@@ -72,9 +76,9 @@ class MyApp extends StatelessWidget {
               return MaterialPageRoute(
                 settings: RouteSettings(name: '/surveys', arguments: safeArgs),
                 builder: (_) => SurveyListPage(
-                  clientSlug: safeArgs['clientSlug'] ?? '',
-                  clientName: safeArgs['clientName'] ?? '',
-                  projectSlug: safeArgs['projectSlug'] ?? '',
+                  clientSlug:   safeArgs['clientSlug']   ?? '',
+                  clientName:   safeArgs['clientName']   ?? '',
+                  projectSlug:  safeArgs['projectSlug']  ?? '',
                   projectTitle: safeArgs['projectTitle'] ?? '',
                 ),
               );
@@ -82,31 +86,25 @@ class MyApp extends StatelessWidget {
             case '/monitoring':
               final safeArgs = args ?? {};
               return MaterialPageRoute(
-                settings: RouteSettings(
-                  name: '/monitoring',
-                  arguments: safeArgs,
-                ),
+                settings: RouteSettings(name: '/monitoring', arguments: safeArgs),
                 builder: (_) => MonitoringSurveyPage(
-                  surveyName: safeArgs['surveyName'] ?? '',
-                  clientSlug: safeArgs['clientSlug'] ?? '',
-                  projectSlug: safeArgs['projectSlug'] ?? '',
-                  surveySlug: safeArgs['surveySlug'] ?? '',
-                  totalRespon: safeArgs['totalRespon'] ?? 0,
+                  surveyName:     safeArgs['surveyName']     ?? '',
+                  clientSlug:     safeArgs['clientSlug']     ?? '',
+                  projectSlug:    safeArgs['projectSlug']    ?? '',
+                  surveySlug:     safeArgs['surveySlug']     ?? '',
+                  totalRespon:    safeArgs['totalRespon']    ?? 0,
                   targetLocation: safeArgs['targetLocation'] ?? '-',
-                  isOpen: safeArgs['isOpen'] ?? true,
+                  isOpen:         safeArgs['isOpen']         ?? true,
                 ),
               );
 
             case '/cek_edit_monitor':
               final safeArgs = args ?? {};
               return MaterialPageRoute(
-                settings: RouteSettings(
-                  name: '/cek_edit_monitor',
-                  arguments: safeArgs,
-                ),
+                settings: RouteSettings(name: '/cek_edit_monitor', arguments: safeArgs),
                 builder: (_) => CekEditMonitorPage(
-                  surveyId: (safeArgs['surveyId'] ?? '').toString(),
-                  clientSlug: safeArgs['clientSlug'] ?? '',
+                  surveyId:   (safeArgs['surveyId'] ?? '').toString(),
+                  clientSlug:  safeArgs['clientSlug']  ?? '',
                   projectSlug: safeArgs['projectSlug'] ?? '',
                 ),
               );
@@ -114,47 +112,36 @@ class MyApp extends StatelessWidget {
             case '/cek_edit_survey':
               final safeArgs = args ?? {};
               return MaterialPageRoute(
-                settings: RouteSettings(
-                  name: '/cek_edit_survey',
-                  arguments: safeArgs,
-                ),
+                settings: RouteSettings(name: '/cek_edit_survey', arguments: safeArgs),
                 builder: (_) => CekEditSurveyPage(
-                  surveyId: (safeArgs['surveyId'] ?? '').toString(),
-                  clientSlug: safeArgs['clientSlug'] ?? '',
+                  surveyId:    (safeArgs['surveyId'] ?? '').toString(),
+                  clientSlug:  safeArgs['clientSlug']  ?? '',
                   projectSlug: safeArgs['projectSlug'] ?? '',
                 ),
               );
 
             case '/province_target':
-              final safeArgs = args ?? {};
+              final safeArgs     = args ?? {};
               final provincesRaw = safeArgs['provinces'] as List? ?? [];
-              final provinces = provincesRaw
-                  .map(
-                    (p) => ProvinceTarget.fromJson(p as Map<String, dynamic>),
-                  )
+              final provinces    = provincesRaw
+                  .map((p) => ProvinceTarget.fromJson(p as Map<String, dynamic>))
                   .toList();
               return MaterialPageRoute(
-                settings: RouteSettings(
-                  name: '/province_target',
-                  arguments: safeArgs,
-                ),
+                settings: RouteSettings(name: '/province_target', arguments: safeArgs),
                 builder: (_) => ProvinceTargetPage(
                   surveyName: safeArgs['surveyName'] ?? '',
-                  provinces: provinces,
+                  provinces:  provinces,
                 ),
               );
 
             case '/project_list':
-              final safeArgs = args ?? {};
+              final safeArgs   = args ?? {};
               final clientData = safeArgs['client'] as Map<String, dynamic>?;
-              final client = clientData != null
+              final client     = clientData != null
                   ? Client.fromJson(clientData)
                   : Client(clientName: '');
               return MaterialPageRoute(
-                settings: RouteSettings(
-                  name: '/project_list',
-                  arguments: safeArgs,
-                ),
+                settings: RouteSettings(name: '/project_list', arguments: safeArgs),
                 builder: (_) => ProjectListPage(client: client),
               );
 
