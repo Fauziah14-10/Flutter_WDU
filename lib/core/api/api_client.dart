@@ -72,10 +72,19 @@ class ApiClient {
   }
 
   // ── LOG REQUEST (hanya di debug mode) ──────────────────────
-  void _logRequest(String method, String url, {dynamic body}) {
+  void _logRequest(String method, String url, {dynamic body, Map<String, String>? headers}) {
     assert(() {
       print('── API REQUEST ──────────────────────');
       print('$method $url');
+      if (headers != null) {
+        final auth = headers['Authorization'];
+        if (auth != null) {
+          final prefix = auth.length > 15 ? auth.substring(0, 15) : auth;
+          print('Auth: $prefix...');
+        } else {
+          print('Auth: MISSING');
+        }
+      }
       if (body != null) print('Body: $body');
       print('─────────────────────────────────────');
       return true;
@@ -173,9 +182,8 @@ class ApiClient {
         uri = uri.replace(queryParameters: queryParams);
       }
 
-      _logRequest('GET', uri.toString());
-
       final headers = await _buildHeaders(requireAuth: requireAuth);
+      _logRequest('GET', uri.toString(), headers: headers);
       final response = await _client
           .get(uri, headers: headers)
           .timeout(_timeout);
@@ -198,9 +206,8 @@ class ApiClient {
       final uri = Uri.parse('${Endpoints.baseUrl}$endpoint');
       final encodedBody = jsonEncode(body);
 
-      _logRequest('POST', uri.toString(), body: encodedBody);
-
       final headers = await _buildHeaders(requireAuth: requireAuth);
+      _logRequest('POST', uri.toString(), body: encodedBody, headers: headers);
       final response = await _client
           .post(uri, headers: headers, body: encodedBody)
           .timeout(_timeout);
@@ -223,9 +230,8 @@ class ApiClient {
       final uri = Uri.parse('${Endpoints.baseUrl}$endpoint');
       final encodedBody = jsonEncode(body);
 
-      _logRequest('PUT', uri.toString(), body: encodedBody);
-
       final headers = await _buildHeaders(requireAuth: requireAuth);
+      _logRequest('PUT', uri.toString(), body: encodedBody, headers: headers);
       final response = await _client
           .put(uri, headers: headers, body: encodedBody)
           .timeout(_timeout);
@@ -248,9 +254,8 @@ class ApiClient {
       final uri = Uri.parse('${Endpoints.baseUrl}$endpoint');
       final encodedBody = jsonEncode(body);
 
-      _logRequest('PATCH', uri.toString(), body: encodedBody);
-
       final headers = await _buildHeaders(requireAuth: requireAuth);
+      _logRequest('PATCH', uri.toString(), body: encodedBody, headers: headers);
       final response = await _client
           .patch(uri, headers: headers, body: encodedBody)
           .timeout(_timeout);
@@ -272,9 +277,8 @@ class ApiClient {
     try {
       final uri = Uri.parse('${Endpoints.baseUrl}$endpoint');
 
-      _logRequest('DELETE', uri.toString());
-
       final headers = await _buildHeaders(requireAuth: requireAuth);
+      _logRequest('DELETE', uri.toString(), headers: headers);
       final response = await _client
           .delete(uri, headers: headers)
           .timeout(_timeout);

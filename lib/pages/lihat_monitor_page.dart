@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
+import '../service/survey_service.dart';
+import '../models/survey_response_detail_model.dart';
 
 class LihatMonitorPage extends StatefulWidget {
-  final String surveyId;
+  final int responseId;
+  final String surveySlug;
   final String clientSlug;
   final String projectSlug;
 
   const LihatMonitorPage({
     super.key,
-    required this.surveyId,
+    required this.responseId,
+    required this.surveySlug,
     required this.clientSlug,
     required this.projectSlug,
   });
@@ -19,44 +23,13 @@ class LihatMonitorPage extends StatefulWidget {
 
 class _LihatMonitorPageState extends State<LihatMonitorPage>
     with SingleTickerProviderStateMixin {
-  int selectedTab = 0;
+  bool _isLoading = true;
+  String? _errorMessage;
+  SurveyResponseDetail? _detail;
+
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
-
-  final List<Map<String, dynamic>> tabs = [
-    {'label': 'Semua', 'count': 0},
-    {'label': 'Terdaftar', 'count': 0},
-    {'label': 'Campaign', 'count': 0},
-    {'label': 'Guest', 'count': 0},
-  ];
-
-  final List<Map<String, dynamic>> statCards = [
-    {
-      'title': 'Total Responden',
-      'count': 0,
-      'icon': Icons.groups_rounded,
-      'color': AppTheme.monGreenMid,
-    },
-    {
-      'title': 'Responden Terdaftar',
-      'count': 0,
-      'icon': Icons.verified_user_rounded,
-      'color': const Color(0xFF00B4D8),
-    },
-    {
-      'title': 'Campaign',
-      'count': 0,
-      'icon': Icons.campaign_rounded,
-      'color': const Color(0xFF9D4EDD),
-    },
-    {
-      'title': 'Responden Guest',
-      'count': 0,
-      'icon': Icons.person_outline_rounded,
-      'color': const Color(0xFFE5989B),
-    },
-  ];
 
   @override
   void initState() {
@@ -71,6 +44,40 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final detail = await SurveyService().getSurveyResponseDetail(
+        widget.clientSlug,
+        widget.projectSlug,
+        widget.surveySlug,
+        widget.responseId,
+      );
+
+      if (detail != null) {
+        setState(() {
+          _detail = detail;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = "Data tidak ditemukan.";
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = "Gagal memuat data: $e";
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -87,24 +94,29 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
         children: [
           _buildHeader(context),
           Expanded(
-            child: FadeTransition(
-              opacity: _fadeAnim,
-              child: SlideTransition(
-                position: _slideAnim,
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      _buildStatCards(),
-                      const SizedBox(height: 24),
-                      _buildTabBar(),
-                      const SizedBox(height: 48),
-                      _buildEmptyState(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppTheme.monGreenMid),
+                  )
+                : _errorMessage != null
+                    ? _buildErrorUI()
+                    : FadeTransition(
+                        opacity: _fadeAnim,
+                        child: SlideTransition(
+                          position: _slideAnim,
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildRespondentInfo(),
+                                const SizedBox(height: 24),
+                                ..._buildQuestionsList(),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
           ),
         ],
       ),
@@ -212,192 +224,168 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
     );
   }
 
-  Widget _buildStatCards() {
-    return SizedBox(
-      height: 160,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: statCards.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 16),
-        itemBuilder: (context, index) {
-          final data = statCards[index];
-          final Color color = data['color'];
-          return Container(
-            width: 150,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.1),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-              border: Border.all(color: color.withOpacity(0.15)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(data['icon'] as IconData, color: color, size: 24),
-                ),
-                const Spacer(),
-                Text(
-                  '${data['count']}',
-                  style: TextStyle(
-                    color: AppTheme.monTextDark,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  data['title'] as String,
-                  style: const TextStyle(
-                    color: AppTheme.monTextMid,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          );
-        },
+  Widget _buildErrorUI() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, color: Colors.red, size: 48),
+          const SizedBox(height: 16),
+          Text(_errorMessage ?? "Terjadi kesalahan"),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _fetchData,
+            child: const Text("Coba Lagi"),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildRespondentInfo() {
+    // Cari info dari survey/client? Endpoint report biasanya tidak eksplisit kasih biodata responden di top level
+    // tapi kita bisa coba ambil dari data yang ada di _detail atau asumsikan context dari navigation
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: AppTheme.monBorderColor.withOpacity(0.5)),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: tabs.asMap().entries.map((entry) {
-            final index = entry.key;
-            final tab = entry.value;
-            final isSelected = selectedTab == index;
-
-            return GestureDetector(
-              onTap: () => setState(() => selectedTab = index),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeOutCubic,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppTheme.monGreenMid : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      tab['label'] as String,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isSelected
-                            ? FontWeight.w700
-                            : FontWeight.w600,
-                        color: isSelected ? Colors.white : AppTheme.monTextMid,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Colors.white.withOpacity(0.25)
-                            : AppTheme.monBgColor,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${tab['count']}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected
-                              ? Colors.white
-                              : AppTheme.monTextLight,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.info_outline, color: AppTheme.monGreenMid, size: 18),
+              const SizedBox(width: 8),
+              const Text(
+                "Informasi Respon",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
-            );
-          }).toList(),
-        ),
+            ],
+          ),
+          const Divider(height: 24),
+          _infoRow("Survey", _detail?.survey?.title ?? widget.surveySlug),
+          _infoRow("Waktu Edit", _detail?.editedAt?.toString() ?? "-"),
+          _infoRow("Response ID", widget.responseId.toString()),
+        ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppTheme.monGreenPale.withOpacity(0.4),
-            shape: BoxShape.circle,
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
+            ),
           ),
-          child: Icon(
-            Icons.inbox_rounded,
-            color: AppTheme.monGreenMid.withOpacity(0.8),
-            size: 48,
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildQuestionsList() {
+    if (_detail == null) return [];
+
+    final answersMap = {
+      for (var a in _detail!.answers) a.questionId: a.answer
+    };
+
+    List<Widget> list = [];
+
+    for (var page in _detail!.pages) {
+      list.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12, top: 8),
+          child: Text(
+            page.pageName.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: Colors.grey,
+              letterSpacing: 1.2,
+            ),
           ),
         ),
-        const SizedBox(height: 24),
-        const Text(
-          "Belum Ada Responden",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.monTextDark,
-            letterSpacing: 0.5,
+      );
+
+      for (var q in page.questions) {
+        final answer = answersMap[q.id] ?? "-";
+        list.add(_buildQuestionCard(q, answer));
+        list.add(const SizedBox(height: 12));
+      }
+    }
+
+    return list;
+  }
+
+  Widget _buildQuestionCard(SurveyQuestionData q, String answer) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            q.plainText,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: Color(0xFF333333),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          "Data responden di kategori ini masih kosong.\nSilakan periksa lagi nanti.",
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 14,
-            color: AppTheme.monTextMid,
-            height: 1.4,
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.monBgColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.reply, size: 14, color: AppTheme.monGreenMid),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    answer.isEmpty ? "-" : answer,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.monGreenDark,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.2.2] - 2026-03-13
+### Added
+- project_list folder inside the widget directory, containing header_cell, project_client_card, project_row, and project_section files for better project file structure
+- Logging to ApiClient to indicate the presence of the Authorization header
+
+### remove
+- Unused folders and files: app_constant, question_model, logic_evaluator, and submission_service
+
+
+## [1.2.2] - 2026-03-11, 12
+### Added
+- cek_edit page with endpoint integration
+
+### Changed
+- Client card layout from horizontal scroll to vertical scroll
+- Detail response design with "View" button now connected to endpoint
+
+### remove
+- Unused folders and files: dummy_service
+
 ## [1.2.1] - 2026-03-11
 ### Fixed
 - Fixed client image display issues.

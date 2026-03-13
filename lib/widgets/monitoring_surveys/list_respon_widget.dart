@@ -286,7 +286,8 @@ class _Row extends StatelessWidget {
                           },
                         ),
                         builder: (_) => LihatMonitorPage(
-                          surveyId: responseId.toString(),
+                          responseId: responseId,
+                          surveySlug: provider.surveySlug,
                           clientSlug: clientSlug,
                           projectSlug: projectSlug,
                         ),

@@ -7,7 +7,7 @@ import 'pages/monitor_survey_page.dart';
 import 'pages/cek_edit_monitor.dart';
 import 'pages/cek_edit_survey_page.dart';
 import 'pages/province_target_page.dart';
-import 'pages/project_tj_page.dart';
+import 'pages/project_page.dart';
 import 'pages/detail_responden_bpk_page.dart';
 import 'pages/detail_responden_transjakarta_page.dart';
 import 'providers/auth_provider.dart'; // ← TAMBAHKAN IMPORT INI

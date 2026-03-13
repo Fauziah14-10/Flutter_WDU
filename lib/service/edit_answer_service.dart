@@ -3,7 +3,6 @@ import 'dart:convert';
 import '../core/api/api_client.dart';
 import '../core/constants/endpoints.dart';
 import '../models/survey_response_detail_model.dart';
-import '../models/change_answer_model.dart';
 
 class EditAnswerService {
   final _api = ApiClient();
@@ -64,10 +63,13 @@ class EditAnswerService {
     return {
       'page': pages.map((page) {
         return {
-          'question': page.questions.map((q) => {'id': q.id}).toList(),
-          'answer': page.questions
-              .map((q) => _buildAnswerValue(q, currentAnswers[q.id]))
-              .toList(),
+          'question': page.questions.map((q) {
+            return {
+              'id': q.id,
+              'question_type_id': q.questionTypeId,
+              'ans': _buildAnswerValue(q, currentAnswers[q.id]),
+            };
+          }).toList(),
         };
       }).toList(),
     };

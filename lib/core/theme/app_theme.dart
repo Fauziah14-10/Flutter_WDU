@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
+  AppTheme._();
+
   // ── WARNA UTAMA ──
   static const Color primaryColor    = Color(0xFF3DAA2E);
   static const Color darkGreenColor  = Color(0xFF2A7A20);
   static const Color lightGreenBg    = Color(0xFFB8E0A8);
   static const Color backgroundColor = Color(0xFFF5F7FA);
   static const Color cardColor       = Colors.white;
+
+  // ── WARNA PROJECT LIST ──
+  static const Color green     = Color(0xFF4CAF50);
+  static const Color textDark  = Color(0xFF1A2340);
+  static const Color textGrey  = Color(0xFF7A869A);
+  static const Color bgPage    = Color(0xFFF4F6F8);
+  static const Color bgLight   = Color(0xFFF0F0F0);
+  static const Color bgGreen   = Color(0xFFE8F5E9);
+  static const Color border    = Color(0xFFE0E0E0);
+  static const Color rowBorder = Color(0xFFF0F0F0);
 
   // ── WARNA MONITORING ──
   static const Color monGreenDark   = Color(0xFF2D7A3A);
@@ -74,21 +86,21 @@ class AppTheme {
 
   // ── THEME DATA ──
   static ThemeData get themeData => ThemeData(
-        primarySwatch: Colors.green,
-        scaffoldBackgroundColor: backgroundColor,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF3DAA2E),
-          foregroundColor: Colors.white,
-          elevation: 0,
+    primarySwatch: Colors.green,
+    scaffoldBackgroundColor: backgroundColor,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF3DAA2E),
+      foregroundColor: Colors.white,
+      elevation: 0,
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Color(0xFF3DAA2E),
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(6),
         ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF3DAA2E),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
-        ),
-      );
+      ),
+    ),
+  );
 }
