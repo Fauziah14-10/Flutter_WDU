@@ -260,7 +260,7 @@ class ViewSurveyCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _ActionBtn(
-                    label: 'Cek / Edit',
+                    label: 'Cek / Isi Kuisioner',
                     color: const Color(0xFF4CAF50),
                     onTap: () {
                       Navigator.push(

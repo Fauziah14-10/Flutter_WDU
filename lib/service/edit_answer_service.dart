@@ -24,8 +24,11 @@ class EditAnswerService {
         return SurveyResponseDetail.fromJson(response.data!);
       }
       return null;
-    } catch (e) {
-      return null;
+    } on ApiException {
+      rethrow;
+    } catch (e, st) {
+      print("getEditAnswerData ERROR: $e\n$st");
+      throw Exception("Format JSON tidak valid atau error lain: $e");
     }
   }
 
@@ -48,6 +51,64 @@ class EditAnswerService {
       );
       return true;
     } catch (e) {
+      return false;
+    }
+  }
+
+  // ── AMBIL SURVEI KOSONG JIKA BELUM ADA JAWABAN (404) ──────
+  Future<SurveyResponseDetail?> getSurveyFormKosong({
+    required String clientSlug,
+    required String projectSlug,
+    required String surveySlug,
+  }) async {
+    try {
+      final response = await _api.get(
+        Endpoints.surveyDetail(clientSlug, projectSlug, surveySlug),
+      );
+
+      if (response.data != null) {
+        final data = response.data!;
+        // Jika endpoint detail membungkus halaman dalam "data" berupa List
+        if (data.containsKey('data') && data['data'] is List) {
+          final pagesList = data['data'] as List;
+          final List<SurveyPageData> parsedPages = pagesList
+              .map((e) => SurveyPageData.fromJson(e as Map<String, dynamic>))
+              .toList();
+          return SurveyResponseDetail(
+            pages: parsedPages,
+            answers: [],
+          );
+        }
+        return SurveyResponseDetail.fromJson(data);
+      }
+      return null;
+    } on ApiException {
+      rethrow;
+    } catch (e, st) {
+      print("getSurveyFormKosong ERROR: $e\n$st");
+      throw Exception("Format JSON form kosong tidak valid: $e");
+    }
+  }
+
+  // ── KIRIM JAWABAN BARU (PERTAMA KALI) ───────────────────────
+  // POST /api/clients/{clientSlug}/projects/{projectSlug}/surveys/{surveyId}/submit
+  Future<bool> submitNewAnswer({
+    required String clientSlug,
+    required String projectSlug,
+    required int surveyId,
+    required List<SurveyPageData> pages,
+    required Map<int, dynamic> currentAnswers,
+  }) async {
+    try {
+      final payload = _buildPayload(pages, currentAnswers);
+
+      await _api.post(
+        Endpoints.submitAnswer(clientSlug, projectSlug, surveyId),
+        body: payload,
+      );
+      return true;
+    } catch (e) {
+      print("Error submitNewAnswer: $e");
       return false;
     }
   }

@@ -57,7 +57,7 @@ class ListResponWidget extends StatelessWidget {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Container(
-            width: 600, // Minimal width agar kolom tidak terlalu gepeng
+            width: 750, // Lebar ditambah untuk menampung kolom Status di akhir
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(10),
@@ -77,6 +77,7 @@ class ListResponWidget extends StatelessWidget {
                         _H('PROVINSI', flex: 3),
                         _H('ROLE', flex: 2),
                         _H('ACTION', flex: 4, center: true),
+                        _H('STATUS', flex: 2, center: true),
                       ],
                     ),
                   ),
@@ -283,7 +284,7 @@ class _Row extends StatelessWidget {
                         settings: RouteSettings(
                           name: '/lihat_monitor',
                           arguments: {
-                            'surveySlug': provider.surveySlug, // ← surveySlug
+                            'surveySlug': provider.surveySlug,
                             'clientSlug': clientSlug,
                             'projectSlug': projectSlug,
                             'responseId': responseId,
@@ -334,9 +335,42 @@ class _Row extends StatelessWidget {
               ],
             ),
           ),
+          Expanded(
+            flex: 2,
+            child: _StatusBadge(
+              // Prioritaskan nilai yang bukan boolean, atau petakan boolean ke PENDING/APPROVE
+              status: _getModerationStatus(response),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  String _getModerationStatus(Map<String, dynamic> r) {
+    // Coba ambil dari berbagai field moderasi umum dilaravel
+    final dynamic s = r['moderation_status'] ?? r['status_review'] ?? r['review_status'] ?? r['status_moderasi'] ?? r['status'];
+    
+    if (s == null) return 'PENDING';
+    
+    // Map integers (0: Pending, 1: Revision, 2: Approve, 3: Decline) —— asumsikan pattern umum
+    if (s is int) {
+      switch (s) {
+        case 0: return 'PENDING';
+        case 1: return 'REVISION';
+        case 2: return 'APPROVE';
+        case 3: return 'DECLINE';
+        default: return 'PENDING';
+      }
+    }
+
+    if (s is bool) {
+      if (r['is_approved'] == true) return 'APPROVE';
+      if (r['is_revision'] == true) return 'REVISION';
+      return (s == true) ? 'PENDING' : 'DRAFT';
+    }
+    
+    return s.toString();
   }
 
   String _fmtDate(String raw) {
@@ -368,6 +402,61 @@ class _Row extends StatelessWidget {
       case 'enumerator': return 'Enum.';
       default:           return 'Lainnya';
     }
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    String s = status.toUpperCase();
+    
+    // Map unexpected values like "TRUE", "false", "0", "1" to human readable labels
+    if (s == 'TRUE' || s == '1') {
+      // Jika true/1 dari database, asumsikan PENDING review jika belum ada label lain
+      s = 'PENDING';
+    } else if (s == 'FALSE' || s == '0' || s == 'NULL' || s.isEmpty) {
+      s = 'PENDING';
+    }
+
+    // Default PENDING (Gray)
+    Color bgColor = const Color(0xFFF3F4F6); // Light Gray
+    Color textColor = const Color(0xFF6B7280); // Dark Gray
+
+    if (s.contains('REVISION')) {
+      s = 'REVISION';
+      bgColor = const Color(0xFFFEF3C7); // Light Amber/Orange
+      textColor = const Color(0xFFD97706); // Dark Orange
+    } else if (s.contains('APPROVE')) {
+      s = 'APPROVE';
+      bgColor = const Color(0xFFD1FAE5); // Light Green
+      textColor = const Color(0xFF059669); // Dark Green
+    } else if (s.contains('DECLINE')) {
+      s = 'DECLINE';
+      bgColor = const Color(0xFFFEE2E2); // Light Red
+      textColor = const Color(0xFFDC2626); // Dark Red
+    }
+
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          s,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            color: textColor,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
   }
 }
 

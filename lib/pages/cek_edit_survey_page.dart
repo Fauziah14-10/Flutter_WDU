@@ -29,12 +29,14 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
 
   bool isLoading = true;
   SurveyResponseDetail? surveyData;
+  String? loadError;
 
   Map<int, dynamic> answers = {};
   Map<int, dynamic> originalAnswers = {};
 
   bool isSaving = false;
   int? _activeResponseId; // ID respons yang akan digunakan untuk PATCH
+  bool isNewSurvey = false; // Deteksi apakah ini jawaban baru
 
   @override
   void initState() {
@@ -44,7 +46,10 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
 
   // ── LOAD ─────────────────────────────────────────────────
   Future<void> _loadData() async {
-    setState(() => isLoading = true);
+    setState(() {
+      isLoading = true;
+      loadError = null;
+    });
 
     int userId = 0;
     try {
@@ -54,7 +59,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
 
       if (userId == 0) {
         debugPrint("userId tidak ditemukan di storage");
-        setState(() => isLoading = false);
+        await _loadEmptyForm();
         return;
       }
 
@@ -91,23 +96,55 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
         );
         answers = Map<int, dynamic>.from(parsed);
         originalAnswers = Map<int, dynamic>.from(parsed);
+      } else {
+        // Data null - berarti belum pernah mengisi kuisioner
+        // Langsung coba ambil form kosong untuk dialihkan ke halaman isi kuisioner
+        await _loadEmptyForm();
       }
     } on ApiException catch (e) {
       debugPrint("API Error: ${e.message}");
-      if (mounted) {
-        String errorMsg = e.message;
-        if (e.statusCode == 404) {
-          errorMsg =
-              "Data jawaban tidak ditemukan. Pastikan Anda (User ID $userId) sudah mengisi survey ini.";
-        }
+
+      if (e.statusCode == 404 && mounted) {
+        // 404 = belum pernah isi kuisioner, coba ambil form kosong
+        await _loadEmptyForm();
+      } else if (mounted) {
+        setState(() => loadError = e.message);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(errorMsg)));
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (e) {
       debugPrint("Error loading survey data: $e");
+      // Kalau gagal ambil data, coba ambil form kosong untuk isi baru
+      await _loadEmptyForm();
     } finally {
-      setState(() => isLoading = false);
+      if (mounted && isLoading) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _loadEmptyForm() async {
+    try {
+      final formData = await _editService.getSurveyFormKosong(
+        clientSlug: widget.clientSlug,
+        projectSlug: widget.projectSlug,
+        surveySlug: widget.surveySlug,
+      );
+
+      if (formData != null && mounted) {
+        setState(() {
+          surveyData = formData;
+          isNewSurvey = true;
+        });
+      } else if (mounted) {
+        setState(() => loadError = "Form kuisioner tidak ditemukan");
+      }
+    } catch (e) {
+      debugPrint("Gagal mengambil form kosong: $e");
+      if (mounted) {
+        setState(() => loadError = "Gagal memuat form kuisioner");
+      }
     }
   }
 
@@ -116,50 +153,100 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
     if (surveyData == null) return;
     setState(() => isSaving = true);
 
-    // Gunakan responseId dari widget (jika ada) atau hasil fetch
-    final targetResponseId = widget.responseId > 0
-        ? widget.responseId
-        : (_activeResponseId ?? 0);
+    if (isNewSurvey) {
+      final surveyId =
+          surveyData!.survey?.id ??
+          (surveyData!.pages.isNotEmpty
+              ? surveyData!.pages.first.surveyId
+              : null);
 
-    if (targetResponseId == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ID Respons tidak ditemukan")),
-      );
-      setState(() => isSaving = false);
-      return;
-    }
-
-    try {
-      final success = await _editService.submitChanges(
-        clientSlug: widget.clientSlug,
-        projectSlug: widget.projectSlug,
-        surveySlug: widget.surveySlug,
-        responseId: targetResponseId,
-        pages: surveyData!.pages,
-        currentAnswers: answers,
-      );
-
-      if (!mounted) return;
-
-      if (success) {
-        originalAnswers = Map<int, dynamic>.from(answers);
+      if (surveyId == null || surveyId == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Jawaban berhasil disimpan")),
+          const SnackBar(content: Text("Data ID Survey tidak lengkap")),
         );
-      } else {
+        setState(() => isSaving = false);
+        return;
+      }
+
+      try {
+        final success = await _editService.submitNewAnswer(
+          clientSlug: widget.clientSlug,
+          projectSlug: widget.projectSlug,
+          surveyId: surveyId,
+          pages: surveyData!.pages,
+          currentAnswers: answers,
+        );
+
+        if (!mounted) return;
+
+        if (success) {
+          originalAnswers = Map<int, dynamic>.from(answers);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Kuisioner berhasil dikirim")),
+          );
+          // Berubah menjadi mode edit setelah sukses simpan (opsional)
+          setState(() => isNewSurvey = false);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Gagal mengirim kuisioner")),
+          );
+        }
+      } catch (e) {
+        debugPrint("Error submit new: $e");
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
+        }
+      } finally {
+        setState(() => isSaving = false);
+      }
+    } else {
+      // GUNAKAN PATCH / EDIT
+      final targetResponseId = widget.responseId > 0
+          ? widget.responseId
+          : (_activeResponseId ?? 0);
+
+      if (targetResponseId == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Gagal menyimpan jawaban")),
+          const SnackBar(content: Text("ID Respons tidak ditemukan")),
         );
+        setState(() => isSaving = false);
+        return;
       }
-    } catch (e) {
-      debugPrint("Error submit: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
+
+      try {
+        final success = await _editService.submitChanges(
+          clientSlug: widget.clientSlug,
+          projectSlug: widget.projectSlug,
+          surveySlug: widget.surveySlug,
+          responseId: targetResponseId,
+          pages: surveyData!.pages,
+          currentAnswers: answers,
+        );
+
+        if (!mounted) return;
+
+        if (success) {
+          originalAnswers = Map<int, dynamic>.from(answers);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Jawaban berhasil disimpan")),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Gagal menyimpan jawaban")),
+          );
+        }
+      } catch (e) {
+        debugPrint("Error submit edit: $e");
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Terjadi kesalahan: $e")));
+        }
+      } finally {
+        setState(() => isSaving = false);
       }
-    } finally {
-      setState(() => isSaving = false);
     }
   }
 
@@ -200,20 +287,24 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
           foregroundColor: Colors.black,
         ),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.assignment_late_outlined,
-                size: 64,
-                color: Colors.grey[400],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                "Data tidak ditemukan",
-                style: TextStyle(color: Colors.grey[600], fontSize: 16),
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.assignment_late_outlined,
+                  size: 64,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  loadError ?? "Data tidak ditemukan",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -226,9 +317,9 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          "Cek / Edit Survey",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        title: Text(
+          isNewSurvey ? "Isi Kuisioner" : "Cek / Edit Survey",
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
         elevation: 0,
@@ -283,9 +374,12 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
                       color: Colors.white,
                     ),
                   )
-                : const Text(
-                    "Simpan Jawaban",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                : Text(
+                    isNewSurvey ? "Kirim Jawaban" : "Simpan Jawaban",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
           ),
         ),
@@ -445,7 +539,9 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
     // Safety Check: Pastikan 'value' yang diberikan ada di dalam list 'items'.
     // Jika tidak ada, paksa 'value' jadi null supaya tidak crash (Assertion Error).
     final String? currentValue = answers[q.id]?.toString();
-    final bool valueExists = dropdownItems.any((item) => item.value == currentValue);
+    final bool valueExists = dropdownItems.any(
+      (item) => item.value == currentValue,
+    );
     final String? safeValue = valueExists ? currentValue : null;
 
     return Column(

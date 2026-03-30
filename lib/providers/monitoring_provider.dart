@@ -140,6 +140,10 @@ class MonitoringProvider extends ChangeNotifier {
             .whereType<Map>()
             .map((e) => Map<String, dynamic>.from(e))
             .toList();
+        if (responses.isNotEmpty) {
+          debugPrint('DEBUG: Response keys: ${responses.first.keys.toList()}');
+          debugPrint('DEBUG: Full first response: ${responses.first}');
+        }
         totalRespon = responses.length;
       }
 

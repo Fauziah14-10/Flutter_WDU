@@ -7,6 +7,16 @@ int? _toInt(dynamic value) {
   if (value is int) return value;
   if (value is String) return int.tryParse(value);
   if (value is double) return value.toInt();
+  if (value is bool) return value ? 1 : 0;
+  return null;
+}
+
+Map<String, dynamic>? _extractMap(dynamic data) {
+  if (data == null) return null;
+  if (data is Map<String, dynamic>) return data;
+  if (data is List && data.isNotEmpty && data.first is Map<String, dynamic>) {
+    return data.first as Map<String, dynamic>;
+  }
   return null;
 }
 
@@ -34,19 +44,22 @@ class SurveyResponseDetail {
   factory SurveyResponseDetail.fromJson(Map<String, dynamic> json) {
     return SurveyResponseDetail(
       // Handle key singular & plural (surveys/survey, projects/project, clients/client)
-      survey: json['surveys'] != null
-          ? SurveyModel.fromJson(json['surveys'])
-          : (json['survey'] != null
-                ? SurveyModel.fromJson(json['survey'])
+      // Gunakan _extractMap untuk mengatasi JSON yang membungkus objek dalam array List [...]
+      survey: _extractMap(json['surveys']) != null
+          ? SurveyModel.fromJson(_extractMap(json['surveys'])!)
+          : (_extractMap(json['survey']) != null
+                ? SurveyModel.fromJson(_extractMap(json['survey'])!)
                 : null),
-      project: json['projects'] != null
-          ? Project.fromJson(json['projects'])
-          : (json['project'] != null
-                ? Project.fromJson(json['project'])
+      project: _extractMap(json['projects']) != null
+          ? Project.fromJson(_extractMap(json['projects'])!)
+          : (_extractMap(json['project']) != null
+                ? Project.fromJson(_extractMap(json['project'])!)
                 : null),
-      client: json['clients'] != null
-          ? Client.fromJson(json['clients'])
-          : (json['client'] != null ? Client.fromJson(json['client']) : null),
+      client: _extractMap(json['clients']) != null
+          ? Client.fromJson(_extractMap(json['clients'])!)
+          : (_extractMap(json['client']) != null 
+                ? Client.fromJson(_extractMap(json['client'])!) 
+                : null),
 
       // Handle key 'page' atau 'pages'
       pages:
@@ -96,10 +109,10 @@ class SurveyPageData {
 
   factory SurveyPageData.fromJson(Map<String, dynamic> json) {
     return SurveyPageData(
-      id: json['id'] ?? 0,
+      id: _toInt(json['id']) ?? 0,
       pageName: json['page_name'] ?? '',
-      order: json['order'] ?? 0,
-      surveyId: json['survey_id'] ?? 0,
+      order: _toInt(json['order']) ?? 0,
+      surveyId: _toInt(json['survey_id']) ?? 0,
       // Handle key 'question' atau 'questions'
       questions:
           (json['questions'] as List? ?? json['question'] as List?)
@@ -171,11 +184,11 @@ class SurveyQuestionData {
     }
 
     return SurveyQuestionData(
-      id: json['id'] ?? 0,
+      id: _toInt(json['id']) ?? 0,
       questionText: json['question_text'] ?? '',
-      questionTypeId: json['question_type_id'] ?? 1,
-      order: json['order'] ?? 0,
-      required: json['required'] ?? 0,
+      questionTypeId: _toInt(json['question_type_id']) ?? 1,
+      order: _toInt(json['order']) ?? 0,
+      required: _toInt(json['required']) ?? 0,
 
       // Handle key 'choice' atau 'choices'
       choices:
@@ -186,8 +199,8 @@ class SurveyQuestionData {
               .toList() ??
           [],
 
-      questionChoiceId: json['question_choice_id'],
-      questionLogicTypeId: json['question_logic_type_id'] ?? json['logic_type'],
+      questionChoiceId: _toInt(json['question_choice_id']),
+      questionLogicTypeId: _toInt(json['question_logic_type_id'] ?? json['logic_type']),
       choiceType: json['choice_type'],
       value: json['value']?.toString(),
       matrixRows: parsedRows,
@@ -278,11 +291,11 @@ class QuestionChoiceData {
 
   factory QuestionChoiceData.fromJson(Map<String, dynamic> json) {
     return QuestionChoiceData(
-      id: json['id'] ?? 0,
-      questionId: json['question_id'] ?? 0,
+      id: _toInt(json['id']) ?? 0,
+      questionId: _toInt(json['question_id']) ?? 0,
       value: json['value'] ?? '',
-      order: json['order'] ?? 0,
-      scale: json['scale'],
+      order: _toInt(json['order']) ?? 0,
+      scale: _toInt(json['scale']),
     );
   }
 }

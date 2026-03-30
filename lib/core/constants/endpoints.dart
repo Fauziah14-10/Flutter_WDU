@@ -59,6 +59,14 @@ class Endpoints {
   ) =>
       '/clients/$clientSlug/projects/$projectSlug/surveys/$slug/edit-answer/$userId';
 
+  // POST /api/clients/{clientSlug}/projects/{projectSlug}/surveys/{surveyId}/submit
+  static String submitAnswer(
+    String clientSlug,
+    String projectSlug,
+    int surveyId,
+  ) =>
+      '/clients/$clientSlug/projects/$projectSlug/surveys/$surveyId/submit';
+
   // PATCH /api/clients/{clientSlug}/projects/{projectSlug}/surveys/{Survey:slug}/change-answer/{responseId}
   static String changeAnswer(
     String clientSlug,
