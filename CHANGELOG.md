@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.2.4] - 2026-03-30
+### Added
+- Survey fill/edit functionality: users can now fill new surveys or edit existing responses
+- Auto-redirect to survey fill page when user has not filled the questionnaire yet
+- Submit answer endpoint for new survey submissions
+- Status badge column in monitoring table to display response moderation status (PENDING, APPROVE, REVISION, DECLINE)
+- `submitAnswer` endpoint in endpoints.dart
+
+### Changed
+- Updated survey response detail model parsing to handle various API response formats
+- Improved model parsing to support data wrapped in arrays or different key structures
+- Button label changed from "Cek / Edit" to "Cek / Isi Kuisioner"
+- AppBar title dynamically changes between "Isi Kuisioner" (for new) and "Cek / Edit Survey" (for existing)
+
+### Fixed
+- Fixed issue where users were stuck on "Data tidak ditemukan" page instead of being redirected to fill the survey
+
+---
+
 ## [1.2.3] - 2026-03-27
 ### Added
 - Logout button in the dashboard page
