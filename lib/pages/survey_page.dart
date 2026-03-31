@@ -114,7 +114,12 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                                   child: Image.network(
                                     widget.clientLogoUrl!,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
+                                    loadingBuilder:
+                                        (context, child, progress) =>
+                                            progress == null
+                                            ? child
+                                            : _defaultLogoIcon(),
+                                    errorBuilder: (context, url, error) =>
                                         _defaultLogoIcon(),
                                   ),
                                 )

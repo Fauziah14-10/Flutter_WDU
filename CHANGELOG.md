@@ -5,6 +5,21 @@ All notable changes to this Flutter project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+## [1.2.5] - 2026-03-31
+### Added
+- Monitoring Page - View: Display respondent location information including IP Address, region (city/province), latitude, and longitude
+- Monitoring Page - View: Added embedded map display using OpenStreetMap
+- Monitoring Page - View: Added button to open location in Google Maps
+
+### Bug Fixes:
+- Logout: Fixed logout process to properly redirect to login page
+- Logout: Added last route clearing to prevent redirect to previous page
+
+### Technical Changes:
+- Added flutter_map and latlong2 packages for map display
+- Added url_launcher package to open Google Maps
+- Optimized client image display with cached_network_image
+- Added fallback images for TransJakarta and BPD clients
 
 ## [1.2.4] - 2026-03-30
 ### Added

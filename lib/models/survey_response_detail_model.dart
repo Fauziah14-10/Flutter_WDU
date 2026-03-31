@@ -29,7 +29,10 @@ class SurveyResponseDetail {
   final List<SurveyPageData> pages;
   final List<SurveyAnswerData> answers;
   final DateTime? editedAt;
-  final int? responseId; // ← ID respons dari level top JSON
+  final int? responseId;
+  final Map<String, dynamic>? responses;
+  final Map<String, dynamic>? location;
+  final Map<String, dynamic>? biodata;
 
   SurveyResponseDetail({
     this.survey,
@@ -39,12 +42,13 @@ class SurveyResponseDetail {
     required this.answers,
     this.editedAt,
     this.responseId,
+    this.responses,
+    this.location,
+    this.biodata,
   });
 
   factory SurveyResponseDetail.fromJson(Map<String, dynamic> json) {
     return SurveyResponseDetail(
-      // Handle key singular & plural (surveys/survey, projects/project, clients/client)
-      // Gunakan _extractMap untuk mengatasi JSON yang membungkus objek dalam array List [...]
       survey: _extractMap(json['surveys']) != null
           ? SurveyModel.fromJson(_extractMap(json['surveys'])!)
           : (_extractMap(json['survey']) != null
@@ -57,18 +61,16 @@ class SurveyResponseDetail {
                 : null),
       client: _extractMap(json['clients']) != null
           ? Client.fromJson(_extractMap(json['clients'])!)
-          : (_extractMap(json['client']) != null 
-                ? Client.fromJson(_extractMap(json['client'])!) 
+          : (_extractMap(json['client']) != null
+                ? Client.fromJson(_extractMap(json['client'])!)
                 : null),
 
-      // Handle key 'page' atau 'pages'
       pages:
           (json['pages'] as List? ?? json['page'] as List?)
               ?.map((e) => SurveyPageData.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
 
-      // Handle key 'answer' atau 'answers' (EnumEditAnswer return 'answer')
       answers:
           (json['answer'] as List? ?? json['answers'] as List?)
               ?.map((e) => SurveyAnswerData.fromJson(e as Map<String, dynamic>))
@@ -78,12 +80,17 @@ class SurveyResponseDetail {
       editedAt: json['edited_at'] != null
           ? DateTime.tryParse(json['edited_at'].toString())
           : null,
-      responseId: _toInt(json['response_id'] ??
-          json['id'] ??
-          json['responseId'] ??
-          json['id_response'] ??
-          json['responses']?['id'] ??
-          json['response']?['id']),
+      responseId: _toInt(
+        json['response_id'] ??
+            json['id'] ??
+            json['responseId'] ??
+            json['id_response'] ??
+            json['responses']?['id'] ??
+            json['response']?['id'],
+      ),
+      responses: json['responses'] as Map<String, dynamic>?,
+      location: json['location'] as Map<String, dynamic>?,
+      biodata: json['biodata'] as Map<String, dynamic>?,
     );
   }
 }
@@ -200,7 +207,9 @@ class SurveyQuestionData {
           [],
 
       questionChoiceId: _toInt(json['question_choice_id']),
-      questionLogicTypeId: _toInt(json['question_logic_type_id'] ?? json['logic_type']),
+      questionLogicTypeId: _toInt(
+        json['question_logic_type_id'] ?? json['logic_type'],
+      ),
       choiceType: json['choice_type'],
       value: json['value']?.toString(),
       matrixRows: parsedRows,
@@ -320,10 +329,13 @@ class SurveyAnswerData {
   factory SurveyAnswerData.fromJson(Map<String, dynamic> json) {
     return SurveyAnswerData(
       id: _toInt(json['id']) ?? 0,
-      responseId: _toInt(json['response_id'] ??
-              json['responseId'] ??
-              json['id_response'] ??
-              json['res_id']) ??
+      responseId:
+          _toInt(
+            json['response_id'] ??
+                json['responseId'] ??
+                json['id_response'] ??
+                json['res_id'],
+          ) ??
           0,
       questionId: _toInt(json['question_id'] ?? json['questionId']) ?? 0,
       answer: json['answer']?.toString() ?? '',

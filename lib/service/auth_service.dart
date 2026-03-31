@@ -47,6 +47,7 @@ class AuthService {
   // ── LOGOUT ────────────────────────────────────────────────
   Future<void> logout() async {
     await StorageHelper.clearSecure();
+    await StorageHelper.clearLastRoute();
   }
 
   // ── CEK STATUS LOGIN ──────────────────────────────────────

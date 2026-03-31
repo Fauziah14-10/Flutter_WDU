@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/theme/app_theme.dart';
 import '../service/survey_service.dart';
 import '../models/survey_response_detail_model.dart';
@@ -96,27 +99,32 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
           Expanded(
             child: _isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(color: AppTheme.monGreenMid),
+                    child: CircularProgressIndicator(
+                      color: AppTheme.monGreenMid,
+                    ),
                   )
                 : _errorMessage != null
-                    ? _buildErrorUI()
-                    : FadeTransition(
-                        opacity: _fadeAnim,
-                        child: SlideTransition(
-                          position: _slideAnim,
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildRespondentInfo(),
-                                const SizedBox(height: 24),
-                                ..._buildQuestionsList(),
-                              ],
-                            ),
-                          ),
+                ? _buildErrorUI()
+                : FadeTransition(
+                    opacity: _fadeAnim,
+                    child: SlideTransition(
+                      position: _slideAnim,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 24,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildRespondentInfo(),
+                            const SizedBox(height: 24),
+                            ..._buildQuestionsList(),
+                          ],
                         ),
                       ),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -233,83 +241,607 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
           const SizedBox(height: 16),
           Text(_errorMessage ?? "Terjadi kesalahan"),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _fetchData,
-            child: const Text("Coba Lagi"),
-          ),
+          ElevatedButton(onPressed: _fetchData, child: const Text("Coba Lagi")),
         ],
       ),
     );
   }
 
   Widget _buildRespondentInfo() {
-    // Cari info dari survey/client? Endpoint report biasanya tidak eksplisit kasih biodata responden di top level
-    // tapi kita bisa coba ambil dari data yang ada di _detail atau asumsikan context dari navigation
+    final responses = _detail?.responses;
+    final location = _detail?.location;
+    final userData = responses?['user'] as Map<String, dynamic>?;
+    final biodata = _detail?.biodata;
+
+    // Data for Timeline
+    final startAt = responses?['started_at'] ?? responses?['created_at'] ?? _detail?.editedAt?.toString() ?? '-';
+    final finishAt = responses?['finished_at'] ?? responses?['updated_at'] ?? _detail?.editedAt?.toString() ?? '-';
+    final duration = responses?['duration'] ?? '-';
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.info_outline, color: AppTheme.monGreenMid, size: 18),
-              const SizedBox(width: 8),
-              const Text(
-                "Informasi Respon",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-            ],
+          // HEADER: INFORMASI DASAR & LOKASI
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.monBgColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.assignment_outlined,
+                    color: AppTheme.monGreenMid,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  "INFORMASI DASAR & LOKASI",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                    color: AppTheme.monTextMid,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const Divider(height: 24),
-          _infoRow("Survey", _detail?.survey?.title ?? widget.surveySlug),
-          _infoRow("Waktu Edit", _detail?.editedAt?.toString() ?? "-"),
-          _infoRow("Response ID", widget.responseId.toString()),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFF0F0F0)),
+
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth > 700;
+
+              if (isWide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // LEFT COLUMN
+                    Expanded(
+                      flex: 1,
+                      child: _buildLeftInfoColumn(userData, biodata, startAt, finishAt, duration),
+                    ),
+                    Container(width: 1, height: 400, color: const Color(0xFFF0F0F0)),
+                    // RIGHT COLUMN
+                    Expanded(
+                      flex: 1,
+                      child: _buildRightGeotaggingColumn(location),
+                    ),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    _buildLeftInfoColumn(userData, biodata, startAt, finishAt, duration),
+                    const Divider(height: 1, thickness: 1, color: Color(0xFFF0F0F0)),
+                    _buildRightGeotaggingColumn(location),
+                  ],
+                );
+              }
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _infoRow(String label, String value) {
+  Widget _buildLeftInfoColumn(Map<String, dynamic>? userData, Map<String, dynamic>? biodata, dynamic start, dynamic finish, dynamic duration) {
+    final name = userData?['name'] ?? _detail?.responses?['email'] ?? 'Guest';
+    final province = _getProvinsi(biodata);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Profile Profile Info
+        Padding(
+          padding: const EdgeInsets.all(24),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3F51B5),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Text(
+                    name.toString().isNotEmpty ? name.toString()[0].toUpperCase() : 'G',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.monTextDark,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      "Instansi tidak tersedia",
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.monTextLight,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Province Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEBEDFF),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.public, size: 14, color: Color(0xFF3F51B5)),
+                          const SizedBox(width: 6),
+                          Text(
+                            province == '-' ? "Tidak ada provinsi" : province,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF3F51B5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const Divider(height: 1, thickness: 1, color: Color(0xFFF8F8F8)),
+
+        // Address Section
+        Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "ALAMAT",
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.monTextLight,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: const Color(0xFFEEEEEE)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.home_outlined, size: 20, color: AppTheme.monTextMid),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      "Alamat tidak tersedia",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.monTextDark,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Timeline Footer
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.only(bottomLeft: Radius.circular(24)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildTimelineItem("MULAI", start, Colors.green),
+              _buildTimelineItem("SELESAI", finish, Colors.blue),
+              _buildTimelineItem("DURASI", duration, Colors.orange, icon: Icons.access_time_rounded),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimelineItem(String label, String value, Color color, {IconData? icon}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.monTextLight,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            if (icon != null)
+              Icon(icon, size: 14, color: color)
+            else
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+            const SizedBox(width: 8),
+            Text(
+              value.toString(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color.withOpacity(0.9),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRightGeotaggingColumn(Map<String, dynamic>? location) {
+    final ip = location?['ip']?.toString() ?? '-';
+    final wilayah = _getWilayah(location);
+    final lat = location?['latitude']?.toString() ?? '-';
+    final lng = location?['longitude']?.toString() ?? '-';
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
+      padding: const EdgeInsets.all(24),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(color: Colors.grey, fontSize: 13),
-            ),
+          // Geotagging Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.location_on_outlined, color: AppTheme.monGreenMid, size: 20),
+                  SizedBox(width: 12),
+                  Text(
+                    "Geotagging",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.monTextDark,
+                    ),
+                  ),
+                ],
+              ),
+              // GPS Aktif Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFC8E6C9)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      "GPS Aktif",
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-          ),
+          const SizedBox(height: 24),
+
+          // Detail Rows
+          LayoutBuilder(builder: (context, constraints) {
+            final isVeryWide = constraints.maxWidth > 350;
+            if (isVeryWide) {
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: _buildGeoItem("IP ADDRESS", ip, Icons.language_rounded)),
+                      const SizedBox(width: 16),
+                      Expanded(child: _buildGeoItem("KOTA / WILAYAH", wilayah, Icons.location_city_rounded)),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _buildCoordinateRow(lat, lng),
+                ],
+              );
+            } else {
+              return Column(
+                children: [
+                  _buildGeoItem("IP ADDRESS", ip, Icons.language_rounded),
+                  const SizedBox(height: 16),
+                  _buildGeoItem("KOTA / WILAYAH", wilayah, Icons.location_city_rounded),
+                  const SizedBox(height: 16),
+                  _buildCoordinateRow(lat, lng),
+                ],
+              );
+            }
+          }),
+
+          const SizedBox(height: 24),
+          _buildEnhancedMapPreview(location),
         ],
       ),
     );
+  }
+
+  Widget _buildGeoItem(String label, String value, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.monTextLight,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F6F7),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(icon, size: 14, color: AppTheme.monTextLight),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.monTextDark,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCoordinateRow(String lat, String lng) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "KOORDINAT",
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.monTextLight,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F6F7),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.map_outlined, size: 16, color: AppTheme.monTextLight),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  "$lat, $lng",
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.monTextDark,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () async {
+                    final url = 'https://www.google.com/maps?q=$lat,$lng';
+                    final uri = Uri.parse(url);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.open_in_new_rounded, size: 12, color: Colors.blue),
+                        SizedBox(width: 6),
+                        Text(
+                          "Maps",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEnhancedMapPreview(Map<String, dynamic>? location) {
+    final lat = double.tryParse(location?['latitude']?.toString() ?? '');
+    final lng = double.tryParse(location?['longitude']?.toString() ?? '');
+
+    if (lat == null || lng == null) {
+      return Container(
+        height: 180,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F6F7),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFEEEEEE)),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.location_off_outlined, color: AppTheme.monTextLight, size: 32),
+              SizedBox(height: 12),
+              Text(
+                "Peta tidak tersedia",
+                style: TextStyle(color: AppTheme.monTextLight, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        height: 220,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFEEEEEE)),
+        ),
+        child: FlutterMap(
+          options: MapOptions(
+            initialCenter: LatLng(lat, lng),
+            initialZoom: 14,
+            interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.example.flutter_application_wdu',
+            ),
+            MarkerLayer(
+              markers: [
+                Marker(
+                  point: LatLng(lat, lng),
+                  width: 40,
+                  height: 40,
+                  child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getWilayah(Map<String, dynamic>? location) {
+    if (location == null) return '-';
+    final city = location['city'];
+    final region = location['region'];
+    if (city != null &&
+        city.toString().isNotEmpty &&
+        region != null &&
+        region.toString().isNotEmpty) {
+      return '$city, $region';
+    }
+    if (city != null && city.toString().isNotEmpty) return city.toString();
+    if (region != null && region.toString().isNotEmpty)
+      return region.toString();
+    return 'Unknown';
+  }
+
+  String _getProvinsi(Map<String, dynamic>? biodata) {
+    if (biodata == null) return '-';
+    final id = biodata['province_id'];
+    final name = biodata['province_name'];
+    if (name != null && name.toString().isNotEmpty) return name.toString();
+    if (id != null) return 'Prov. $id';
+    return '-';
   }
 
   List<Widget> _buildQuestionsList() {
     if (_detail == null) return [];
 
-    final answersMap = {
-      for (var a in _detail!.answers) a.questionId: a.answer
-    };
+    final answersMap = {for (var a in _detail!.answers) a.questionId: a.answer};
 
     List<Widget> list = [];
 

@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import '../../core/theme/app_theme.dart';
 import '../../models/client_model.dart';
 import '../../pages/project_page.dart';
@@ -93,7 +95,11 @@ class ClientCard extends StatelessWidget {
                     return Image.network(
                       url,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, error, ___) {
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return _buildFallback(client.clientName);
+                      },
+                      errorBuilder: (context, error, stackTrace) {
                         print('Image load error for $url: $error');
                         return _buildFallback(client.clientName);
                       },
@@ -292,6 +298,59 @@ class _ActionBtn extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _HttpImage extends StatefulWidget {
+  final String url;
+  final Widget fallback;
+
+  const _HttpImage({required this.url, required this.fallback});
+
+  @override
+  State<_HttpImage> createState() => _HttpImageState();
+}
+
+class _HttpImageState extends State<_HttpImage> {
+  late Future<Uint8List> _imageData;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageData = _fetchImage();
+  }
+
+  Future<Uint8List> _fetchImage() async {
+    try {
+      final response = await http.get(Uri.parse(widget.url));
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      }
+      throw Exception('Failed to load image: ${response.statusCode}');
+    } catch (e) {
+      print('HTTP Error for ${widget.url}: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List>(
+      future: _imageData,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return Image.memory(
+            snapshot.data!,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => widget.fallback,
+          );
+        } else if (snapshot.hasError) {
+          print('Image load error for ${widget.url}: ${snapshot.error}');
+          return widget.fallback;
+        }
+        return widget.fallback;
+      },
     );
   }
 }

@@ -160,6 +160,12 @@ class StorageHelper {
     await _secure.delete(key: _keyUserId);
   }
 
+  static Future<void> clearLastRoute() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyLastRouteName);
+    await prefs.remove(_keyLastRouteArgs);
+  }
+
   /// Hapus semua data (token + preferences)
   static Future<void> clearAll() async {
     await _secure.deleteAll();
