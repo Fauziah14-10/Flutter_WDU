@@ -36,7 +36,11 @@ class ListResponWidget extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Icon(Icons.list_alt_outlined, size: 16, color: Color(0xFF333333)),
+            const Icon(
+              Icons.list_alt_outlined,
+              size: 16,
+              color: Color(0xFF333333),
+            ),
             const SizedBox(width: 6),
             const Text(
               'List Respon',
@@ -69,7 +73,10 @@ class ListResponWidget extends StatelessWidget {
                 children: [
                   Container(
                     color: const Color(0xFF2D9E6B),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     child: Row(
                       children: const [
                         _H('WAKTU', flex: 3),
@@ -87,7 +94,10 @@ class ListResponWidget extends StatelessWidget {
                       child: Center(
                         child: Text(
                           'Belum ada data respon',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF9CA3AF),
+                          ),
                         ),
                       ),
                     )
@@ -228,7 +238,10 @@ class _Row extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 1, left: 22),
                     child: Text(
                       token,
-                      style: const TextStyle(fontSize: 8.5, color: Color(0xFF9CA3AF)),
+                      style: const TextStyle(
+                        fontSize: 8.5,
+                        color: Color(0xFF9CA3AF),
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -276,8 +289,10 @@ class _Row extends StatelessWidget {
                   onTap: () {
                     final responseId =
                         int.tryParse(
-                          (response['id'] ?? response['response_id'] ?? 0).toString(),
-                        ) ?? 0;
+                          (response['id'] ?? response['response_id'] ?? 0)
+                              .toString(),
+                        ) ??
+                        0;
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -308,8 +323,10 @@ class _Row extends StatelessWidget {
                   onTap: () {
                     final responseId =
                         int.tryParse(
-                          (response['id'] ?? response['response_id'] ?? 0).toString(),
-                        ) ?? 0;
+                          (response['id'] ?? response['response_id'] ?? 0)
+                              .toString(),
+                        ) ??
+                        0;
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -319,14 +336,14 @@ class _Row extends StatelessWidget {
                             'surveySlug': provider.surveySlug, // ← surveySlug
                             'clientSlug': clientSlug,
                             'projectSlug': projectSlug,
-                            'responseId': responseId,             // ← int langsung
+                            'responseId': responseId, // ← int langsung
                           },
                         ),
                         builder: (_) => CekEditMonitorPage(
-                          surveySlug: provider.surveySlug,  // ← surveySlug
+                          surveySlug: provider.surveySlug, // ← surveySlug
                           clientSlug: clientSlug,
                           projectSlug: projectSlug,
-                          responseId: responseId,           // ← int langsung
+                          responseId: responseId, // ← int langsung
                         ),
                       ),
                     );
@@ -348,19 +365,35 @@ class _Row extends StatelessWidget {
   }
 
   String _getModerationStatus(Map<String, dynamic> r) {
-    // Coba ambil dari berbagai field moderasi umum dilaravel
-    final dynamic s = r['moderation_status'] ?? r['status_review'] ?? r['review_status'] ?? r['status_moderasi'] ?? r['status'];
-    
+    final dynamic s =
+        r['supervision_status'] ??
+        r['moderation_status'] ??
+        r['status_review'] ??
+        r['review_status'] ??
+        r['status_moderasi'] ??
+        r['status'];
+
     if (s == null) return 'PENDING';
-    
-    // Map integers (0: Pending, 1: Revision, 2: Approve, 3: Decline) —— asumsikan pattern umum
+
+    final str = s.toString().toLowerCase();
+
+    if (str == 'pending' || str.isEmpty) return 'PENDING';
+    if (str == 'revision_needed' || str == 'revision') return 'REVISION';
+    if (str == 'approve' || str == 'approved') return 'APPROVE';
+    if (str == 'decline' || str == 'declined') return 'DECLINE';
+
     if (s is int) {
       switch (s) {
-        case 0: return 'PENDING';
-        case 1: return 'REVISION';
-        case 2: return 'APPROVE';
-        case 3: return 'DECLINE';
-        default: return 'PENDING';
+        case 0:
+          return 'PENDING';
+        case 1:
+          return 'REVISION';
+        case 2:
+          return 'APPROVE';
+        case 3:
+          return 'DECLINE';
+        default:
+          return 'PENDING';
       }
     }
 
@@ -369,16 +402,29 @@ class _Row extends StatelessWidget {
       if (r['is_revision'] == true) return 'REVISION';
       return (s == true) ? 'PENDING' : 'DRAFT';
     }
-    
-    return s.toString();
+
+    return 'PENDING';
   }
 
   String _fmtDate(String raw) {
     if (raw.isEmpty) return '-';
     try {
       final dt = DateTime.parse(raw).toLocal();
-      final m = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-                  'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      final m = [
+        '',
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'Mei',
+        'Jun',
+        'Jul',
+        'Agu',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Des',
+      ];
       return '${dt.day.toString().padLeft(2, '0')} ${m[dt.month]} ${dt.year}\n'
           '${dt.hour.toString().padLeft(2, '0')}.'
           '${dt.minute.toString().padLeft(2, '0')}';
@@ -389,6 +435,8 @@ class _Row extends StatelessWidget {
 
   String _provinsi(Map<String, dynamic>? b) {
     if (b == null) return 'Tidak ada';
+    final name = b['province_name'];
+    if (name != null && name.toString().isNotEmpty) return name.toString();
     final id = b['province_id'];
     if (id == null) return 'Tidak ada';
     return 'Prov. $id';
@@ -397,10 +445,14 @@ class _Row extends StatelessWidget {
   String _role(Map<String, dynamic>? u) {
     if (u == null) return 'Lainnya';
     switch ((u['usertype'] as String? ?? '').toLowerCase()) {
-      case 'superadmin': return 'S.Admin';
-      case 'admin':      return 'Admin';
-      case 'enumerator': return 'Enum.';
-      default:           return 'Lainnya';
+      case 'superadmin':
+        return 'S.Admin';
+      case 'admin':
+        return 'Admin';
+      case 'enumerator':
+        return 'Enum.';
+      default:
+        return 'Lainnya';
     }
   }
 }
@@ -412,7 +464,7 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String s = status.toUpperCase();
-    
+
     // Map unexpected values like "TRUE", "false", "0", "1" to human readable labels
     if (s == 'TRUE' || s == '1') {
       // Jika true/1 dari database, asumsikan PENDING review jika belum ada label lain
@@ -528,7 +580,11 @@ class _Pagination extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       _PBtn(
-        child: const Icon(Icons.chevron_left, size: 13, color: Color(0xFF6B7280)),
+        child: const Icon(
+          Icons.chevron_left,
+          size: 13,
+          color: Color(0xFF6B7280),
+        ),
         onTap: currentPage > 1 ? () => onPageChanged(currentPage - 1) : null,
       ),
       const SizedBox(width: 3),
@@ -536,7 +592,10 @@ class _Pagination extends StatelessWidget {
         if (p == -1) {
           return const Padding(
             padding: EdgeInsets.symmetric(horizontal: 2),
-            child: Text('…', style: TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+            child: Text(
+              '…',
+              style: TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
+            ),
           );
         }
         final active = p == currentPage;
@@ -557,8 +616,14 @@ class _Pagination extends StatelessWidget {
         );
       }),
       _PBtn(
-        child: const Icon(Icons.chevron_right, size: 13, color: Color(0xFF6B7280)),
-        onTap: currentPage < totalPages ? () => onPageChanged(currentPage + 1) : null,
+        child: const Icon(
+          Icons.chevron_right,
+          size: 13,
+          color: Color(0xFF6B7280),
+        ),
+        onTap: currentPage < totalPages
+            ? () => onPageChanged(currentPage + 1)
+            : null,
       ),
     ],
   );

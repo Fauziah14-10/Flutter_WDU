@@ -34,8 +34,8 @@ class AppInputField extends StatelessWidget {
                 onPressed: onToggleObscure,
                 icon: Icon(
                   obscureText
-                      ? Icons.lock_outline_rounded
-                      : Icons.lock_open_rounded,
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
                   color: const Color(0xFFBBBBBB),
                   size: 20,
                 ),
@@ -44,7 +44,10 @@ class AppInputField extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 4),
                 child: Icon(icon, color: const Color(0xFFBBBBBB), size: 20),
               ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 17,
+        ),
         filled: true,
         fillColor: const Color(0xFFF8F8F8),
         enabledBorder: OutlineInputBorder(
@@ -53,7 +56,10 @@ class AppInputField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.8),
+          borderSide: const BorderSide(
+            color: AppTheme.primaryColor,
+            width: 1.8,
+          ),
         ),
       ),
     );

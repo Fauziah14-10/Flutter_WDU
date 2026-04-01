@@ -30,6 +30,10 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
   String? _errorMessage;
   SurveyResponseDetail? _detail;
 
+  late String _timelineStart;
+  late String _timelineFinish;
+  late String _timelineDuration;
+
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
@@ -37,6 +41,9 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
   @override
   void initState() {
     super.initState();
+    _timelineStart = '-';
+    _timelineFinish = '-';
+    _timelineDuration = '-';
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -65,6 +72,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
       );
 
       if (detail != null) {
+        _calculateTimeline(detail);
         setState(() {
           _detail = detail;
           _isLoading = false;
@@ -253,11 +261,6 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
     final userData = responses?['user'] as Map<String, dynamic>?;
     final biodata = _detail?.biodata;
 
-    // Data for Timeline
-    final startAt = responses?['started_at'] ?? responses?['created_at'] ?? _detail?.editedAt?.toString() ?? '-';
-    final finishAt = responses?['finished_at'] ?? responses?['updated_at'] ?? _detail?.editedAt?.toString() ?? '-';
-    final duration = responses?['duration'] ?? '-';
-
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -317,9 +320,19 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                     // LEFT COLUMN
                     Expanded(
                       flex: 1,
-                      child: _buildLeftInfoColumn(userData, biodata, startAt, finishAt, duration),
+                      child: _buildLeftInfoColumn(
+                        userData,
+                        biodata,
+                        _timelineStart,
+                        _timelineFinish,
+                        _timelineDuration,
+                      ),
                     ),
-                    Container(width: 1, height: 400, color: const Color(0xFFF0F0F0)),
+                    Container(
+                      width: 1,
+                      height: 400,
+                      color: const Color(0xFFF0F0F0),
+                    ),
                     // RIGHT COLUMN
                     Expanded(
                       flex: 1,
@@ -330,8 +343,18 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
               } else {
                 return Column(
                   children: [
-                    _buildLeftInfoColumn(userData, biodata, startAt, finishAt, duration),
-                    const Divider(height: 1, thickness: 1, color: Color(0xFFF0F0F0)),
+                    _buildLeftInfoColumn(
+                      userData,
+                      biodata,
+                      _timelineStart,
+                      _timelineFinish,
+                      _timelineDuration,
+                    ),
+                    const Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Color(0xFFF0F0F0),
+                    ),
                     _buildRightGeotaggingColumn(location),
                   ],
                 );
@@ -343,7 +366,13 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
     );
   }
 
-  Widget _buildLeftInfoColumn(Map<String, dynamic>? userData, Map<String, dynamic>? biodata, dynamic start, dynamic finish, dynamic duration) {
+  Widget _buildLeftInfoColumn(
+    Map<String, dynamic>? userData,
+    Map<String, dynamic>? biodata,
+    dynamic start,
+    dynamic finish,
+    dynamic duration,
+  ) {
     final name = userData?['name'] ?? _detail?.responses?['email'] ?? 'Guest';
     final province = _getProvinsi(biodata);
 
@@ -366,7 +395,9 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                 ),
                 child: Center(
                   child: Text(
-                    name.toString().isNotEmpty ? name.toString()[0].toUpperCase() : 'G',
+                    name.toString().isNotEmpty
+                        ? name.toString()[0].toUpperCase()
+                        : 'G',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -399,7 +430,10 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                     const SizedBox(height: 12),
                     // Province Badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFEBEDFF),
                         borderRadius: BorderRadius.circular(20),
@@ -407,7 +441,11 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.public, size: 14, color: Color(0xFF3F51B5)),
+                          const Icon(
+                            Icons.public,
+                            size: 14,
+                            color: Color(0xFF3F51B5),
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             province == '-' ? "Tidak ada provinsi" : province,
@@ -454,7 +492,11 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                       border: Border.all(color: const Color(0xFFEEEEEE)),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.home_outlined, size: 20, color: AppTheme.monTextMid),
+                    child: const Icon(
+                      Icons.home_outlined,
+                      size: 20,
+                      color: AppTheme.monTextMid,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   const Expanded(
@@ -473,27 +515,21 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
           ),
         ),
 
-        // Timeline Footer
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: Color(0xFFF9FAFB),
-            borderRadius: BorderRadius.only(bottomLeft: Radius.circular(24)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildTimelineItem("MULAI", start, Colors.green),
-              _buildTimelineItem("SELESAI", finish, Colors.blue),
-              _buildTimelineItem("DURASI", duration, Colors.orange, icon: Icons.access_time_rounded),
-            ],
-          ),
+        _buildTimelineFooter(
+          _timelineStart,
+          _timelineFinish,
+          _timelineDuration,
         ),
       ],
     );
   }
 
-  Widget _buildTimelineItem(String label, String value, Color color, {IconData? icon}) {
+  Widget _buildTimelineItem(
+    String label,
+    String value,
+    Color color, {
+    IconData? icon,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -532,6 +568,86 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
     );
   }
 
+  Widget _buildTimelineFooter(String start, String finish, String durasi) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(24)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildTimelineItem("MULAI", start, Colors.green),
+          _buildTimelineItem("SELESAI", finish, Colors.blue),
+          _buildTimelineItem(
+            "DURASI",
+            durasi,
+            Colors.orange,
+            icon: Icons.access_time_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _calculateTimeline(SurveyResponseDetail detail) {
+    final responses = detail.responses;
+    final startRaw =
+        responses?['started_at'] ??
+        responses?['created_at'] ??
+        detail.editedAt?.toString();
+    final finishRaw =
+        responses?['finished_at'] ??
+        responses?['updated_at'] ??
+        detail.editedAt?.toString();
+
+    String formatTime(String? raw) {
+      if (raw == null || raw.isEmpty) return '-';
+      try {
+        final dt = DateTime.parse(raw);
+        final monthNames = [
+          '',
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'Mei',
+          'Jun',
+          'Jul',
+          'Agu',
+          'Sep',
+          'Okt',
+          'Nov',
+          'Des',
+        ];
+        return '${dt.day.toString().padLeft(2, '0')} ${monthNames[dt.month]} ${dt.year}\n${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      } catch (_) {
+        return '-';
+      }
+    }
+
+    String calcDuration(String? start, String? finish) {
+      if (start == null || finish == null || start.isEmpty || finish.isEmpty)
+        return '-';
+      try {
+        final s = DateTime.parse(start);
+        final f = DateTime.parse(finish);
+        final diff = f.difference(s);
+        final h = diff.inHours;
+        final m = diff.inMinutes.remainder(60);
+        if (h > 0) return '${h}j ${m}m';
+        return '${m}m';
+      } catch (_) {
+        return '-';
+      }
+    }
+
+    _timelineStart = formatTime(startRaw);
+    _timelineFinish = formatTime(finishRaw);
+    _timelineDuration = calcDuration(startRaw, finishRaw);
+  }
+
   Widget _buildRightGeotaggingColumn(Map<String, dynamic>? location) {
     final ip = location?['ip']?.toString() ?? '-';
     final wilayah = _getWilayah(location);
@@ -549,7 +665,11 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
             children: [
               const Row(
                 children: [
-                  Icon(Icons.location_on_outlined, color: AppTheme.monGreenMid, size: 20),
+                  Icon(
+                    Icons.location_on_outlined,
+                    color: AppTheme.monGreenMid,
+                    size: 20,
+                  ),
                   SizedBox(width: 12),
                   Text(
                     "Geotagging",
@@ -563,7 +683,10 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
               ),
               // GPS Aktif Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(20),
@@ -574,7 +697,10 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: 6),
                     const Text(
@@ -593,34 +719,52 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
           const SizedBox(height: 24),
 
           // Detail Rows
-          LayoutBuilder(builder: (context, constraints) {
-            final isVeryWide = constraints.maxWidth > 350;
-            if (isVeryWide) {
-              return Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(child: _buildGeoItem("IP ADDRESS", ip, Icons.language_rounded)),
-                      const SizedBox(width: 16),
-                      Expanded(child: _buildGeoItem("KOTA / WILAYAH", wilayah, Icons.location_city_rounded)),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _buildCoordinateRow(lat, lng),
-                ],
-              );
-            } else {
-              return Column(
-                children: [
-                  _buildGeoItem("IP ADDRESS", ip, Icons.language_rounded),
-                  const SizedBox(height: 16),
-                  _buildGeoItem("KOTA / WILAYAH", wilayah, Icons.location_city_rounded),
-                  const SizedBox(height: 16),
-                  _buildCoordinateRow(lat, lng),
-                ],
-              );
-            }
-          }),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isVeryWide = constraints.maxWidth > 350;
+              if (isVeryWide) {
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildGeoItem(
+                            "IP ADDRESS",
+                            ip,
+                            Icons.language_rounded,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildGeoItem(
+                            "KOTA / WILAYAH",
+                            wilayah,
+                            Icons.location_city_rounded,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    _buildCoordinateRow(lat, lng),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    _buildGeoItem("IP ADDRESS", ip, Icons.language_rounded),
+                    const SizedBox(height: 16),
+                    _buildGeoItem(
+                      "KOTA / WILAYAH",
+                      wilayah,
+                      Icons.location_city_rounded,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildCoordinateRow(lat, lng),
+                  ],
+                );
+              }
+            },
+          ),
 
           const SizedBox(height: 24),
           _buildEnhancedMapPreview(location),
@@ -694,7 +838,11 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
           ),
           child: Row(
             children: [
-              const Icon(Icons.map_outlined, size: 16, color: AppTheme.monTextLight),
+              const Icon(
+                Icons.map_outlined,
+                size: 16,
+                color: AppTheme.monTextLight,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -714,12 +862,18 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                     final url = 'https://www.google.com/maps?q=$lat,$lng';
                     final uri = Uri.parse(url);
                     if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
                     }
                   },
                   borderRadius: BorderRadius.circular(6),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.blue.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
@@ -727,7 +881,11 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.open_in_new_rounded, size: 12, color: Colors.blue),
+                        Icon(
+                          Icons.open_in_new_rounded,
+                          size: 12,
+                          color: Colors.blue,
+                        ),
                         SizedBox(width: 6),
                         Text(
                           "Maps",
@@ -765,7 +923,11 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.location_off_outlined, color: AppTheme.monTextLight, size: 32),
+              Icon(
+                Icons.location_off_outlined,
+                color: AppTheme.monTextLight,
+                size: 32,
+              ),
               SizedBox(height: 12),
               Text(
                 "Peta tidak tersedia",
@@ -790,7 +952,9 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
           options: MapOptions(
             initialCenter: LatLng(lat, lng),
             initialZoom: 14,
-            interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+            interactionOptions: const InteractionOptions(
+              flags: InteractiveFlag.none,
+            ),
           ),
           children: [
             TileLayer(
@@ -803,7 +967,11 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                   point: LatLng(lat, lng),
                   width: 40,
                   height: 40,
-                  child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                  child: const Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 40,
+                  ),
                 ),
               ],
             ),

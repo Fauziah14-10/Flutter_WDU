@@ -73,7 +73,6 @@ class SurveyService {
     );
 
     if (response.data != null) {
-      debugPrint("survey_report keys: ${response.data!.keys.toList()}");
       return SurveyResponseDetail.fromJson(response.data!);
     }
     return null;

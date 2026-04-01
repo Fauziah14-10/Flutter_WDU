@@ -5,6 +5,17 @@ All notable changes to this Flutter project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+
+## [1.2.6] - 2026-04-01
+### Improvements:
+- Change password visibility icon from lock to eye icons (visibility_off/visibility_rounded)
+- Update monitoring status field to use supervision_status with values: pending, revision_needed, approve, decline
+- Display province_name from biodata in monitoring list
+- Fix timeline format in Lihat Monitor page:
+- Show date + time format (example: "01 Apr 2026\n21:15")
+- Auto-calculate duration from start and end time difference
+- Reduce size for mobile responsive display
+
 ## [1.2.5] - 2026-03-31
 ### Added
 - Monitoring Page - View: Display respondent location information including IP Address, region (city/province), latitude, and longitude

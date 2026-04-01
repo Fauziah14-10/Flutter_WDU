@@ -50,7 +50,16 @@ class Endpoints {
   ) =>
       '/clients/$clientSlug/projects/$projectSlug/surveys/$slug/report/$responseId';
 
-  // GET /api/clients/{clientSlug}/projects/{projectSlug}/surveys/{Survey:slug}/edit-answer/{userId}
+  // GET /api/clients/{clientSlug}/projects/{projectSlug}/surveys/{slug}/responses/{responseId}
+  //static String surveyResponses(
+  //String clientSlug,
+  //String projectSlug,
+  //String slug,
+  //int responseId,
+  //) =>
+  //'/clients/$clientSlug/projects/$projectSlug/surveys/$slug/responses/$responseId';
+ 
+  // POST /api/clients/{clientSlug}/projects/{projectSlug}/surveys/{surveyId}/submit
   static String editAnswer(
     String clientSlug,
     String projectSlug,
@@ -64,8 +73,7 @@ class Endpoints {
     String clientSlug,
     String projectSlug,
     int surveyId,
-  ) =>
-      '/clients/$clientSlug/projects/$projectSlug/surveys/$surveyId/submit';
+  ) => '/clients/$clientSlug/projects/$projectSlug/surveys/$surveyId/submit';
 
   // PATCH /api/clients/{clientSlug}/projects/{projectSlug}/surveys/{Survey:slug}/change-answer/{responseId}
   static String changeAnswer(
