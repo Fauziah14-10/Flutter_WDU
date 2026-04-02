@@ -22,16 +22,16 @@ class MonitoringProvider extends ChangeNotifier {
   String? errorMessage;
 
   String _resolvedName = '';
-  int totalRespon       = 0;
-  int targetRespon      = 0;
+  int totalRespon = 0;
+  int targetRespon = 0;
   String targetLocation = '-';
-  bool isOpen           = false;
+  bool isOpen = false;
 
   List<Map<String, dynamic>> responses = [];
-  List<Map<String, dynamic>> pages     = [];
+  List<Map<String, dynamic>> pages = [];
 
   Map<String, dynamic>? executiveSummary;
-  Map<String, dynamic>  questionSummaries = {};
+  Map<String, dynamic> questionSummaries = {};
 
   // ── GETTERS ───────────────────────────────────────────────
   String get resolvedName =>
@@ -54,7 +54,7 @@ class MonitoringProvider extends ChangeNotifier {
 
   // ── LOAD ──────────────────────────────────────────────────
   Future<void> loadSurvey() async {
-    isLoading    = true;
+    isLoading = true;
     errorMessage = null;
     notifyListeners();
 
@@ -65,7 +65,7 @@ class MonitoringProvider extends ChangeNotifier {
         _service.getSurveyAllReport(clientSlug, projectSlug, surveySlug),
       ]);
 
-      final detail    = results[0]; // /detail
+      final detail = results[0]; // /detail
       final allReport = results[1]; // /all-report
 
       debugPrint('detail keys:    ${detail.keys.toList()}');
@@ -99,7 +99,7 @@ class MonitoringProvider extends ChangeNotifier {
       // ── parse survey data ─────────────────────────────────
       if (surveyData != null) {
         _resolvedName = surveyData['title'] ?? surveyName;
-        targetRespon  = surveyData['target_response'] ?? 0;
+        targetRespon = surveyData['target_response'] ?? 0;
 
         final status = surveyData['status'];
         isOpen = status == 1 || status == '1' || status == 'DIBUKA';
@@ -172,11 +172,13 @@ class MonitoringProvider extends ChangeNotifier {
         questionSummaries = {};
       }
 
-      debugPrint('MonitoringProvider loaded: '
-          'survey="$_resolvedName", '
-          'responses=${responses.length}, '
-          'targetRespon=$targetRespon, '
-          'isOpen=$isOpen');
+      debugPrint(
+        'MonitoringProvider loaded: '
+        'survey="$_resolvedName", '
+        'responses=${responses.length}, '
+        'targetRespon=$targetRespon, '
+        'isOpen=$isOpen',
+      );
     } catch (e, st) {
       debugPrint('MonitoringProvider.loadSurvey ERROR: $e');
       debugPrint('$st');
@@ -185,5 +187,30 @@ class MonitoringProvider extends ChangeNotifier {
 
     isLoading = false;
     notifyListeners();
+  }
+
+  // ── DELETE RESPONSE ─────────────────────────────────────────
+  Future<bool> deleteResponse(int responseId) async {
+    try {
+      final success = await _service.deleteResponse(
+        clientSlug,
+        projectSlug,
+        surveySlug,
+        responseId,
+      );
+
+      if (success) {
+        responses.removeWhere(
+          (r) => r['id'] == responseId || r['response_id'] == responseId,
+        );
+        totalRespon = responses.length;
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error delete response: $e');
+      return false;
+    }
   }
 }

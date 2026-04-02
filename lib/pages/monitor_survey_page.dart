@@ -106,6 +106,32 @@ class _MonitoringSurveyPageState extends State<MonitoringSurveyPage>
                                   perPage: 10,
                                   onPageChanged: (page) =>
                                       setState(() => _currentPage = page),
+                                  onDeleteResponse:
+                                      (
+                                        responseId,
+                                        surveySlug,
+                                        clientSlug,
+                                        projectSlug,
+                                      ) async {
+                                        final success = await provider
+                                            .deleteResponse(responseId);
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                success
+                                                    ? 'Data berhasil dihapus'
+                                                    : 'Gagal menghapus data',
+                                              ),
+                                              backgroundColor: success
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      },
                                 ),
                               ),
                             ),

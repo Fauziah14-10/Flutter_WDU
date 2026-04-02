@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/monitoring_provider.dart';
-import '../../pages/cek_edit_monitor.dart';
 import '../../pages/lihat_monitor_page.dart';
 
 class ListResponWidget extends StatelessWidget {
@@ -10,6 +9,13 @@ class ListResponWidget extends StatelessWidget {
   final int totalData;
   final int perPage;
   final ValueChanged<int> onPageChanged;
+  final void Function(
+    int responseId,
+    String surveySlug,
+    String clientSlug,
+    String projectSlug,
+  )?
+  onDeleteResponse;
 
   const ListResponWidget({
     super.key,
@@ -18,6 +24,7 @@ class ListResponWidget extends StatelessWidget {
     required this.totalData,
     required this.perPage,
     required this.onPageChanged,
+    this.onDeleteResponse,
   });
 
   int get totalPages => totalData == 0 ? 1 : (totalData / perPage).ceil();
@@ -106,6 +113,7 @@ class ListResponWidget extends StatelessWidget {
                       (e) => _Row(
                         response: e.value,
                         isLast: e.key == _paged.length - 1,
+                        onDeleteResponse: onDeleteResponse,
                       ),
                     ),
                 ],
@@ -165,7 +173,18 @@ class _H extends StatelessWidget {
 class _Row extends StatelessWidget {
   final Map<String, dynamic> response;
   final bool isLast;
-  const _Row({required this.response, required this.isLast});
+  final void Function(
+    int responseId,
+    String surveySlug,
+    String clientSlug,
+    String projectSlug,
+  )?
+  onDeleteResponse;
+  const _Row({
+    required this.response,
+    required this.isLast,
+    this.onDeleteResponse,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -317,9 +336,9 @@ class _Row extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 _ActionBtn(
-                  icon: Icons.edit_outlined,
-                  label: 'Edit',
-                  color: const Color(0xFF0284C7),
+                  icon: Icons.delete_outline,
+                  label: 'Hapus',
+                  color: Colors.red,
                   onTap: () {
                     final responseId =
                         int.tryParse(
@@ -327,24 +346,38 @@ class _Row extends StatelessWidget {
                               .toString(),
                         ) ??
                         0;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        settings: RouteSettings(
-                          name: '/cek_edit_monitor',
-                          arguments: {
-                            'surveySlug': provider.surveySlug, // ← surveySlug
-                            'clientSlug': clientSlug,
-                            'projectSlug': projectSlug,
-                            'responseId': responseId, // ← int langsung
-                          },
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Hapus Data'),
+                        content: const Text(
+                          'Apakah Anda yakin ingin menghapus data ini?',
                         ),
-                        builder: (_) => CekEditMonitorPage(
-                          surveySlug: provider.surveySlug, // ← surveySlug
-                          clientSlug: clientSlug,
-                          projectSlug: projectSlug,
-                          responseId: responseId, // ← int langsung
-                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Batal'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              final provider = context
+                                  .read<MonitoringProvider>();
+                              if (onDeleteResponse != null) {
+                                onDeleteResponse!(
+                                  responseId,
+                                  provider.surveySlug,
+                                  clientSlug,
+                                  projectSlug,
+                                );
+                              }
+                            },
+                            child: const Text(
+                              'Hapus',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },

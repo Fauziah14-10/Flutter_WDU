@@ -57,7 +57,7 @@ class Endpoints {
   //int responseId,
   //) =>
   //'/clients/$clientSlug/projects/$projectSlug/surveys/$slug/responses/$responseId';
- 
+
   // POST /api/clients/{clientSlug}/projects/{projectSlug}/surveys/{surveyId}/submit
   static String editAnswer(
     String clientSlug,
@@ -82,4 +82,13 @@ class Endpoints {
     int responseId,
   ) =>
       '/clients/$clientSlug/projects/$projectSlug/surveys/$slug/change-answer/$responseId';
+
+  // DELETE /api/clients/{clientSlug}/projects/{projectSlug}/surveys/{slug}/responses/{responseId}
+  static String deleteResponse(
+    String clientSlug,
+    String projectSlug,
+    String slug,
+    int responseId,
+  ) =>
+      '/clients/$clientSlug/projects/$projectSlug/surveys/$slug/responses/$responseId';
 }

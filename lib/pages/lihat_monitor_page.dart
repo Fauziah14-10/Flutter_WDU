@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -64,11 +65,11 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
     });
 
     try {
-      final detail = await SurveyService().getSurveyResponseDetail(
-        widget.clientSlug,
-        widget.projectSlug,
-        widget.surveySlug,
-        widget.responseId,
+      final detail = await SurveyService().getFullSurveyDetail(
+        clientSlug: widget.clientSlug,
+        projectSlug: widget.projectSlug,
+        surveySlug: widget.surveySlug,
+        responseId: widget.responseId,
       );
 
       if (detail != null) {
@@ -128,6 +129,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                             _buildRespondentInfo(),
                             const SizedBox(height: 24),
                             ..._buildQuestionsList(),
+                            const SizedBox(height: 100),
                           ],
                         ),
                       ),
@@ -188,7 +190,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                   letterSpacing: 1,
                 ),
               ),
-              const SizedBox(width: 34), // For balance
+              const SizedBox(width: 34),
             ],
           ),
           const SizedBox(height: 24),
@@ -277,7 +279,6 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // HEADER: INFORMASI DASAR & LOKASI
           Padding(
             padding: const EdgeInsets.all(24),
             child: Row(
@@ -317,7 +318,6 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // LEFT COLUMN
                     Expanded(
                       flex: 1,
                       child: _buildLeftInfoColumn(
@@ -333,7 +333,6 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                       height: 400,
                       color: const Color(0xFFF0F0F0),
                     ),
-                    // RIGHT COLUMN
                     Expanded(
                       flex: 1,
                       child: _buildRightGeotaggingColumn(location),
@@ -379,13 +378,11 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Profile Profile Info
         Padding(
           padding: const EdgeInsets.all(24),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar
               Container(
                 width: 54,
                 height: 54,
@@ -428,7 +425,6 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // Province Badge
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -467,7 +463,6 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
 
         const Divider(height: 1, thickness: 1, color: Color(0xFFF8F8F8)),
 
-        // Address Section
         Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -659,7 +654,6 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Geotagging Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -681,7 +675,6 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                   ),
                 ],
               ),
-              // GPS Aktif Badge
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -718,7 +711,6 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
           ),
           const SizedBox(height: 24),
 
-          // Detail Rows
           LayoutBuilder(
             builder: (context, constraints) {
               final isVeryWide = constraints.maxWidth > 350;
@@ -1009,7 +1001,16 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
   List<Widget> _buildQuestionsList() {
     if (_detail == null) return [];
 
-    final answersMap = {for (var a in _detail!.answers) a.questionId: a.answer};
+    debugPrint(
+      'DEBUG _buildQuestionsList: pages count = ${_detail!.pages.length}',
+    );
+    for (var p in _detail!.pages) {
+      debugPrint(
+        'DEBUG: Page ${p.pageName} has ${p.questions.length} questions',
+      );
+    }
+
+    final currentResponseId = widget.responseId;
 
     List<Widget> list = [];
 
@@ -1030,13 +1031,44 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
       );
 
       for (var q in page.questions) {
-        final answer = answersMap[q.id] ?? "-";
-        list.add(_buildQuestionCard(q, answer));
+        debugPrint(
+          'DEBUG: Question ${q.id} has ${q.embeddedAnswers.length} embedded answers',
+        );
+
+        // Get raw answer for this specific responseId
+        String rawAnswer = "-";
+
+        // Check embedded answers and filter by responseId
+        if (q.embeddedAnswers.isNotEmpty) {
+          final matchingAnswer = q.embeddedAnswers.firstWhere(
+            (a) => a['response_id'] == currentResponseId,
+            orElse: () => <String, dynamic>{},
+          );
+          if (matchingAnswer.isNotEmpty) {
+            rawAnswer = matchingAnswer['answer']?.toString() ?? "-";
+          }
+        }
+
+        list.add(_buildQuestionCard(q, rawAnswer));
         list.add(const SizedBox(height: 12));
       }
     }
 
     return list;
+  }
+
+  // Hapus _formatAnswer karena sekarang _buildAnswerDisplay yang handle
+
+  dynamic _parseJson(String jsonStr) {
+    try {
+      return jsonStr.isEmpty
+          ? {}
+          : jsonStr.startsWith('[')
+          ? jsonDecode(jsonStr) as List
+          : jsonDecode(jsonStr) as Map<String, dynamic>;
+    } catch (e) {
+      return {};
+    }
   }
 
   Widget _buildQuestionCard(SurveyQuestionData q, String answer) {
@@ -1060,32 +1092,405 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
             ),
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.monBgColor,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.reply, size: 14, color: AppTheme.monGreenMid),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    answer.isEmpty ? "-" : answer,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: AppTheme.monGreenDark,
-                    ),
-                  ),
-                ),
-              ],
+          _buildAnswerDisplay(q, answer),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnswerDisplay(SurveyQuestionData q, String answer) {
+    // Matrix question (type_id = 9)
+    if (q.isMatrix && q.matrixRows.isNotEmpty) {
+      return _buildMatrixAnswer(q, answer);
+    }
+
+    // Checkbox question (type_id = 3)
+    if (q.questionTypeId == 3 && q.choices.isNotEmpty) {
+      return _buildCheckboxAnswer(q, answer);
+    }
+
+    // Radio question (type_id = 2)
+    if (q.questionTypeId == 2 && q.choices.isNotEmpty) {
+      return _buildRadioAnswer(q, answer);
+    }
+
+    // Dropdown question (type_id = 7)
+    if (q.questionTypeId == 7 && q.choices.isNotEmpty) {
+      return _buildRadioAnswer(q, answer);
+    }
+
+    // Text, number, paragraph - show as plain text
+    if (answer.isEmpty || answer == "-" || answer == "Unknown") {
+      return _buildEmptyAnswer();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.monBgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.reply, size: 14, color: AppTheme.monGreenMid),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              answer,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.monGreenDark,
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildMatrixAnswer(SurveyQuestionData q, String answer) {
+    if (answer.isEmpty || answer == "-" || answer == "Unknown") {
+      return _buildEmptyAnswer();
+    }
+
+    try {
+      final Map<String, dynamic> parsed = Map<String, dynamic>.from(
+        _parseJson(answer),
+      );
+
+      if (parsed.isEmpty) {
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppTheme.monBgColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(answer, style: const TextStyle(fontSize: 13)),
+        );
+      }
+
+      return Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            // Header columns (SS, S, TS, STS)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(8),
+                  topRight: Radius.circular(8),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 12),
+                      child: Text(
+                        'Pernyataan',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  ...List.generate(4, (i) {
+                    return Expanded(
+                      flex: 1,
+                      child: Center(
+                        child: Text(
+                          ['SS', 'S', 'TS', 'STS'][i],
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+            // Table rows
+            ...List.generate(q.matrixRows.length, (index) {
+              final rowKey = 'row-$index';
+              final selectedValue = parsed[rowKey] as int? ?? -1;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: index.isEven ? Colors.white : Colors.grey.shade50,
+                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                ),
+                child: Row(
+                  children: [
+                    // Row label
+                    Expanded(
+                      flex: 3,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 12, right: 8),
+                        child: Text(
+                          q.matrixRows[index].label.replaceAll(
+                            RegExp(r'^\d+\.\s*'),
+                            '',
+                          ),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ),
+                    // Radio buttons for each column
+                    ...List.generate(4, (colIndex) {
+                      final isSelected = selectedValue == colIndex;
+                      return Expanded(
+                        flex: 1,
+                        child: Center(
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isSelected
+                                  ? _getMatrixColor(colIndex)
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: isSelected
+                                    ? _getMatrixColor(colIndex)
+                                    : Colors.grey.shade400,
+                                width: 2,
+                              ),
+                            ),
+                            child: isSelected
+                                ? const Icon(
+                                    Icons.check,
+                                    size: 14,
+                                    color: Colors.white,
+                                  )
+                                : null,
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      );
+    } catch (e) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.monBgColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(answer, style: const TextStyle(fontSize: 13)),
+      );
+    }
+  }
+
+  Color _getMatrixColor(int value) {
+    switch (value) {
+      case 0:
+        return AppTheme.monGreenDark; // SS
+      case 1:
+        return AppTheme.monGreenMid; // S
+      case 2:
+        return Colors.orange; // TS
+      case 3:
+        return Colors.red; // STS
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildCheckboxAnswer(SurveyQuestionData q, String answer) {
+    if (answer.isEmpty || answer == "-" || answer == "Unknown") {
+      return _buildEmptyAnswer();
+    }
+
+    try {
+      final List<String> selectedIds = [];
+
+      if (answer.startsWith('[')) {
+        final List<dynamic> parsed = _parseJson(answer);
+        for (var item in parsed) {
+          selectedIds.add(item.toString());
+        }
+      } else {
+        selectedIds.add(answer);
+      }
+
+      // Get selected choice values
+      final List<String> selectedValues = [];
+      for (var choice in q.choices) {
+        if (selectedIds.contains(choice.id.toString())) {
+          selectedValues.add(choice.value);
+        }
+      }
+
+      if (selectedValues.isEmpty) {
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppTheme.monBgColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(answer, style: const TextStyle(fontSize: 13)),
+        );
+      }
+
+      return Column(
+        children: q.choices.map((opt) {
+          final optId = opt.id.toString();
+          final isChecked = selectedIds.contains(optId);
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: isChecked ? AppTheme.monGreenPale : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isChecked ? AppTheme.monGreenMid : Colors.grey.shade300,
+                width: isChecked ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: isChecked
+                        ? AppTheme.monGreenMid
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isChecked
+                          ? AppTheme.monGreenMid
+                          : Colors.grey.shade400,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: isChecked
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    opt.value,
+                    style: TextStyle(
+                      color: isChecked
+                          ? AppTheme.monTextDark
+                          : Colors.grey.shade700,
+                      fontWeight: isChecked
+                          ? FontWeight.w500
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      );
+    } catch (e) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.monBgColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(answer, style: const TextStyle(fontSize: 13)),
+      );
+    }
+  }
+
+  Widget _buildRadioAnswer(SurveyQuestionData q, String answer) {
+    if (answer.isEmpty || answer == "-" || answer == "Unknown") {
+      return _buildEmptyAnswer();
+    }
+
+    // Find matching choice
+    String? selectedValue;
+    for (var choice in q.choices) {
+      if (choice.id.toString() == answer) {
+        selectedValue = choice.value;
+        break;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.monGreenMid.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.monGreenMid.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.radio_button_checked,
+            size: 18,
+            color: AppTheme.monGreenDark,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              selectedValue ?? answer,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.monGreenDark,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyAnswer() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.remove_circle_outline, size: 14, color: Colors.grey[400]),
+          const SizedBox(width: 8),
+          Text(
+            'Tidak dijawab',
+            style: TextStyle(
+              fontSize: 13,
+              fontStyle: FontStyle.italic,
+              color: Colors.grey[500],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getMatrixColumnLabel(int value, List<MatrixColumnData> columns) {
+    const columnLabels = ['SS', 'S', 'TS', 'STS', 'TR'];
+    if (value >= 0 && value < columnLabels.length) {
+      return columnLabels[value];
+    }
+    return 'N/A';
   }
 }

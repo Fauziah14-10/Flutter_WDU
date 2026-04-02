@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.2.7] - 2026-04-02
+### Added
+- Combined survey detail endpoint with response report to display complete question data in Lihat Monitor page
+- Added new method getFullSurveyDetail() to merge /report/{responseId} and /all-report endpoints
+- Added elaborate answer display in Lihat Monitor page (similar to Google Form):
+  - Matrix questions: displayed as table with SS/S/TS/STS columns and radio button circles
+  - Checkbox questions: displayed with checkbox UI showing all options (checked for selected)
+  - Radio questions: displayed with radio button UI showing all options (highlighted for selected)
+  - Text/Paragraph: displayed as plain text answer
+  
+### Fixed
+- Fixed API endpoint from /detail to /all-report for fetching survey questions
+- Fixed answer filtering by responseId to show only selected respondent's answers
+
 ## [1.2.6] - 2026-04-01
 ### Improvements:
 - Change password visibility icon from lock to eye icons (visibility_off/visibility_rounded)

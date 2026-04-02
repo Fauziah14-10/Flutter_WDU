@@ -66,7 +66,10 @@ class SurveyResponseDetail {
                 : null),
 
       pages:
-          (json['pages'] as List? ?? json['page'] as List?)
+          (json['pages'] as List? ??
+                  json['page'] as List? ??
+                  json['detail_pages'] as List? ??
+                  json['detail_questions'] as List?)
               ?.map((e) => SurveyPageData.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -155,6 +158,9 @@ class SurveyQuestionData {
   final List<MatrixColumnData> matrixColumns;
   final String matrixType; // 'radio' atau 'checkbox'
 
+  // Answers from report endpoint (embedded in question)
+  final List<Map<String, dynamic>> embeddedAnswers;
+
   SurveyQuestionData({
     required this.id,
     required this.questionText,
@@ -169,6 +175,7 @@ class SurveyQuestionData {
     this.matrixRows = const [],
     this.matrixColumns = const [],
     this.matrixType = 'radio',
+    this.embeddedAnswers = const [],
   });
 
   factory SurveyQuestionData.fromJson(Map<String, dynamic> json) {
@@ -215,6 +222,11 @@ class SurveyQuestionData {
       matrixRows: parsedRows,
       matrixColumns: parsedCols,
       matrixType: json['matrix_type'] ?? 'radio',
+      embeddedAnswers:
+          (json['answer'] as List?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [],
     );
   }
 
