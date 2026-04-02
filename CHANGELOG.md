@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.2.7] - 2026-04-02
+### Added
+- Dynamic button label in survey card: shows "Cek / Edit Kuisioner" if user has responded, "Isi Kuisioner" if not
+- CheckUserHasResponded method in EditAnswerService to verify user response status
+- hasResponded field in SurveyModel for tracking user response status
+
+### Changed
+- ViewSurveyCard: converted from StatelessWidget to StatefulWidget to handle async API check
+- ViewSurveyCard: added userId parameter for user identification
+- SurveyPage: added userId parameter passing to ViewSurveyCard
+- Updated withOpacity to withValues for better Flutter 3.x compatibility
+- Rewrote cek_edit_survey_page.dart to fix infinite loop and error handling issues
+
+### Fixed
+- Fixed infinite loop issue in cek_edit_survey_page when loading survey data
+- Fixed error handling to properly set isLoading=false on all error cases
+- Fixed duplicate catch block issue that caused file corruption
+
+---
+
 ## [1.2.6] - 2026-04-01
 ### Improvements:
 - Change password visibility icon from lock to eye icons (visibility_off/visibility_rounded)

@@ -19,6 +19,7 @@ class SurveyModel {
 
   // computed dari API (bukan fillable, tapi sering di-append)
   final int responseCount;
+  final bool hasResponded;
 
   SurveyModel({
     this.id,
@@ -36,6 +37,7 @@ class SurveyModel {
     this.createdAt,
     this.updatedAt,
     this.responseCount = 0,
+    this.hasResponded = false,
   });
 
   factory SurveyModel.fromJson(Map<String, dynamic> json) {
@@ -78,6 +80,7 @@ class SurveyModel {
           ? DateTime.tryParse(json['updated_at'].toString())
           : null,
       responseCount: json['response_count'] ?? json['responses_count'] ?? 0,
+      hasResponded: json['has_responded'] ?? false,
     );
   }
 
@@ -106,6 +109,5 @@ class SurveyModel {
       : '-';
 
   // helper: status open
-  bool get isOpen =>
-      status == 'DIBUKA' || status == 'OPEN' || status == '1';
+  bool get isOpen => status == 'DIBUKA' || status == 'OPEN' || status == '1';
 }

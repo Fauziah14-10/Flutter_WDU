@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/survey_provider.dart';
 import '../widgets/view_surveys/viewsurvey_card.dart';
+import '../../core/utils/storage.dart';
 
 class SurveyBpkPage extends StatefulWidget {
   final String clientSlug;
@@ -26,10 +27,12 @@ class SurveyBpkPage extends StatefulWidget {
 class _SurveyBpkPageState extends State<SurveyBpkPage> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+  int _userId = 0;
 
   @override
   void initState() {
     super.initState();
+    _loadUserId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SurveyProvider>().loadSurveys(
         widget.clientSlug,
@@ -39,6 +42,14 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
     _searchController.addListener(() {
       setState(() => _query = _searchController.text.toLowerCase());
     });
+  }
+
+  Future<void> _loadUserId() async {
+    final userIdStr = await StorageHelper.getUserId();
+    final userId = int.tryParse(userIdStr ?? '') ?? 0;
+    if (mounted) {
+      setState(() => _userId = userId);
+    }
   }
 
   @override
@@ -358,6 +369,7 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                               survey: s,
                               clientSlug: widget.clientSlug,
                               projectSlug: widget.projectSlug,
+                              userId: _userId,
                               onRefresh: _refresh,
                               onDelete: _refresh,
                               onTapResponden: () {},

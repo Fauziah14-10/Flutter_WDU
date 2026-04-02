@@ -3,11 +3,13 @@ import '../../models/survey_model.dart';
 import '../../pages/monitor_survey_page.dart';
 import '../../pages/province_target_page.dart';
 import '../../pages/cek_edit_survey_page.dart';
+import '../../service/edit_answer_service.dart';
 
-class ViewSurveyCard extends StatelessWidget {
+class ViewSurveyCard extends StatefulWidget {
   final SurveyModel survey;
   final String clientSlug;
   final String projectSlug;
+  final int userId;
   final VoidCallback onRefresh;
   final VoidCallback onDelete;
   final VoidCallback onTapResponden;
@@ -18,6 +20,7 @@ class ViewSurveyCard extends StatelessWidget {
     required this.survey,
     required this.clientSlug,
     required this.projectSlug,
+    required this.userId,
     required this.onRefresh,
     required this.onDelete,
     required this.onTapResponden,
@@ -25,8 +28,49 @@ class ViewSurveyCard extends StatelessWidget {
   });
 
   @override
+  State<ViewSurveyCard> createState() => _ViewSurveyCardState();
+}
+
+class _ViewSurveyCardState extends State<ViewSurveyCard> {
+  final EditAnswerService _editService = EditAnswerService();
+  bool _hasResponded = false;
+  bool _isChecking = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserResponse();
+  }
+
+  Future<void> _checkUserResponse() async {
+    if (widget.userId == 0) {
+      setState(() => _isChecking = false);
+      return;
+    }
+
+    try {
+      final hasResponded = await _editService.checkUserHasResponded(
+        clientSlug: widget.clientSlug,
+        projectSlug: widget.projectSlug,
+        surveySlug: widget.survey.slug,
+        userId: widget.userId,
+      );
+      if (mounted) {
+        setState(() {
+          _hasResponded = hasResponded;
+          _isChecking = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isChecking = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final bool isOpen = survey.isOpen;
+    final bool isOpen = widget.survey.isOpen;
 
     return Container(
       decoration: BoxDecoration(
@@ -45,13 +89,12 @@ class ViewSurveyCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── TITLE + RESPONSE COUNT ──
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Text(
-                    survey.title,
+                    widget.survey.title,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
@@ -61,7 +104,7 @@ class ViewSurveyCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 GestureDetector(
-                  onTap: onTapResponden,
+                  onTap: widget.onTapResponden,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -81,7 +124,7 @@ class ViewSurveyCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${survey.responseCount}',
+                          '${widget.survey.responseCount}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -97,10 +140,9 @@ class ViewSurveyCard extends StatelessWidget {
 
             const SizedBox(height: 10),
 
-            // ── DESCRIPTION ──
-            if (survey.desc != null && survey.desc!.isNotEmpty)
+            if (widget.survey.desc != null && widget.survey.desc!.isNotEmpty)
               Text(
-                survey.desc!,
+                widget.survey.desc!,
                 style: const TextStyle(
                   fontSize: 13,
                   color: Color(0xFF777777),
@@ -110,7 +152,6 @@ class ViewSurveyCard extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            // ── LOCATION + STATUS ──
             Row(
               children: [
                 const Icon(
@@ -119,10 +160,10 @@ class ViewSurveyCard extends StatelessWidget {
                   color: Color(0xFFAAAAAA),
                 ),
                 const SizedBox(width: 4),
-                if (survey.provinceTargets.isEmpty)
+                if (widget.survey.provinceTargets.isEmpty)
                   Expanded(
                     child: Text(
-                      survey.targetLocation,
+                      widget.survey.targetLocation,
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFFAAAAAA),
@@ -179,8 +220,7 @@ class ViewSurveyCard extends StatelessWidget {
               ],
             ),
 
-            // ── TARGET PROVINCES ──
-            if (survey.provinceTargets.isNotEmpty) ...[
+            if (widget.survey.provinceTargets.isNotEmpty) ...[
               const SizedBox(height: 12),
               const Divider(height: 1, color: Color(0xFFF0F0F0)),
               const SizedBox(height: 10),
@@ -207,15 +247,15 @@ class ViewSurveyCard extends StatelessWidget {
                     settings: RouteSettings(
                       name: '/province_target',
                       arguments: {
-                        'surveyName': survey.title,
-                        'provinces': survey.provinceTargets
+                        'surveyName': widget.survey.title,
+                        'provinces': widget.survey.provinceTargets
                             .map((p) => p.toJson())
                             .toList(),
                       },
                     ),
                     builder: (_) => ProvinceTargetPage(
-                      surveyName: survey.title,
-                      provinces: survey.provinceTargets,
+                      surveyName: widget.survey.title,
+                      provinces: widget.survey.provinceTargets,
                     ),
                   ),
                 ),
@@ -255,39 +295,54 @@ class ViewSurveyCard extends StatelessWidget {
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
             const SizedBox(height: 10),
 
-            // ── ACTION BUTTONS ──
             Row(
               children: [
                 Expanded(
-                  child: _ActionBtn(
-                    label: 'Cek / Isi Kuisioner',
-                    color: const Color(0xFF4CAF50),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          settings: RouteSettings(
-                            name: '/cek_edit_survey',
-                            arguments: {
-                              'surveySlug': survey.slug, // ← surveySlug
-                              'clientSlug': clientSlug,
-                              'projectSlug': projectSlug,
-                              'responseId':
-                                  0, // ← int, 0 = belum pilih responden
-                            },
+                  child: _isChecking
+                      ? Container(
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          builder: (_) => CekEditSurveyPage(
-                            surveySlug: survey.slug, // ← surveySlug
-                            clientSlug: clientSlug,
-                            projectSlug: projectSlug,
-                            responseId: 0, // ← int
+                          child: const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                           ),
+                        )
+                      : _ActionBtn(
+                          label: _hasResponded
+                              ? 'Cek / Edit Kuisioner'
+                              : 'Isi Kuisioner',
+                          color: const Color(0xFF4CAF50),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                settings: RouteSettings(
+                                  name: '/cek_edit_survey',
+                                  arguments: {
+                                    'surveySlug': widget.survey.slug,
+                                    'clientSlug': widget.clientSlug,
+                                    'projectSlug': widget.projectSlug,
+                                    'responseId': 0,
+                                  },
+                                ),
+                                builder: (_) => CekEditSurveyPage(
+                                  surveySlug: widget.survey.slug,
+                                  clientSlug: widget.clientSlug,
+                                  projectSlug: widget.projectSlug,
+                                  responseId: 0,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
                 ),
-                const SizedBox(width: 24), // Jarak diperbesar lagi menjadi 24
+                const SizedBox(width: 24),
                 Expanded(
                   child: _ActionBtn(
                     label: 'Monitor',
@@ -298,23 +353,23 @@ class ViewSurveyCard extends StatelessWidget {
                         settings: RouteSettings(
                           name: '/monitoring',
                           arguments: {
-                            'surveyName': survey.title,
-                            'clientSlug': clientSlug,
-                            'projectSlug': projectSlug,
-                            'surveySlug': survey.slug,
-                            'totalRespon': survey.responseCount,
-                            'targetLocation': survey.targetLocation,
-                            'isOpen': survey.isOpen,
+                            'surveyName': widget.survey.title,
+                            'clientSlug': widget.clientSlug,
+                            'projectSlug': widget.projectSlug,
+                            'surveySlug': widget.survey.slug,
+                            'totalRespon': widget.survey.responseCount,
+                            'targetLocation': widget.survey.targetLocation,
+                            'isOpen': widget.survey.isOpen,
                           },
                         ),
                         builder: (_) => MonitoringSurveyPage(
-                          surveyName: survey.title,
-                          clientSlug: clientSlug,
-                          projectSlug: projectSlug,
-                          surveySlug: survey.slug,
-                          totalRespon: survey.responseCount,
-                          targetLocation: survey.targetLocation,
-                          isOpen: survey.isOpen,
+                          surveyName: widget.survey.title,
+                          clientSlug: widget.clientSlug,
+                          projectSlug: widget.projectSlug,
+                          surveySlug: widget.survey.slug,
+                          totalRespon: widget.survey.responseCount,
+                          targetLocation: widget.survey.targetLocation,
+                          isOpen: widget.survey.isOpen,
                         ),
                       ),
                     ),
@@ -342,7 +397,7 @@ class _ActionBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 38, // Kembali ke ukuran awal (38)
+    height: 38,
     child: ElevatedButton(
       onPressed: onTap,
       style: ElevatedButton.styleFrom(
@@ -357,7 +412,7 @@ class _ActionBtn extends StatelessWidget {
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w700,
-          fontSize: 13, // Kembali ke ukuran awal (13)
+          fontSize: 13,
         ),
       ),
     ),

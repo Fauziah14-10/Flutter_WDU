@@ -260,29 +260,6 @@ class _ClientsSection extends StatelessWidget {
                       ],
                     ),
                   ),
-                  TextButton.icon(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(
-                      backgroundColor: AppTheme.dashSage100,
-                      foregroundColor: AppTheme.dashSage500,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: const BorderSide(color: AppTheme.dashSage200),
-                      ),
-                    ),
-                    icon: const Icon(Icons.add_rounded, size: 16),
-                    label: const Text(
-                      'Create',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 12),

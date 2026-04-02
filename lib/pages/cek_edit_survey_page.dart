@@ -105,21 +105,33 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
       debugPrint("API Error: ${e.message}");
 
       if (e.statusCode == 404 && mounted) {
-        // 404 = belum pernah isi kuisioner, coba ambil form kosong
         await _loadEmptyForm();
       } else if (mounted) {
-        setState(() => loadError = e.message);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message)));
+        setState(() {
+          loadError = e.message;
+          isLoading = false;
+        });
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        }
       }
     } catch (e) {
       debugPrint("Error loading survey data: $e");
-      // Kalau gagal ambil data, coba ambil form kosong untuk isi baru
-      await _loadEmptyForm();
-    } finally {
-      if (mounted && isLoading) {
-        setState(() => isLoading = false);
+      if (mounted) {
+        setState(() {
+          loadError = "Terjadi kesalahan saat memuat data";
+          isLoading = false;
+        });
+      }
+    }
+  }
+    } catch (e) {
+      debugPrint("Error loading survey data: $e");
+      if (mounted) {
+        setState(() {
+          loadError = "Terjadi kesalahan saat memuat data";
+          isLoading = false;
+        });
       }
     }
   }
@@ -136,14 +148,21 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
         setState(() {
           surveyData = formData;
           isNewSurvey = true;
+          isLoading = false;
         });
       } else if (mounted) {
-        setState(() => loadError = "Form kuisioner tidak ditemukan");
+        setState(() {
+          loadError = "Form kuisioner tidak ditemukan";
+          isLoading = false;
+        });
       }
     } catch (e) {
       debugPrint("Gagal mengambil form kosong: $e");
       if (mounted) {
-        setState(() => loadError = "Gagal memuat form kuisioner");
+        setState(() {
+          loadError = "Gagal memuat form kuisioner";
+          isLoading = false;
+        });
       }
     }
   }
