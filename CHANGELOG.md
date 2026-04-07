@@ -5,6 +5,33 @@ All notable changes to this Flutter project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+
+## [1.2.9] - 2026-04-07
+### Features
+- Redesign dashboard: update client card and project card design for better UI/UX
+- Redesign monitor page: improve responsive layout and data presentation
+
+### Investigation
+- Investigate survey edit issue: answers not showing when returning to cek/edit page
+- Added debug logging to trace API response keys
+- Added fallback to /report/{responseId} endpoint when /edit-answer/{userId} returns empty answer
+- Tried /responses/{responseId} endpoint but got 500 error (not available in backend)
+
+### Changes
+- Added surveyResponses endpoint in endpoints.dart (commented out for now)
+- Added fallback logic in edit_answer_service.dart to try /report endpoint when primary returns empty
+
+### Backend Issue Found
+- Identified bug in Laravel EnumEditAnswer: uses $authUser->id instead of $userId parameter
+- Fix required in backend Laravel controller (not a Flutter issue)
+- Root cause found: answers table empty for response_id=362, meaning answers not being saved during submission
+
+### Known Issues
+- Answers not persisting to database - this is a backend issue, not Flutter
+
+
+---
+
 ## [1.2.8] - 2026-04-06
 ### Features
 - Add Biodata page for respondent data input before survey

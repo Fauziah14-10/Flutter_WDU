@@ -74,11 +74,26 @@ class SurveyResponseDetail {
               .toList() ??
           [],
 
-      answers:
-          (json['answer'] as List? ?? json['answers'] as List?)
-              ?.map((e) => SurveyAnswerData.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
+      answers: (() {
+        final List<dynamic> rawAnswers = [
+          ...(json['answer'] as List? ?? []),
+          ...(json['answers'] as List? ?? []),
+        ];
+        
+        // Coba cari dalam responses jika answers di root kosong
+        if (rawAnswers.isEmpty) {
+          dynamic resp = json['responses'] ?? json['response'];
+          if (resp is List && resp.isNotEmpty) resp = resp.first;
+          if (resp is Map) {
+            rawAnswers.addAll(resp['answer'] as List? ?? []);
+            rawAnswers.addAll(resp['answers'] as List? ?? []);
+          }
+        }
+        
+        return rawAnswers
+            .map((e) => SurveyAnswerData.fromJson(e as Map<String, dynamic>))
+            .toList();
+      })(),
 
       editedAt: json['edited_at'] != null
           ? DateTime.tryParse(json['edited_at'].toString())
@@ -91,9 +106,13 @@ class SurveyResponseDetail {
             json['responses']?['id'] ??
             json['response']?['id'],
       ),
-      responses: json['responses'] as Map<String, dynamic>?,
-      location: json['location'] as Map<String, dynamic>?,
-      biodata: json['biodata'] as Map<String, dynamic>?,
+      responses: _extractMap(json['responses']) ??
+                 (json['responses'] is List && (json['responses'] as List).isNotEmpty ? _extractMap((json['responses'] as List).first) : null) ??
+                 _extractMap(json['response']),
+      location: _extractMap(json['location']) ??
+                (json['location'] is List && (json['location'] as List).isNotEmpty ? _extractMap((json['location'] as List).first) : null),
+      biodata: _extractMap(json['biodata']) ??
+               (json['biodata'] is List && (json['biodata'] as List).isNotEmpty ? _extractMap((json['biodata'] as List).first) : null),
     );
   }
 }

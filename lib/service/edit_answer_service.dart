@@ -40,15 +40,134 @@ class EditAnswerService {
         Endpoints.editAnswer(clientSlug, projectSlug, surveySlug, userId),
       );
 
+      print("DEBUG getEditAnswerData - Response: ${response.data}");
+      print("DEBUG getEditAnswerData - Status: ${response.statusCode}");
+
       if (response.data != null) {
-        return SurveyResponseDetail.fromJson(response.data!);
+        final dynamic data = response.data;
+
+        // Handle common wrapper keys 'data', 'responses', 'survey'
+        if (data is Map<String, dynamic>) {
+          print("DEBUG getEditAnswerData - Map keys: ${data.keys.toList()}");
+          print(
+            "DEBUG getEditAnswerData - Has 'answer' key: ${data.containsKey('answer')}",
+          );
+          print(
+            "DEBUG getEditAnswerData - Has 'answers' key: ${data.containsKey('answers')}",
+          );
+          print(
+            "DEBUG getEditAnswerData - Has 'response' key: ${data.containsKey('response')}",
+          );
+          print(
+            "DEBUG getEditAnswerData - Has 'responses' key: ${data.containsKey('responses')}",
+          );
+
+          // Debug answers content
+          final answerKey = data.containsKey('answer')
+              ? 'answer'
+              : (data.containsKey('answers') ? 'answers' : null);
+          if (answerKey != null) {
+            print(
+              "DEBUG getEditAnswerData - Answer content: ${data[answerKey]}",
+            );
+          }
+
+          final responseKey = data.containsKey('response')
+              ? 'response'
+              : (data.containsKey('responses') ? 'responses' : null);
+          if (responseKey != null) {
+            print(
+              "DEBUG getEditAnswerData - Response content: ${data[responseKey]}",
+            );
+          }
+
+          // Check if answer is empty - try fallback to report endpoint
+          final answerList =
+              data['answer'] as List? ?? data['answers'] as List? ?? [];
+          final isAnswerEmpty = answerList.isEmpty;
+          final responseIdFromApi = data['response_id'] as int?;
+
+          if (isAnswerEmpty &&
+              responseIdFromApi != null &&
+              responseIdFromApi > 0) {
+            print(
+              "DEBUG getEditAnswerData - Answer is empty, trying fallback report endpoint",
+            );
+            try {
+              final fallbackResponse = await _api.get(
+                Endpoints.surveyReport(
+                  clientSlug,
+                  projectSlug,
+                  surveySlug,
+                  responseIdFromApi,
+                ),
+              );
+              if (fallbackResponse.data != null) {
+                print(
+                  "DEBUG getEditAnswerData - Fallback report response keys: ${(fallbackResponse.data as Map).keys.toList()}",
+                );
+                final fallbackData =
+                    fallbackResponse.data as Map<String, dynamic>;
+                // Merge answer from fallback
+                final mergedData = Map<String, dynamic>.from(data);
+                if (fallbackData.containsKey('answer') &&
+                    (fallbackData['answer'] as List?)?.isNotEmpty == true) {
+                  mergedData['answer'] = fallbackData['answer'];
+                  print(
+                    "DEBUG getEditAnswerData - Using answers from fallback",
+                  );
+                  return SurveyResponseDetail.fromJson(mergedData);
+                } else if (fallbackData.containsKey('answers') &&
+                    (fallbackData['answers'] as List?)?.isNotEmpty == true) {
+                  mergedData['answers'] = fallbackData['answers'];
+                  print(
+                    "DEBUG getEditAnswerData - Using answers from fallback (answers key)",
+                  );
+                  return SurveyResponseDetail.fromJson(mergedData);
+                }
+              }
+            } catch (e) {
+              print("DEBUG getEditAnswerData - Fallback error: $e");
+            }
+
+            // Note: /responses/{responseId} endpoint tidak tersedia di backend
+            // Commented out until backend fix
+          }
+
+          if (data.containsKey('data') &&
+              data['data'] is Map<String, dynamic>) {
+            print("DEBUG getEditAnswerData - Using data['data'] as Map");
+            return SurveyResponseDetail.fromJson(
+              data['data'] as Map<String, dynamic>,
+            );
+          } else if (data.containsKey('data') && data['data'] is List) {
+            final list = data['data'] as List;
+            print(
+              "DEBUG getEditAnswerData - Using data['data'] as List, length: ${list.length}",
+            );
+            if (list.isNotEmpty && list.first is Map<String, dynamic>) {
+              return SurveyResponseDetail.fromJson(
+                list.first as Map<String, dynamic>,
+              );
+            }
+          }
+          print("DEBUG getEditAnswerData - Using raw Map");
+          return SurveyResponseDetail.fromJson(data);
+        } else if (data is List && data.isNotEmpty) {
+          print("DEBUG getEditAnswerData - Raw List, length: ${data.length}");
+          final firstItem = data.first;
+          if (firstItem is Map<String, dynamic>) {
+            return SurveyResponseDetail.fromJson(firstItem);
+          }
+        }
       }
       return null;
     } on ApiException {
       rethrow;
     } catch (e, st) {
       print("getEditAnswerData ERROR: $e\n$st");
-      throw Exception("Format JSON tidak valid atau error lain: $e");
+      // Coba lempar exception ini agar di-catch dan ditangani
+      throw Exception("Format API tidak sesuai: $e");
     }
   }
 

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/survey_response_detail_model.dart';
 import '../service/edit_answer_service.dart';
+import '../service/auth_service.dart';
 import '../core/api/api_client.dart';
-import '../core/utils/storage.dart'; // ← untuk ambil userId
+import '../core/constants/endpoints.dart';
+import '../core/utils/storage.dart';
 import '../core/theme/app_theme.dart';
 
 class CekEditSurveyPage extends StatefulWidget {
@@ -26,6 +28,7 @@ class CekEditSurveyPage extends StatefulWidget {
 
 class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
   final EditAnswerService _editService = EditAnswerService();
+  final ApiClient _api = ApiClient();
 
   bool isLoading = true;
   SurveyResponseDetail? surveyData;
@@ -44,6 +47,18 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
     _loadData();
   }
 
+  Future<String?> _fetchCurrentUserId() async {
+    try {
+      final response = await _api.get(Endpoints.me);
+      if (response.data != null) {
+        return response.data!['id']?.toString();
+      }
+    } catch (e) {
+      debugPrint("Error fetch current user: $e");
+    }
+    return null;
+  }
+
   // ── LOAD ─────────────────────────────────────────────────
   Future<void> _loadData() async {
     setState(() {
@@ -53,9 +68,13 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
 
     int userId = 0;
     try {
-      // Ambil userId langsung dari storage — tidak perlu passing dari luar
-      final userIdStr = await StorageHelper.getUserId();
+      // Ambil userId dari API /user untuksinkron dengan token Bearer yang aktif
+      String? userIdStr = await _fetchCurrentUserId();
+
+      // Fallback ke storage jika API gagal
+      userIdStr ??= await StorageHelper.getUserId();
       userId = int.tryParse(userIdStr ?? '') ?? 0;
+      print("DEBUG _loadData - userId: $userId");
 
       if (userId == 0) {
         debugPrint("userId tidak ditemukan di storage");
@@ -70,7 +89,11 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage> {
         userId: userId,
       );
 
+      print("DEBUG _loadData - data returned: ${data != null}");
       if (data != null) {
+        print(
+          "DEBUG _loadData - pages: ${data.pages.length}, answers: ${data.answers.length}, responseId: ${data.responseId}",
+        );
         surveyData = data;
 
         // Ambil responseId dari top-level atau cari dari jawaban yang ada

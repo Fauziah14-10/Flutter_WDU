@@ -50,13 +50,13 @@ class Endpoints {
       '/clients/$clientSlug/projects/$projectSlug/surveys/$slug/report/$responseId';
 
   // GET /api/clients/{clientSlug}/projects/{projectSlug}/surveys/{slug}/responses/{responseId}
-  //static String surveyResponses(
-  //String clientSlug,
-  //String projectSlug,
-  //String slug,
-  //int responseId,
-  //) =>
-  //'/clients/$clientSlug/projects/$projectSlug/surveys/$slug/responses/$responseId';
+  static String surveyResponses(
+    String clientSlug,
+    String projectSlug,
+    String slug,
+    int responseId,
+  ) =>
+      '/clients/$clientSlug/projects/$projectSlug/surveys/$slug/responses/$responseId';
 
   // POST /api/clients/{clientSlug}/projects/{projectSlug}/surveys/{surveyId}/submit
   static String editAnswer(
