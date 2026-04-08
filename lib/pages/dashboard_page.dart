@@ -1,13 +1,12 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/app_theme.dart';
 import '../providers/dashboard_provider.dart';
 import '../widgets/dashboard_surveys/client_card.dart';
 import '../widgets/dashboard_surveys/project_card.dart';
-import '../widgets/dashboard_surveys/section_header.dart';
-import '../providers/auth_provider.dart';
 
-// ── ENTRY POINT ───────────────────────────────────────────────
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
@@ -20,7 +19,6 @@ class DashboardPage extends StatelessWidget {
   }
 }
 
-// ── VIEW ──────────────────────────────────────────────────────
 class _DashboardView extends StatefulWidget {
   const _DashboardView();
 
@@ -32,6 +30,7 @@ class _DashboardViewState extends State<_DashboardView>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -70,50 +69,197 @@ class _DashboardViewState extends State<_DashboardView>
 
     if (provider.loading) {
       return const Scaffold(
-        backgroundColor: AppTheme.dashSage50,
+        backgroundColor: AppTheme.background,
         body: Center(
-          child: CircularProgressIndicator(color: AppTheme.dashSage500),
+          child: CircularProgressIndicator(color: AppTheme.primary),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.dashSage50,
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: CustomScrollView(
-            slivers: [
-              _buildAppBar(),
-              SliverPadding(
-                padding: const EdgeInsets.all(16),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    // ── ACTIVE PROJECTS ──
-                    if (provider.projects.isNotEmpty) ...[
-                      const SectionHeader(
-                        icon: Icons.folder_open_rounded,
-                        title: 'Active Projects',
-                        subtitle: 'Overview of latest projects',
-                      ),
-                      const SizedBox(height: 14),
-                      ...provider.projects.asMap().entries.map((entry) {
-                        final i = entry.key;
-                        final project = entry.value;
-                        return ProjectCard(
-                          project: project,
-                          animDelay: Duration(milliseconds: 100 + i * 150),
-                        );
-                      }),
-                      const SizedBox(height: 6),
-                    ],
+      backgroundColor: AppTheme.background,
+      extendBody: true,
+      body: FadeTransition(
+        opacity: _fadeAnim,
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            _buildAppBar(),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  const SizedBox(height: 10),
+                  
+                  // ── ACTIVE PROJECTS HEADER ──
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.1)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.onSurface.withOpacity(0.04),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(Icons.folder_copy_rounded, color: AppTheme.primary, size: 24),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Active Projects',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.onSurface,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              Text(
+                                'Overview of latest projects',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: AppTheme.onSurfaceVariant.withOpacity(0.6),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
-                    // ── CLIENTS ──
-                    _ClientsSection(provider: provider),
-                    const SizedBox(height: 24),
-                  ]),
-                ),
+                  // ── PROJECT LIST ──
+                  if (provider.filteredProjects.isNotEmpty) ...[
+                    ...provider.filteredProjects.asMap().entries.map((entry) {
+                      final i = entry.key;
+                      final project = entry.value;
+                      return ProjectCard(
+                        project: project,
+                        animDelay: Duration(milliseconds: 100 + i * 150),
+                      );
+                    }),
+                  ],
+
+                  // ── CLIENTS ──
+                  const SizedBox(height: 16),
+                  _ClientsSection(provider: provider),
+                ]),
               ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: _buildFAB(),
+      bottomNavigationBar: _buildBottomNavBar(),
+    );
+  }
+
+  SliverAppBar _buildAppBar() {
+    return SliverAppBar(
+      backgroundColor: AppTheme.surface.withOpacity(0.8),
+      elevation: 0,
+      pinned: true,
+      centerTitle: false,
+      expandedHeight: 80,
+      flexibleSpace: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: FlexibleSpaceBar(
+            titlePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            centerTitle: false,
+            title: Row(
+              children: [
+                Image.asset(
+                  'assets/images/SIS-WDU-logo.png',
+                  height: 32,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Text('SIS-WDU'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.logout_rounded, color: AppTheme.primary),
+          padding: const EdgeInsets.only(right: 20),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFAB() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20, right: 10),
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: AppTheme.primary,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primary.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {},
+          borderRadius: BorderRadius.circular(16),
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNavBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceContainerLowest.withOpacity(0.8),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.onSurface.withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, -12),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(0, Icons.folder_open_rounded, 'Projects'),
+              _buildNavItem(1, Icons.handshake_rounded, 'Clients'),
+              _buildNavItem(2, Icons.analytics_rounded, 'Surveys'),
+              _buildNavItem(3, Icons.settings_rounded, 'Settings'),
             ],
           ),
         ),
@@ -121,87 +267,47 @@ class _DashboardViewState extends State<_DashboardView>
     );
   }
 
-  SliverAppBar _buildAppBar() {
-    return SliverAppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      pinned: true,
-      expandedHeight: 0,
-      leadingWidth: 200,
-      leading: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Image.asset(
-          'assets/images/SIS-WDU-logo.png',
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Container(
-            decoration: BoxDecoration(
-              color: AppTheme.dashSage500,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Center(
-              child: Text(
-                'SIS',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    bool isActive = _selectedIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedIndex = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: isActive
+            ? BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF006A36), Color(0xFF71F69D)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(16),
+              )
+            : null,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isActive ? Colors.white : AppTheme.onSurface.withOpacity(0.6),
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                color: isActive ? Colors.white : AppTheme.onSurface.withOpacity(0.6),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
               ),
             ),
-          ),
+          ],
         ),
-      ),
-      actions: [
-        IconButton(
-          onPressed: () => _showLogoutDialog(context),
-          icon: const Icon(Icons.logout_rounded, color: AppTheme.dashSage500),
-          tooltip: 'Logout',
-        ),
-      ],
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(height: 1, color: AppTheme.dashSage100),
       ),
     );
   }
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Apakah Anda yakin ingin keluar?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal', style: TextStyle(color: AppTheme.dashTextMid)),
-          ),
-          TextButton(
-            onPressed: () async {
-              final nav = Navigator.of(context, rootNavigator: true);
-              final auth = context.read<AuthProvider>();
+}
 
-              nav.pop(); // Tutup dialog
-
-              try {
-                await auth.logout();
-              } catch (e) {
-                debugPrint('Logout error: $e');
-              }
-
-              nav.pushNamedAndRemoveUntil('/', (route) => false);
-            },
-            child: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-} // ✅ kurung tutup _DashboardViewState
-
-// ── CLIENTS SECTION ───────────────────────────────────────────
 class _ClientsSection extends StatelessWidget {
   final DashboardProvider provider;
 
@@ -212,153 +318,72 @@ class _ClientsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.dashSage100),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppTheme.dashSage500,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.people_alt_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Clients',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.dashTextDark,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Manage your client portfolio',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.dashTextLight,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(
-                      backgroundColor: AppTheme.dashSage100,
-                      foregroundColor: AppTheme.dashSage500,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: const BorderSide(color: AppTheme.dashSage200),
-                      ),
-                    ),
-                    icon: const Icon(Icons.add_rounded, size: 16),
-                    label: const Text(
-                      'Create',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                onChanged: provider.updateSearch,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppTheme.dashTextDark,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Search clients...',
-                  hintStyle: const TextStyle(
-                    color: AppTheme.dashSage200,
-                    fontSize: 13,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.search_rounded,
-                    color: AppTheme.dashTextLight,
-                    size: 18,
-                  ),
-                  filled: true,
-                  fillColor: AppTheme.dashSage50,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(9),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(9),
-                    borderSide: const BorderSide(color: AppTheme.dashSage100),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(9),
-                    borderSide: const BorderSide(
-                      color: AppTheme.dashSage500,
-                      width: 1.5,
-                    ),
+        // ── PAGE HEADER ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Clients',
+                  style: GoogleFonts.manrope(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.onSurface,
+                    letterSpacing: -1,
                   ),
                 ),
-              ),
-            ],
-          ),
+                Text(
+                  'Manage your client portfolio',
+                  style: GoogleFonts.inter(
+                    color: AppTheme.onSurfaceVariant.withOpacity(0.7),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 20),
+        _buildSearchAndFilters(provider),
+        const SizedBox(height: 24),
 
         // ── CLIENT LIST ──
         if (provider.clientsLoading)
           const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 36),
-              child: CircularProgressIndicator(color: AppTheme.dashSage500),
+              child: CircularProgressIndicator(color: AppTheme.primary),
             ),
           )
         else if (provider.filteredClients.isEmpty)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+            padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.dashSage100),
+              color: AppTheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.1)),
             ),
-            child: const Column(
+            child: Column(
               children: [
                 Icon(
                   Icons.search_off_rounded,
-                  size: 36,
-                  color: AppTheme.dashSage200,
+                  size: 48,
+                  color: AppTheme.outline.withOpacity(0.2),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 16),
                 Text(
                   'No clients found',
-                  style: TextStyle(fontSize: 13, color: AppTheme.dashTextLight),
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: AppTheme.onSurfaceVariant.withOpacity(0.5),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -369,11 +394,10 @@ class _ClientsSection extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.only(bottom: 24),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+              crossAxisCount: 3,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio:
-              0.68, // Adjust childAspectRatio directly if needed
+              childAspectRatio: 0.65,
             ),
             itemCount: provider.filteredClients.length,
             itemBuilder: (context, index) =>
@@ -382,4 +406,44 @@ class _ClientsSection extends StatelessWidget {
       ],
     );
   }
+
+  Widget _buildSearchAndFilters(DashboardProvider provider) {
+    return Column(
+      children: [
+        // ── SEARCH BAR ──
+        Container(
+          height: 60,
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.onSurface.withOpacity(0.04),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+            border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.15)),
+          ),
+          child: TextField(
+            onChanged: (val) {
+              provider.updateSearch(val);
+            },
+            decoration: InputDecoration(
+              hintText: 'Search projects...',
+              hintStyle: TextStyle(
+                color: AppTheme.outline.withOpacity(0.6),
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+              prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.outline),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 18),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
+

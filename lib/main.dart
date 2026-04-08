@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'core/theme/app_theme.dart';
 import 'pages/login_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/list_survey_page.dart';
@@ -84,6 +85,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
+        theme: AppTheme.themeData,
         navigatorObservers: [AppRouteObserver()],
         initialRoute: isLoggedIn ? initialRoute : null,
         home: _getHome(),

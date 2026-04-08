@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/user_project_model.dart';
 import '../../pages/list_survey_page.dart';
+import '../common/status_badge.dart';
+import '../common/gradient_button.dart';
 
 class ProjectCard extends StatefulWidget {
   final UserProject project;
@@ -28,12 +31,12 @@ class _ProjectCardState extends State<ProjectCard>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 600),
     );
     _slide = Tween<Offset>(
-      begin: const Offset(0, 0.12),
+      begin: const Offset(0, 0.05),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
     _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
 
     Future.delayed(widget.animDelay, () {
@@ -75,56 +78,129 @@ class _ProjectCardState extends State<ProjectCard>
     final p = widget.project;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 24),
       child: FadeTransition(
         opacity: _fade,
         child: SlideTransition(
           position: _slide,
           child: Container(
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.dashSage100),
+              color: AppTheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.onSurface.withOpacity(0.08),
+                  blurRadius: 48,
+                  offset: const Offset(0, 24),
+                  spreadRadius: -12,
+                ),
+              ],
+              border: Border.all(
+                color: AppTheme.outlineVariant.withOpacity(0.1),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── HEADER ──
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
+                // ── ICON & STATUS ──
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryContainer.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.folder_open_rounded,
+                          color: AppTheme.primary,
+                          size: 30,
+                        ),
+                      ),
+                    ),
+                    const StatusBadge(
+                      label: 'Active',
+                      color: AppTheme.primary,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // ── TITLES ──
+                Text(
+                  p.projectName,
+                  style: GoogleFonts.manrope(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.onSurface,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  p.clientName,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: AppTheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // ── STATS GRID ──
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              p.projectName,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.dashTextDark,
+                            const Text(
+                              'TOTAL SURVEYS',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.outline,
+                                letterSpacing: 1.2,
                               ),
                             ),
-                            const SizedBox(height: 5),
+                            const SizedBox(height: 4),
                             Row(
                               children: [
-                                Container(
-                                  width: 6,
-                                  height: 6,
-                                  decoration: const BoxDecoration(
-                                    color: AppTheme.dashSage500,
-                                    shape: BoxShape.circle,
+                                Text(
+                                  '${p.surveyCount}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.onSurface,
                                   ),
                                 ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  p.clientName,
-                                  style: const TextStyle(
-                                    fontSize: 12.5,
-                                    color: AppTheme.dashTextMid,
-                                    fontWeight: FontWeight.w500,
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryContainer,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    '+1',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppTheme.onPrimaryContainer,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -132,126 +208,79 @@ class _ProjectCardState extends State<ProjectCard>
                           ],
                         ),
                       ),
-                      Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: AppTheme.dashSage500,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${p.id}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // ── DESCRIPTION ──
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
-                  child: Text(
-                    p.desc ?? '-',
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      color: AppTheme.dashTextLight,
-                      height: 1.5,
                     ),
-                  ),
-                ),
-
-                Container(height: 1, color: AppTheme.dashSage100),
-
-                // ── FOOTER ──
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.access_time_rounded,
-                        size: 13,
-                        color: AppTheme.dashSage200,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        p.updatedAt ?? '-',
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          color: AppTheme.dashSage200,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 4,
-                        ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppTheme.dashSage100,
-                          borderRadius: BorderRadius.circular(7),
-                          border: Border.all(color: AppTheme.dashSage200),
+                          color: AppTheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
-                              Icons.assignment_outlined,
-                              size: 12,
-                              color: AppTheme.dashSage500,
+                            const Text(
+                              'STATUS',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.outline,
+                                letterSpacing: 1.2,
+                              ),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(height: 4),
                             Text(
-                              '${p.surveyCount} survei',
+                              '${p.surveyCount} survei aktif',
                               style: const TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.dashSage500,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primary,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-
-                Container(height: 1, color: AppTheme.dashSage100),
-
-                // ── VIEW SURVEYS BUTTON ──
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _viewSurveys(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.dashSage500,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                      label: const Text(
-                        'View Surveys',
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
                     ),
-                  ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // ── DIVIDER ──
+                Divider(
+                  color: AppTheme.outlineVariant.withOpacity(0.1),
+                  height: 1,
+                ),
+                const SizedBox(height: 16),
+
+                // ── FOOTER ──
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.schedule_rounded,
+                          size: 14,
+                          color: AppTheme.outline,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          p.updatedAt ?? 'Baru saja',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.outline,
+                          ),
+                        ),
+                      ],
+                    ),
+                    GradientButton(
+                      label: 'View Surveys',
+                      onPressed: () => _viewSurveys(context),
+                      icon: Icons.arrow_forward_rounded,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -261,3 +290,4 @@ class _ProjectCardState extends State<ProjectCard>
     );
   }
 }
+
