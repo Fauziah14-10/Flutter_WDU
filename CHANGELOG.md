@@ -6,6 +6,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.3.0] - 2026-04-08
+### Features
+- Add Biodata page for respondent data input before survey
+- Add Submission page for final survey submission with review functionality
+- Dynamic button labels based on answer status (Isi Kuisioner / Cek Edit)
+- Local storage draft for answers (saves before database submission)
+- Redesign monitor survey page with improved UI
+- Add Edit Answer feature with API integration
+
+### Bug Fixes
+- Fix submit payload format (wrap in "data" field)
+- Fix edit answer payload (separate question & answer arrays)
+- Fix province dropdown (use fallback data when API returns empty)
+- Fix logout handling on Android with root navigator
+- Fix production API URL configuration
+
+### Changes
+- Auto-refresh status after survey submission
+- Add auto-save draft when navigating between pages
+- Improve answer display design in Monitor (Google Forms style)
+- Update password visibility icons (visibility_off/visibility_rounded)
+- Display province_name from biodata in monitoring list
+- Fix timeline format with date + time display
+- Added embedded OpenStreetMap in monitoring detail
+
+### Investigation
+- Investigate survey edit issue: answers not showing when returning to cek/edit page
+- Added debug logging to trace API response keys
+- Added fallback to /report/{responseId} endpoint when /edit-answer/{userId} returns empty answer
+- Identified bug in Laravel EnumEditAnswer: uses $authUser->id instead of $userId parameter (backend issue)
+
+### Technical
+- Added submission_service.dart for survey submission handling
+- Added submission_model.dart for data models
+- Added submission_page.dart with multi-step form UI
+- Enhanced edit_answer_service.dart with fallback logic
+- Added flutter_map and latlong2 packages for map display
+- Added url_launcher package to open Google Maps
+- Optimized client image display with fallback images for TransJakarta and BPD
+
+
+---
+
 ## [1.2.9] - 2026-04-07
 ### Features
 - Redesign dashboard: update client card and project card design for better UI/UX
