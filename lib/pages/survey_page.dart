@@ -67,7 +67,6 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -96,9 +95,7 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
               physics: const BouncingScrollPhysics(),
               slivers: [
                 _buildAppBar(),
-                SliverToBoxAdapter(
-                  child: _buildOldStyleHeader(),
-                ),
+                SliverToBoxAdapter(child: _buildOldStyleHeader()),
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
@@ -144,7 +141,11 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
       ),
       leadingWidth: 40,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.primary, size: 20),
+        icon: const Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: AppTheme.primary,
+          size: 20,
+        ),
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
@@ -164,7 +165,9 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
         shape: BoxShape.circle,
         border: Border.all(color: AppTheme.primaryContainer, width: 2),
         image: const DecorationImage(
-          image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuCv34DsqRUZUqKv_NeyCEHI-lhaJDfRIEpGZijfDE-F5WTMy15De2vE2F2U0Tq93p1SgLypDPorL5H6k-2FMPdVtmABiCYFymqzl_Fw9Ce1l4DVRVXkCdAYs5CSIk8HuoBjlBqdd9uiF6yPnhA-m3sAUuNNu_XHQVaNowOjD-z9xFxZRPxYrcMDKpodMPz-0yAshllWST4n8mpc3w0H2K7qZ8nxOXWvQwXv7pwymmdxFFiprjvKqvklL0gebux8nCdyX2O8Tim18Cwx'),
+          image: NetworkImage(
+            'https://lh3.googleusercontent.com/aida-public/AB6AXuCv34DsqRUZUqKv_NeyCEHI-lhaJDfRIEpGZijfDE-F5WTMy15De2vE2F2U0Tq93p1SgLypDPorL5H6k-2FMPdVtmABiCYFymqzl_Fw9Ce1l4DVRVXkCdAYs5CSIk8HuoBjlBqdd9uiF6yPnhA-m3sAUuNNu_XHQVaNowOjD-z9xFxZRPxYrcMDKpodMPz-0yAshllWST4n8mpc3w0H2K7qZ8nxOXWvQwXv7pwymmdxFFiprjvKqvklL0gebux8nCdyX2O8Tim18Cwx',
+          ),
           fit: BoxFit.cover,
         ),
       ),
@@ -208,7 +211,9 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
 
     if (provider.isLoading) {
       return const SliverFillRemaining(
-        child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+        child: Center(
+          child: CircularProgressIndicator(color: AppTheme.primary),
+        ),
       );
     }
 
@@ -218,9 +223,16 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.inbox_outlined, size: 48, color: AppTheme.outline.withOpacity(0.2)),
+              Icon(
+                Icons.inbox_outlined,
+                size: 48,
+                color: AppTheme.outline.withOpacity(0.2),
+              ),
               const SizedBox(height: 16),
-              Text('Tidak ada kuisioner.', style: TextStyle(color: AppTheme.outline.withOpacity(0.5))),
+              Text(
+                'Tidak ada kuisioner.',
+                style: TextStyle(color: AppTheme.outline.withOpacity(0.5)),
+              ),
             ],
           ),
         ),
@@ -236,17 +248,15 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
           crossAxisSpacing: 24,
           mainAxisExtent: 460,
         ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final survey = filtered[index];
-            return SurveyBentoCard(
-              survey: survey,
-              clientSlug: widget.clientSlug,
-              projectSlug: widget.projectSlug,
-            );
-          },
-          childCount: filtered.length,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final survey = filtered[index];
+          return SurveyBentoCard(
+            survey: survey,
+            clientSlug: widget.clientSlug,
+            projectSlug: widget.projectSlug,
+            hasAnswered: provider.hasUserAnswered(survey.slug),
+          );
+        }, childCount: filtered.length),
       ),
     );
   }
@@ -296,12 +306,13 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
           decoration: BoxDecoration(
             color: isActive ? AppTheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
-            gradient: isActive ? const LinearGradient(colors: [Color(0xFF006A36), Color(0xFF71F69D)]) : null,
+            gradient: isActive
+                ? const LinearGradient(
+                    colors: [Color(0xFF006A36), Color(0xFF71F69D)],
+                  )
+                : null,
           ),
-          child: Icon(
-            icon,
-            color: isActive ? Colors.white : AppTheme.outline,
-          ),
+          child: Icon(icon, color: isActive ? Colors.white : AppTheme.outline),
         ),
         const SizedBox(height: 4),
         Text(
@@ -325,11 +336,7 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
           width: double.infinity,
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Color(0xffe8faf4),
-                Color(0xffc8f0e2),
-                Color(0xffb2e8d6),
-              ],
+              colors: [Color(0xffe8faf4), Color(0xffc8f0e2), Color(0xffb2e8d6)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -382,7 +389,10 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xff1a7a5e).withOpacity(0.08),
                   border: Border.all(
@@ -394,7 +404,11 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.folder_open_rounded, size: 14, color: Color(0xff1a7a5e)),
+                    Icon(
+                      Icons.folder_open_rounded,
+                      size: 14,
+                      color: Color(0xff1a7a5e),
+                    ),
                     SizedBox(width: 6),
                     Text(
                       'PROJECT NAME',
@@ -414,7 +428,10 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 decoration: BoxDecoration(
                   color: const Color(0xfff9fafb),
-                  border: Border.all(color: const Color(0xffe5e7eb), width: 1.5),
+                  border: Border.all(
+                    color: const Color(0xffe5e7eb),
+                    width: 1.5,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -473,13 +490,18 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
       const SizedBox(height: 2),
       Text(
         'Client Logo',
-        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w600, color: Colors.grey),
+        style: const TextStyle(
+          fontSize: 8,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey,
+        ),
       ),
     ],
   );
 
   String _clientDescription(String name) {
-    if (name.toLowerCase().contains('bpk') || name.toLowerCase().contains('badan pemeriksa')) {
+    if (name.toLowerCase().contains('bpk') ||
+        name.toLowerCase().contains('badan pemeriksa')) {
       return 'Badan Pemeriksa Keuangan (BPK) adalah lembaga negara yang bebas dan mandiri, bertugas memeriksa pengelolaan dan tanggung jawab keuangan negara, berdasarkan UUD 1945 dan UU terkait. BPK berperan memastikan transparansi dan akuntabilitas publik.';
     }
     return name;

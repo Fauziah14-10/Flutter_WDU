@@ -3,18 +3,23 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/survey_model.dart';
 import '../../pages/monitor_survey_page.dart';
-import '../../pages/cek_edit_monitor.dart';
+import '../../pages/cek_edit_survey_page.dart';
+import '../../pages/biodata_page.dart';
+import '../../pages/camera_capture_page.dart';
+import '../../pages/submission_page.dart';
 
 class SurveyBentoCard extends StatelessWidget {
   final SurveyModel survey;
   final String clientSlug;
   final String projectSlug;
+  final bool? hasAnswered;
 
   const SurveyBentoCard({
     super.key,
     required this.survey,
     required this.clientSlug,
     required this.projectSlug,
+    this.hasAnswered,
   });
 
   @override
@@ -63,7 +68,8 @@ class SurveyBentoCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            survey.desc ?? 'Evaluasi pemanfaatan infrastruktur digital nasional.',
+                            survey.desc ??
+                                'Evaluasi pemanfaatan infrastruktur digital nasional.',
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               color: AppTheme.onSurfaceVariant.withOpacity(0.7),
@@ -91,9 +97,18 @@ class SurveyBentoCard extends StatelessWidget {
                 // ── INFO ROW ──
                 Row(
                   children: [
-                    _infoEntry(Icons.location_on_outlined, survey.provinceTargets.isEmpty ? 'Nasional' : '${survey.provinceTargets.length} Provinsi'),
+                    _infoEntry(
+                      Icons.location_on_outlined,
+                      survey.provinceTargets.isEmpty
+                          ? 'Nasional'
+                          : '${survey.provinceTargets.length} Provinsi',
+                    ),
                     const SizedBox(width: 12),
-                    Container(height: 16, width: 1, color: AppTheme.outlineVariant.withOpacity(0.2)),
+                    Container(
+                      height: 16,
+                      width: 1,
+                      color: AppTheme.outlineVariant.withOpacity(0.2),
+                    ),
                     const SizedBox(width: 12),
                     _infoEntry(Icons.calendar_today_rounded, 'Batch 1'),
                   ],
@@ -137,9 +152,13 @@ class SurveyBentoCard extends StatelessWidget {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          ...survey.provinceTargets.take(3).map((p) => _chip(p.name)),
+                          ...survey.provinceTargets
+                              .take(3)
+                              .map((p) => _chip(p.name)),
                           if (survey.provinceTargets.length > 3)
-                            _chip('+${survey.provinceTargets.length - 3} Others'),
+                            _chip(
+                              '+${survey.provinceTargets.length - 3} Others',
+                            ),
                           if (survey.provinceTargets.isEmpty)
                             _chip('Nasional (All Provinces)', isSpecial: true),
                         ],
@@ -155,21 +174,38 @@ class SurveyBentoCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _actionButton(
-                        label: 'Cek / Edit',
+                        label: hasAnswered == true
+                            ? 'Cek / Edit'
+                            : 'Isi Kuisioner',
                         icon: Icons.edit_note_rounded,
-                        gradient: const LinearGradient(colors: [Color(0xFF006A36), Color(0xFF71F69D)]),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF006A36), Color(0xFF71F69D)],
+                        ),
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CekEditMonitorPage(
-                                surveySlug: survey.slug,
-                                clientSlug: clientSlug,
-                                projectSlug: projectSlug,
-                                responseId: survey.id ?? 0,
+                          if (hasAnswered == true) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CekEditSurveyPage(
+                                  surveySlug: survey.slug,
+                                  clientSlug: clientSlug,
+                                  projectSlug: projectSlug,
+                                  responseId: 0,
+                                ),
                               ),
-                            ),
-                          );
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BiodataPage(
+                                  surveySlug: survey.slug,
+                                  clientSlug: clientSlug,
+                                  projectSlug: projectSlug,
+                                ),
+                              ),
+                            );
+                          }
                         },
                       ),
                     ),
@@ -217,7 +253,11 @@ class SurveyBentoCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.analytics_rounded, size: 14, color: AppTheme.primary),
+          const Icon(
+            Icons.analytics_rounded,
+            size: 14,
+            color: AppTheme.primary,
+          ),
           const SizedBox(width: 4),
           Text(
             '${survey.responseCount}',
@@ -273,9 +313,13 @@ class SurveyBentoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isSpecial ? AppTheme.primary.withOpacity(0.05) : AppTheme.surfaceContainerLowest,
+        color: isSpecial
+            ? AppTheme.primary.withOpacity(0.05)
+            : AppTheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.outlineVariant.withOpacity(isSpecial ? 0.3 : 0.1)),
+        border: Border.all(
+          color: AppTheme.outlineVariant.withOpacity(isSpecial ? 0.3 : 0.1),
+        ),
       ),
       child: Text(
         label,
@@ -306,7 +350,7 @@ class SurveyBentoCard extends StatelessWidget {
             color: (color ?? AppTheme.primary).withOpacity(0.2),
             blurRadius: 16,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Material(
