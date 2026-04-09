@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/storage.dart';
 
 class CameraCapturePage extends StatefulWidget {
   final String surveySlug;
@@ -35,6 +36,41 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   String _errorMessage = '';
 
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDraftPhoto();
+  }
+
+  Future<void> _loadDraftPhoto() async {
+    final draftPhoto = await StorageHelper.getDraftPhoto(widget.surveySlug);
+    if (draftPhoto != null && mounted) {
+      final photoPath = draftPhoto['photo_path'] as String?;
+      if (photoPath != null && File(photoPath).existsSync()) {
+        final lat = draftPhoto['latitude'] as double?;
+        final lng = draftPhoto['longitude'] as double?;
+        setState(() {
+          _imageFile = File(photoPath);
+          if (lat != null && lng != null) {
+            _position = Position(
+              latitude: lat,
+              longitude: lng,
+              timestamp: DateTime.now(),
+              accuracy: 0,
+              altitude: 0,
+              altitudeAccuracy: 0,
+              heading: 0,
+              headingAccuracy: 0,
+              speed: 0,
+              speedAccuracy: 0,
+            );
+          }
+          _timestamp = DateTime.tryParse(draftPhoto['capture_time'] as String? ?? '');
+        });
+      }
+    }
+  }
 
   Future<void> _checkPermissionsAndCapture() async {
     setState(() {
@@ -104,6 +140,14 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       
       final File localFile = await File(photo.path).copy(localPath);
 
+      await StorageHelper.saveDraftPhoto(
+        surveySlug: widget.surveySlug,
+        photoPath: localFile.path,
+        latitude: position.latitude,
+        longitude: position.longitude,
+        captureTime: DateTime.now().toIso8601String(),
+      );
+
       setState(() {
         _imageFile = localFile;
         _position = position;
@@ -118,7 +162,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     }
   }
 
-  void _lanjutkan() {
+  Future<void> _lanjutkan() async {
     // Memasukkan data foto & lokasi ke biodata jika perlu
     final updatedBiodata = Map<String, dynamic>.from(widget.biodata ?? {});
     
@@ -133,7 +177,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       updatedBiodata['capture_time'] = _timestamp!.toIso8601String();
     }
 
-    Navigator.pushReplacementNamed(
+    final result = await Navigator.pushNamed(
       context,
       '/submission',
       arguments: {
@@ -144,6 +188,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         'surveyTitle': widget.surveyTitle,
       },
     );
+
+    if (result == true && mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
   @override
@@ -152,7 +200,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
       backgroundColor: AppTheme.monBgColor,
       appBar: AppBar(
         title: const Text(
-          'Ambil Foto Objek',
+          'Ambil Foto',
           style: TextStyle(color: Colors.white, fontSize: 16),
         ),
         backgroundColor: AppTheme.monGreenMid,

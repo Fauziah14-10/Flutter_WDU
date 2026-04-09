@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.3.0] - 2026-04-08
+### Features
+- Progress fitur camera: add camera capture functionality with `camera_capture_page.dart`
+- Add camera plugin integration for Android and iOS
+
+### Technical Changes
+- Updated platform-specific configurations for camera plugin (AndroidManifest.xml, Info.plist)
+- Added camera dependencies to pubspec.yaml
+- Updated platform generated files for Linux, macOS, and Windows
+
+---
+
 ## [1.2.9] - 2026-04-07
 ### Features
 - Redesign dashboard: update client card and project card design for better UI/UX
