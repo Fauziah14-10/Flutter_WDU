@@ -18,11 +18,19 @@ class DashboardProvider extends ChangeNotifier {
 
   List<Client> get filteredClients {
     if (clientSearch.isEmpty) return clients;
+    final q = clientSearch.toLowerCase();
     return clients
-        .where(
-          (c) =>
-              c.clientName.toLowerCase().contains(clientSearch.toLowerCase()),
-        )
+        .where((c) => c.clientName.toLowerCase().contains(q))
+        .toList();
+  }
+
+  List<UserProject> get filteredProjects {
+    if (clientSearch.isEmpty) return projects;
+    final q = clientSearch.toLowerCase();
+    return projects
+        .where((p) =>
+            p.projectName.toLowerCase().contains(q) ||
+            p.clientName.toLowerCase().contains(q))
         .toList();
   }
 

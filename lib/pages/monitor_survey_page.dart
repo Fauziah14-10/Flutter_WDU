@@ -103,13 +103,7 @@ class _MonitoringSurveyPageState extends State<MonitoringSurveyPage>
                         ),
                       ],
                     ),
-                    actions: [
-                      IconButton(
-                        icon: const Icon(Icons.logout, color: Color(0xFF78716C)),
-                        onPressed: () {},
-                      ),
-                      const SizedBox(width: 8),
-                    ],
+                    actions: const [],
                   ),
                 ),
               ),

@@ -48,37 +48,6 @@ class ListResponWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Search Box Container
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 30,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF2F4F2), // surface-container-low
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const TextField(
-              decoration: InputDecoration(
-                hintText: 'Cari survey atau provinsi...',
-                hintStyle: TextStyle(fontSize: 14, color: Color(0xFF6F7A6B)),
-                prefixIcon: Icon(Icons.search, color: Color(0xFF6F7A6B)),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
         // Cards List
         if (_paged.isEmpty)
           const Padding(

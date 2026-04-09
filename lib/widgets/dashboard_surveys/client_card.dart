@@ -1,6 +1,5 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/client_model.dart';
 import '../../pages/project_page.dart';
@@ -9,8 +8,6 @@ class ClientCard extends StatelessWidget {
   final Client client;
 
   const ClientCard({super.key, required this.client});
-
-  static const double cardWidth = double.infinity;
 
   void _navigateToProjects(BuildContext context) {
     Navigator.push(
@@ -25,185 +22,113 @@ class ClientCard extends StatelessWidget {
     );
   }
 
-  void _showClientOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppTheme.dashSage100,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.edit_outlined,
-                color: AppTheme.dashSage500,
-              ),
-              title: const Text('Edit Client'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.delete_outline_rounded,
-                color: Color(0xFFE53935),
-              ),
-              title: const Text(
-                'Delete Client',
-                style: TextStyle(color: Color(0xFFE53935)),
-              ),
-              onTap: () => Navigator.pop(context),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: cardWidth,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.dashSage100),
-        ),
-        clipBehavior: Clip.hardEdge,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.onSurface.withOpacity(0.08),
+            blurRadius: 32,
+            offset: const Offset(0, 16),
+            spreadRadius: -8,
+          ),
+        ],
+        border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.1)),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: InkWell(
+        onTap: () => _navigateToProjects(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── IMAGE ──
-            SizedBox(
-              height: 85,
-              width: double.infinity,
-              child: Builder(
-                builder: (context) {
-                  final url = client.imageUrl ?? client.image;
-                  if (url != null && url.isNotEmpty) {
-                    return Image.network(
-                      url,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return _buildFallback(client.clientName);
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        print('Image load error for $url: $error');
-                        return _buildFallback(client.clientName);
-                      },
-                    );
-                  }
-                  return _buildFallback(client.clientName);
-                },
+            AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                color: AppTheme.surfaceContainerLow,
+                padding: const EdgeInsets.all(20),
+                child: Builder(
+                  builder: (context) {
+                    final url = client.imageUrl ?? client.image;
+                    if (url != null && url.isNotEmpty) {
+                      return Hero(
+                        tag: 'client_${client.clientName}',
+                        child: Image.network(
+                          url,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildFallback(client.clientName);
+                          },
+                        ),
+                      );
+                    }
+                    return _buildFallback(client.clientName);
+                  },
+                ),
               ),
             ),
 
             // ── INFO ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    client.clientName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.dashSage500,
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  if (client.alamat != null) ...[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.location_on_outlined,
-                          size: 13,
-                          color: AppTheme.dashTextLight,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            client.alamat!,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 10.5,
-                              color: AppTheme.dashTextLight,
-                              height: 1.4,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                  ],
-                  if (client.desc != null)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      client.desc!,
+                      client.clientName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.manrope(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.onSurface,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      client.alamat ?? 'No address available',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 10.5,
-                        color: AppTheme.dashTextLight,
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        color: AppTheme.onSurfaceVariant.withOpacity(0.6),
                         height: 1.4,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                ],
-              ),
-            ),
-
-            Container(height: 1, color: AppTheme.dashSage100),
-
-            // ── ACTION BUTTONS ──
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _ActionBtn(
-                      label: 'Projects',
-                      onTap: () => _navigateToProjects(context),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Material(
-                    color: AppTheme.dashSage50,
-                    borderRadius: BorderRadius.circular(7),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(7),
-                      onTap: () => _showClientOptions(context),
+                    const Spacer(),
+                    Center(
                       child: Container(
-                        width: 30,
-                        height: 30,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(7),
-                          border: Border.all(color: AppTheme.dashSage100),
+                          color: AppTheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(
-                          Icons.more_vert_rounded,
-                          size: 16,
-                          color: AppTheme.dashTextLight,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'VIEW PROJECTS',
+                              style: GoogleFonts.inter(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.primary,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.arrow_forward_rounded, size: 10, color: AppTheme.primary),
+                          ],
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -216,10 +141,10 @@ class ClientCard extends StatelessWidget {
     String nameLower = name.toLowerCase();
     if (nameLower.contains('transjakarta') ||
         nameLower.contains('trans jakarta')) {
-      return Image.asset('assets/images/logo_trans.jpeg', fit: BoxFit.cover);
+      return Image.asset('assets/images/logo_trans.jpeg', fit: BoxFit.contain);
     } else if (nameLower.contains('bpk') ||
         nameLower.contains('badan pemeriksa keuangan')) {
-      return Image.asset('assets/images/logo_bpk.png', fit: BoxFit.cover);
+      return Image.asset('assets/images/logo_bpk.png', fit: BoxFit.contain);
     } else {
       return _imagePlaceholder(name);
     }
@@ -227,39 +152,31 @@ class ClientCard extends StatelessWidget {
 
   Widget _imagePlaceholder(String name) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppTheme.dashSage100, AppTheme.dashSage200],
-        ),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(16),
       ),
+      padding: const EdgeInsets.all(12),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.65),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.business_rounded,
-                size: 20,
-                color: AppTheme.dashSage500,
-              ),
+            const Icon(
+              Icons.business_rounded,
+              size: 32,
+              color: AppTheme.primary,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 12),
             Text(
               name,
-              style: const TextStyle(
-                fontSize: 10,
-                color: AppTheme.dashSage500,
-                fontWeight: FontWeight.w500,
+              maxLines: 2,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w700,
               ),
               textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -268,89 +185,3 @@ class ClientCard extends StatelessWidget {
   }
 }
 
-// ── Action Button ──
-class _ActionBtn extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-
-  const _ActionBtn({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppTheme.dashSage500,
-      borderRadius: BorderRadius.circular(7),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(7),
-        onTap: onTap,
-        splashColor: Colors.white.withOpacity(0.2),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 7),
-          child: Center(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HttpImage extends StatefulWidget {
-  final String url;
-  final Widget fallback;
-
-  const _HttpImage({required this.url, required this.fallback});
-
-  @override
-  State<_HttpImage> createState() => _HttpImageState();
-}
-
-class _HttpImageState extends State<_HttpImage> {
-  late Future<Uint8List> _imageData;
-
-  @override
-  void initState() {
-    super.initState();
-    _imageData = _fetchImage();
-  }
-
-  Future<Uint8List> _fetchImage() async {
-    try {
-      final response = await http.get(Uri.parse(widget.url));
-      if (response.statusCode == 200) {
-        return response.bodyBytes;
-      }
-      throw Exception('Failed to load image: ${response.statusCode}');
-    } catch (e) {
-      print('HTTP Error for ${widget.url}: $e');
-      rethrow;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<Uint8List>(
-      future: _imageData,
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          return Image.memory(
-            snapshot.data!,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => widget.fallback,
-          );
-        } else if (snapshot.hasError) {
-          print('Image load error for ${widget.url}: ${snapshot.error}');
-          return widget.fallback;
-        }
-        return widget.fallback;
-      },
-    );
-  }
-}
