@@ -13,6 +13,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.3.1] - 2026-04-10
+fix: improve dashboard & view survey UI
+
+- fix overflow on client grid
+- add animDelay to ProjectCard
+- improve layout & spacing
+- enhance overall UI consistency
+
 ## [1.3.0] - 2026-04-08
 ### Features
 - Modernized survey analytics interface with a premium **bento-style grid layout** aligned to the "Digital Architect" design system
