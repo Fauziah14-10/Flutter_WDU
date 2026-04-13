@@ -896,7 +896,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
           return {
             'id': q.id,
             'question_type_id': q.questionTypeId,
-            'ans': _buildAnswerValue(q, _answers[q.id]),
+            'answer': _buildAnswerValue(q, _answers[q.id]),
           };
         }).toList(),
       };
@@ -913,8 +913,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
       case 8: // Paragraph
         return {'texts': answer.toString()};
       case 2: // Radio
-      case 7: // Dropdown
         return {'radios': answer.toString()};
+      case 7: // Dropdown
+        return {'dropdowns': answer.toString()};
       case 3: // Checkbox
         if (answer is List) {
           return {'checkboxes': answer.map((e) => e.toString()).toList()};
