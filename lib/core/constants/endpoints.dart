@@ -76,8 +76,8 @@ class Endpoints {
   static String submitAnswer(
     String clientSlug,
     String projectSlug,
-    int surveyId,
-  ) => '/clients/$clientSlug/projects/$projectSlug/surveys/$surveyId/submit';
+    String slug,
+  ) => '/clients/$clientSlug/projects/$projectSlug/surveys/$slug/submit';
 
   // PATCH /api/clients/{clientSlug}/projects/{projectSlug}/surveys/{Survey:slug}/change-answer/{responseId}
   static String changeAnswer(

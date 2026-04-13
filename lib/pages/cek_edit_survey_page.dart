@@ -198,25 +198,11 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
     setState(() => isSaving = true);
 
     if (isNewSurvey) {
-      final surveyId =
-          surveyData!.survey?.id ??
-          (surveyData!.pages.isNotEmpty
-              ? surveyData!.pages.first.surveyId
-              : null);
-
-      if (surveyId == null || surveyId == 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Data ID Survey tidak lengkap")),
-        );
-        setState(() => isSaving = false);
-        return;
-      }
-
       try {
         final success = await _editService.submitNewAnswer(
           clientSlug: widget.clientSlug,
           projectSlug: widget.projectSlug,
-          surveyId: surveyId,
+          surveySlug: widget.surveySlug,
           pages: surveyData!.pages,
           currentAnswers: answers,
         );

@@ -243,7 +243,7 @@ class EditAnswerService {
   Future<bool> submitNewAnswer({
     required String clientSlug,
     required String projectSlug,
-    required int surveyId,
+    required String surveySlug,
     required List<SurveyPageData> pages,
     required Map<int, dynamic> currentAnswers,
   }) async {
@@ -254,7 +254,7 @@ class EditAnswerService {
       final wrappedPayload = {'data': jsonEncode(payload)};
 
       await _api.post(
-        Endpoints.submitAnswer(clientSlug, projectSlug, surveyId),
+        Endpoints.submitAnswer(clientSlug, projectSlug, surveySlug),
         body: wrappedPayload,
       );
       return true;

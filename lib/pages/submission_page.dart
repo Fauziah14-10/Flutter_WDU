@@ -828,23 +828,13 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   Future<void> _submitSurvey() async {
-    final surveyId = _data?.survey?.id;
-    if (surveyId == null || surveyId == 0) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("ID Survey tidak ditemukan")),
-        );
-      }
-      return;
-    }
-
     try {
       final payload = _buildPayload();
 
       final success = await _service.submitSurvey(
         clientSlug: widget.clientSlug,
         projectSlug: widget.projectSlug,
-        surveyId: surveyId,
+        surveySlug: widget.surveySlug,
         answers: payload,
       );
 
