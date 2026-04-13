@@ -46,12 +46,25 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   Future<void> _loadDraftPhoto() async {
     final draftPhoto = await StorageHelper.getDraftPhoto(widget.surveySlug);
     if (draftPhoto != null && mounted) {
-      final photoPath = draftPhoto['photo_path'] as String?;
+      String? photoPath = draftPhoto['photo_path'] as String?;
+      
+      // Fix OS path changes (iOS sandbox issue or general robustness)
+      if (photoPath != null) {
+        final fileName = photoPath.split('/').last;
+        final docDir = await getApplicationDocumentsDirectory();
+        final actualPath = '${docDir.path}/$fileName';
+        if (File(actualPath).existsSync()) {
+          photoPath = actualPath;
+        } else if (!File(photoPath).existsSync()) {
+          photoPath = null;
+        }
+      }
+
       if (photoPath != null && File(photoPath).existsSync()) {
         final lat = draftPhoto['latitude'] as double?;
         final lng = draftPhoto['longitude'] as double?;
         setState(() {
-          _imageFile = File(photoPath);
+          _imageFile = File(photoPath!);
           if (lat != null && lng != null) {
             _position = Position(
               latitude: lat,
