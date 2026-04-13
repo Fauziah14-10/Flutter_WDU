@@ -61,12 +61,8 @@ class SubmissionService {
     required Map<String, dynamic> answers,
   }) async {
     try {
-<<<<<<< Updated upstream
-      debugPrint('🚀 [SUBMIT] Starting submission for surveyId: $surveyId');
-=======
-      debugPrint('DEBUG submitSurvey: surveySlug=$surveySlug');
+      debugPrint('🚀 [SUBMIT] Starting submission for surveySlug: $surveySlug');
       debugPrint('DEBUG submitSurvey: payload keys = ${answers.keys.toList()}');
->>>>>>> Stashed changes
 
       // Wrap payload dalam field "data" sesuai format backend
       final wrappedPayload = {'data': jsonEncode(answers)};
@@ -75,15 +71,12 @@ class SubmissionService {
       const encoder = JsonEncoder.withIndent('  ');
       final prettyPayload = encoder.convert(answers);
       debugPrint('📦 [SUBMIT] PAYLOAD TO SEND:\n$prettyPayload');
-      debugPrint('🔗 [SUBMIT] ENDPOINT: ${Endpoints.submitAnswer(clientSlug, projectSlug, surveyId)}');
+      debugPrint(
+        '🔗 [SUBMIT] ENDPOINT: ${Endpoints.submitAnswer(clientSlug, projectSlug, surveySlug)}',
+      );
 
-<<<<<<< Updated upstream
       final response = await _api.post(
-        Endpoints.submitAnswer(clientSlug, projectSlug, surveyId),
-=======
-      await _api.post(
         Endpoints.submitAnswer(clientSlug, projectSlug, surveySlug),
->>>>>>> Stashed changes
         body: wrappedPayload,
       );
 
