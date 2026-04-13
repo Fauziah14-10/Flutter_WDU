@@ -71,12 +71,35 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   Future<void> _saveDraft() async {
-    await StorageHelper.saveDraftSurvey(
-      surveySlug: widget.surveySlug,
-      answers: _answers.map((key, value) => MapEntry(key.toString(), value)),
-      biodata: widget.biodata ?? {},
-      currentPageIndex: _currentPageIndex,
-    );
+    try {
+      await StorageHelper.saveDraftSurvey(
+        surveySlug: widget.surveySlug,
+        answers: _answers.map((key, value) => MapEntry(key.toString(), value)),
+        biodata: widget.biodata ?? {},
+        currentPageIndex: _currentPageIndex,
+        clientSlug: widget.clientSlug,
+        projectSlug: widget.projectSlug,
+        surveyTitle: widget.surveyTitle,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Draft berhasil disimpan secara lokal'),
+            backgroundColor: AppTheme.monGreenMid,
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan draft: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _clearDraft() async {
