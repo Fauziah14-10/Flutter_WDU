@@ -36,11 +36,11 @@ class AppRouteObserver extends NavigatorObserver {
   }
 
   void _persistCurrent() {
-    // Cari route teratas yang layak disimpan
     for (final entry in _stack.reversed) {
       if (entry.name != '/' &&
           entry.name != '/login' &&
-          entry.name != '/dashboard') {
+          entry.name != '/dashboard' &&
+          entry.name != '/submission') {
         StorageHelper.saveLastRoute(entry.name, entry.args);
         return;
       }
