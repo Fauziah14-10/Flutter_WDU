@@ -301,6 +301,34 @@ class _ClientsSection extends StatelessWidget {
           style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800),
         ),
 
+        const SizedBox(height: 12),
+
+        // 🔥 SEARCH BAR
+        TextField(
+          onChanged: provider.updateSearch,
+          style: GoogleFonts.inter(fontSize: 14, color: AppTheme.onSurface),
+          decoration: InputDecoration(
+            hintText: 'Search clients or projects...',
+            hintStyle: GoogleFonts.inter(color: AppTheme.outline.withOpacity(0.8), fontSize: 14),
+            prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.outline, size: 20),
+            filled: true,
+            fillColor: AppTheme.surfaceContainerLowest,
+            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppTheme.outlineVariant.withOpacity(0.3)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppTheme.outlineVariant.withOpacity(0.3)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+            ),
+          ),
+        ),
+
         const SizedBox(height: 16),
 
         // 🔥 GRID FIX OVERFLOW DI SINI

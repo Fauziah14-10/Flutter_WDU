@@ -67,8 +67,11 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
       final response = await _api.get(Endpoints.me);
       if (response.data != null) {
         // Handle root 'id' or nested 'data.id'
-        final id = response.data!['id'] ?? 
-                   (response.data!['data'] is Map ? response.data!['data']['id'] : null);
+        final id =
+            response.data!['id'] ??
+            (response.data!['data'] is Map
+                ? response.data!['data']['id']
+                : null);
         return id?.toString();
       }
     } catch (e) {
@@ -113,7 +116,9 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
           "DEBUG _loadData - pages: ${data.pages.length}, answers: ${data.answers.length}, responseId: ${data.responseId}",
         );
         for (var i = 0; i < data.answers.length; i++) {
-          print("DEBUG Answer[$i]: QID=${data.answers[i].questionId}, Ans=${data.answers[i].answer}");
+          print(
+            "DEBUG Answer[$i]: QID=${data.answers[i].questionId}, Ans=${data.answers[i].answer}",
+          );
         }
         surveyData = data;
 
@@ -299,7 +304,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
         ),
         body: const Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.monGreenMid),
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
           ),
         ),
       );
@@ -354,7 +359,15 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
         ),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: AppTheme.monGreenMid,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF006A36), Color(0xFF71F69D)],
+            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+          ),
+        ),
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -383,13 +396,20 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
             ),
           ],
         ),
-        child: SizedBox(
+        child: Container(
           width: double.infinity,
           height: 50,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF006A36), Color(0xFF71F69D)],
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: ElevatedButton(
             onPressed: isSaving ? null : _submitChanges,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.monGreenMid,
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -486,10 +506,10 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               color: isSelected
-                  ? AppTheme.monGreenMid.withOpacity(0.05)
+                  ? AppTheme.primary.withOpacity(0.05)
                   : Colors.white,
               border: Border.all(
-                color: isSelected ? AppTheme.monGreenMid : Colors.grey[200]!,
+                color: isSelected ? AppTheme.primary : Colors.grey[200]!,
                 width: 1,
               ),
             ),
@@ -498,7 +518,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
               groupValue: answers[q.id]?.toString(),
               onChanged: (val) => setState(() => answers[q.id] = val),
               title: Text(opt.value, style: const TextStyle(fontSize: 12)),
-              activeColor: AppTheme.monGreenMid,
+              activeColor: AppTheme.primary,
               contentPadding: const EdgeInsets.symmetric(horizontal: 4),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -527,10 +547,10 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               color: isSelected
-                  ? AppTheme.monGreenMid.withOpacity(0.05)
+                  ? AppTheme.primary.withOpacity(0.05)
                   : Colors.white,
               border: Border.all(
-                color: isSelected ? AppTheme.monGreenMid : Colors.grey[200]!,
+                color: isSelected ? AppTheme.primary : Colors.grey[200]!,
                 width: 1,
               ),
             ),
@@ -544,7 +564,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
                 });
               },
               title: Text(opt.value, style: const TextStyle(fontSize: 12)),
-              activeColor: AppTheme.monGreenMid,
+              activeColor: AppTheme.primary,
               contentPadding: const EdgeInsets.symmetric(horizontal: 4),
               controlAffinity: ListTileControlAffinity.trailing,
               checkboxShape: RoundedRectangleBorder(
@@ -601,7 +621,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
           ),
           icon: const Icon(
             Icons.keyboard_arrow_down_rounded,
-            color: AppTheme.monGreenMid,
+            color: AppTheme.primary,
           ),
           dropdownColor: Colors.white,
         ),
@@ -642,7 +662,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(
-                color: AppTheme.monGreenMid,
+                color: AppTheme.primary,
                 width: 1.5,
               ),
             ),
@@ -743,7 +763,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
                         input = Radio<int>(
                           value: colIndex,
                           groupValue: currentMap[rowIndex] as int?,
-                          activeColor: AppTheme.monGreenMid,
+                          activeColor: AppTheme.primary,
                           onChanged: (_) => setState(() {
                             currentMap[rowIndex] = colIndex;
                             answers[q.id] = Map<int, dynamic>.from(currentMap);
@@ -755,7 +775,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
                             : <int>[];
                         input = Checkbox(
                           value: rowCols.contains(colIndex),
-                          activeColor: AppTheme.monGreenMid,
+                          activeColor: AppTheme.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
