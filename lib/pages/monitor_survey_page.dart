@@ -79,11 +79,17 @@ class _MonitoringSurveyPageState extends State<MonitoringSurveyPage>
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: AppBar(
-                    backgroundColor: const Color(0xFFF8FAF8).withValues(alpha: 0.8),
+                    backgroundColor: const Color(
+                      0xFFF8FAF8,
+                    ).withValues(alpha: 0.8),
                     elevation: 0,
                     scrolledUnderElevation: 0,
                     leading: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF15803D), size: 20),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Color(0xFF15803D),
+                        size: 20,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                     title: Row(
@@ -110,29 +116,75 @@ class _MonitoringSurveyPageState extends State<MonitoringSurveyPage>
             ),
             body: provider.isLoading
                 ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF006B1B),
-                    ),
+                    child: CircularProgressIndicator(color: Color(0xFF006B1B)),
                   )
                 : provider.errorMessage != null
-                    ? _buildError(context, provider)
-                    : RefreshIndicator(
-                        color: const Color(0xFF006B1B),
-                        onRefresh: provider.loadSurvey,
-                        child: SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          child: FadeTransition(
-                            opacity: _fadeAnim,
-                            child: SlideTransition(
-                              position: _slideAnim,
-                              child: Column(
-                                children: [
-                                  _buildHero(context, provider),
-                                  Transform.translate(
-                                    offset: const Offset(0, -32),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                                      child: ListResponWidget(
+                ? _buildError(context, provider)
+                : RefreshIndicator(
+                    color: const Color(0xFF006B1B),
+                    onRefresh: provider.loadSurvey,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: FadeTransition(
+                        opacity: _fadeAnim,
+                        child: SlideTransition(
+                          position: _slideAnim,
+                          child: Column(
+                            children: [
+                              _buildHero(context, provider),
+                              Transform.translate(
+                                offset: const Offset(0, -32),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      // Sort UI
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () => _showFilterSheet(context, provider),
+                                            child: Container(
+                                              height: 28,
+                                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(14),
+                                                border: Border.all(
+                                                  color: const Color(0xFF15803D).withOpacity(0.3),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: const [
+                                                  Icon(
+                                                    Icons.filter_list,
+                                                    size: 14,
+                                                    color: Color(0xFF15803D),
+                                                  ),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    'Filter',
+                                                    style: TextStyle(
+                                                      fontFamily: 'Inter',
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Color(0xFF15803D),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      ListResponWidget(
                                         responses: provider.responses,
                                         currentPage: _currentPage,
                                         totalData: provider.totalRespon,
@@ -165,35 +217,41 @@ class _MonitoringSurveyPageState extends State<MonitoringSurveyPage>
                                                 );
                                               }
                                             },
-                                        onEditResponse: (
-                                          responseId,
-                                          surveySlug,
-                                          clientSlug,
-                                          projectSlug,
-                                          responseData,
-                                        ) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder:
-                                                  (_) => CekEditMonitorPage(
-                                                    surveySlug: surveySlug,
-                                                    clientSlug: clientSlug,
-                                                    projectSlug: projectSlug,
-                                                    responseId: responseId,
-                                                  ),
-                                            ),
-                                          ).then((_) => provider.loadSurvey());
-                                        },
+                                        onEditResponse:
+                                            (
+                                              responseId,
+                                              surveySlug,
+                                              clientSlug,
+                                              projectSlug,
+                                              responseData,
+                                            ) {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      CekEditMonitorPage(
+                                                        surveySlug: surveySlug,
+                                                        clientSlug: clientSlug,
+                                                        projectSlug:
+                                                            projectSlug,
+                                                        responseId: responseId,
+                                                      ),
+                                                ),
+                                              ).then(
+                                                (_) => provider.loadSurvey(),
+                                              );
+                                            },
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         ),
                       ),
+                    ),
+                  ),
           );
         },
       ),
@@ -294,7 +352,10 @@ class _MonitoringSurveyPageState extends State<MonitoringSurveyPage>
                 children: [
                   _pillBadge(Icons.groups, '${provider.totalRespon} Respon'),
                   const SizedBox(width: 12),
-                  _pillBadge(Icons.map, _locationLabel(provider.targetLocation)),
+                  _pillBadge(
+                    Icons.map,
+                    _locationLabel(provider.targetLocation),
+                  ),
                 ],
               ),
             ],
@@ -317,7 +378,15 @@ class _MonitoringSurveyPageState extends State<MonitoringSurveyPage>
         children: [
           Icon(icon, size: 16, color: Colors.white),
           const SizedBox(width: 6),
-          Text(text, style: const TextStyle(fontFamily: 'Inter', fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
+          Text(
+            text,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
         ],
       ),
     );
@@ -332,5 +401,137 @@ class _MonitoringSurveyPageState extends State<MonitoringSurveyPage>
         .toList();
     if (parts.length == 1) return parts.first;
     return '${parts.length} Provinsi';
+  }
+
+  void _showFilterSheet(BuildContext context, MonitoringProvider provider) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final Map<String, String> options = {
+              'all': 'Semua tanggal',
+              'last_week': 'Minggu lalu',
+              'last_month': 'Bulan lalu',
+              'last_year': 'Setahun terakhir',
+              'custom': 'Rentang tanggal',
+            };
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Filter berdasarkan tanggal',
+                      style: TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                    ...options.entries.map((entry) {
+                      final isCustom = entry.key == 'custom';
+                      final isSelected = provider.dateFilter == entry.key;
+                      return InkWell(
+                        onTap: () async {
+                          if (isCustom) {
+                            final picked = await showDateRangePicker(
+                              context: context,
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime.now(),
+                              initialDateRange: provider.customDateRange,
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFF15803D),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              provider.setDateFilter('custom', customRange: picked);
+                              if (context.mounted) Navigator.pop(context);
+                            }
+                          } else {
+                            provider.setDateFilter(entry.key);
+                            if (context.mounted) Navigator.pop(context);
+                          }
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                entry.value,
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              if (isCustom)
+                                const Icon(
+                                  Icons.chevron_right,
+                                  color: Colors.grey,
+                                  size: 20,
+                                )
+                              else
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isSelected ? Colors.black : const Color(0xFFE5E7EB),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  padding: const EdgeInsets.all(4),
+                                  child: isSelected
+                                      ? Container(
+                                          decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.black,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }

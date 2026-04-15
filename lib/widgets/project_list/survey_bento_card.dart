@@ -208,11 +208,7 @@ class SurveyBentoCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        _buildResponseBadge(),
-                        const SizedBox(height: 4),
-                        _buildStatusBadge(),
-                      ],
+                      children: [_buildStatusBadge()],
                     ),
                   ],
                 ),
@@ -361,35 +357,6 @@ class SurveyBentoCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildResponseBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppTheme.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(100),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.analytics_rounded,
-            size: 12,
-            color: AppTheme.primary,
-          ),
-          const SizedBox(width: 3),
-          Text(
-            '${survey.responseCount}',
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.primary,
-            ),
-          ),
-        ],
       ),
     );
   }

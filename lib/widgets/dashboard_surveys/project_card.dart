@@ -147,134 +147,54 @@ class _ProjectCardState extends State<ProjectCard>
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 12),
-
-                // ── STATS GRID ──
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'TOTAL SURVEYS',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: AppTheme.outline,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Text(
-                                  '${p.surveyCount}',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppTheme.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.primaryContainer,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text(
-                                    '+1',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w900,
-                                      color: AppTheme.onPrimaryContainer,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'STATUS',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: AppTheme.outline,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${p.surveyCount} survei aktif',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
 
                 // ── DIVIDER ──
                 Divider(
                   color: AppTheme.outlineVariant.withOpacity(0.1),
                   height: 1,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
 
-                // ── FOOTER ──
+                // ── UPDATED INFO ──
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.schedule_rounded,
-                          size: 14,
-                          color: AppTheme.outline,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          p.updatedAt ?? 'Baru saja',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                            color: AppTheme.outline,
-                          ),
-                        ),
-                      ],
+                    const Icon(
+                      Icons.schedule_rounded,
+                      size: 14,
+                      color: Color(0xFF94A3B8),
                     ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Updated ${p.updatedAt ?? 'baru saja'}',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '•',
+                      style: TextStyle(color: Color(0xFFE2E8F0), fontSize: 10),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${p.surveyCount} SURVEYS TOTAL',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF15803D),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // ── ACTION BUTTON ──
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
                     GradientButton(
                       label: 'View Surveys',
                       onPressed: () => _viewSurveys(context),

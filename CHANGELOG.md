@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.3.3] - 2026-04-14
+### Added
+- Added dynamic sorting feature for survey responses in the Monitoring Interface (dropdown to toggle between "Terbaru / Terlama" ordering)
+- Implemented a new search bar functionality in the Clients section of `DashboardPage` for quick lookups
+
+### Changed
+- Modernized `CekEditSurveyPage` AppBar styling with a sleek two-tone green gradient design
+- Replaced legacy `monGreenMid` color with `AppTheme.primary` across `CekEditSurveyPage` UI elements (checkboxes, radio buttons, inputs, loading indicators) for better design system consistency
+
+---
+
 ## [1.3.2] - 2026-04-13
 ### Added
 - Automated client logo synchronization in `DashboardProvider`: projects now automatically inherit logos from the client list if missing in the API response

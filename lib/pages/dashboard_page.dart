@@ -336,11 +336,11 @@ class _ClientsSection extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: provider.filteredClients.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            mainAxisExtent: 210, // 🔥 Dipangkas sedikit agar lebih kompak
+            mainAxisExtent: 255,
           ),
           itemBuilder: (context, index) {
             return ClientCard(client: provider.filteredClients[index]);
