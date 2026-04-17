@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'survey_model.dart';
 import 'project_model.dart';
 import 'client_model.dart';
@@ -231,22 +233,48 @@ class SurveyQuestionData {
   });
 
   factory SurveyQuestionData.fromJson(Map<String, dynamic> json) {
-    // Parse matrix_rows — bisa berupa List atau null
+    // Parse matrix_rows — bisa berupa List, JSON string, atau null
     List<MatrixRowData> parsedRows = [];
     final rawRows = json['matrix_rows'];
-    if (rawRows is List) {
-      parsedRows = rawRows
-          .map((e) => MatrixRowData.fromJson(e as Map<String, dynamic>))
-          .toList();
+    if (rawRows != null) {
+      if (rawRows is List) {
+        parsedRows = rawRows
+            .map((e) => MatrixRowData.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } else if (rawRows is String && rawRows.isNotEmpty) {
+        // Parse JSON string if it's a string
+        try {
+          final decoded = jsonDecode(rawRows);
+          if (decoded is List) {
+            parsedRows = decoded
+                .map((e) => MatrixRowData.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        } catch (_) {}
+      }
     }
 
-    // Parse matrix_columns — bisa berupa List atau null
+    // Parse matrix_columns — bisa berupa List, JSON string, atau null
     List<MatrixColumnData> parsedCols = [];
     final rawCols = json['matrix_columns'];
-    if (rawCols is List) {
-      parsedCols = rawCols
-          .map((e) => MatrixColumnData.fromJson(e as Map<String, dynamic>))
-          .toList();
+    if (rawCols != null) {
+      if (rawCols is List) {
+        parsedCols = rawCols
+            .map((e) => MatrixColumnData.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } else if (rawCols is String && rawCols.isNotEmpty) {
+        // Parse JSON string if it's a string
+        try {
+          final decoded = jsonDecode(rawCols);
+          if (decoded is List) {
+            parsedCols = decoded
+                .map(
+                  (e) => MatrixColumnData.fromJson(e as Map<String, dynamic>),
+                )
+                .toList();
+          }
+        } catch (_) {}
+      }
     }
 
     return SurveyQuestionData(
@@ -321,26 +349,44 @@ class SurveyQuestionData {
 
 class MatrixRowData {
   final String label;
+  final int? id;
 
-  MatrixRowData({required this.label});
+  MatrixRowData({required this.label, this.id});
 
   factory MatrixRowData.fromJson(Map<String, dynamic> json) {
-    return MatrixRowData(label: json['label']?.toString() ?? '');
+    // Handle multiple possible key names: label, text, value
+    final label =
+        json['label']?.toString() ??
+        json['text']?.toString() ??
+        json['value']?.toString() ??
+        '';
+    final id = json['id'] != null ? _toInt(json['id']) : null;
+
+    return MatrixRowData(label: label, id: id);
   }
 
-  Map<String, dynamic> toJson() => {'label': label};
+  Map<String, dynamic> toJson() => {'label': label, 'id': id};
 }
 
 class MatrixColumnData {
   final String label;
+  final int? id;
 
-  MatrixColumnData({required this.label});
+  MatrixColumnData({required this.label, this.id});
 
   factory MatrixColumnData.fromJson(Map<String, dynamic> json) {
-    return MatrixColumnData(label: json['label']?.toString() ?? '');
+    // Handle multiple possible key names: label, text, value
+    final label =
+        json['label']?.toString() ??
+        json['text']?.toString() ??
+        json['value']?.toString() ??
+        '';
+    final id = json['id'] != null ? _toInt(json['id']) : null;
+
+    return MatrixColumnData(label: label, id: id);
   }
 
-  Map<String, dynamic> toJson() => {'label': label};
+  Map<String, dynamic> toJson() => {'label': label, 'id': id};
 }
 
 // ---------------------------------------------------------------------------

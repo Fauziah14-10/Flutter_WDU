@@ -1107,23 +1107,96 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
   }
 
   Widget _buildAnswerDisplay(SurveyQuestionData q, String answer) {
-    // Matrix question (type_id = 9)
-    if (q.isMatrix && q.matrixRows.isNotEmpty) {
-      return _buildMatrixAnswer(q, answer);
+    // Matrix question
+    if (q.typeString == 'matrix') {
+      // Generate row labels (fallback jika label kosong)
+      final hasValidRows = q.matrixRows.any((row) => row.label.isNotEmpty);
+      final hasValidCols = q.matrixColumns.any((col) => col.label.isNotEmpty);
+
+      // Jika matrix memiliki data, tampilkan sebagai DataTable (dengan fallback labels)
+      if (q.matrixRows.isNotEmpty && q.matrixColumns.isNotEmpty) {
+        return _buildMatrixAnswer(q, answer);
+      }
+
+      // Fallback: tampilkan jawaban sebagai text jika tidak ada data matrix
+      if (answer.isNotEmpty && answer != "-" && answer != "Unknown") {
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppTheme.monBgColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.check_circle,
+                size: 16,
+                color: AppTheme.monGreenMid,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  answer,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return _buildEmptyAnswer();
     }
 
-    // Checkbox question (type_id = 3)
-    if (q.questionTypeId == 3 && q.choices.isNotEmpty) {
+    // Document/File question (type 10)
+    if (q.typeString == 'document') {
+      if (answer.isNotEmpty && answer != "-" && answer != "Unknown") {
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppTheme.monBgColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.insert_drive_file,
+                size: 16,
+                color: AppTheme.monGreenMid,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  answer,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.monGreenDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+      return _buildEmptyAnswer();
+    }
+
+    // Checkbox question
+    if (q.typeString == 'checkbox' && q.choices.isNotEmpty) {
       return _buildCheckboxAnswer(q, answer);
     }
 
-    // Radio question (type_id = 2)
-    if (q.questionTypeId == 2 && q.choices.isNotEmpty) {
+    // Radio question
+    if (q.typeString == 'radio' && q.choices.isNotEmpty) {
       return _buildRadioAnswer(q, answer);
     }
 
-    // Dropdown question (type_id = 7)
-    if (q.questionTypeId == 7 && q.choices.isNotEmpty) {
+    // Dropdown question
+    if (q.typeString == 'dropdown' && q.choices.isNotEmpty) {
       return _buildRadioAnswer(q, answer);
     }
 
@@ -1163,6 +1236,26 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
       return _buildEmptyAnswer();
     }
 
+    // Generate fallback labels if labels are empty
+    final rowLabels = q.matrixRows.isNotEmpty
+        ? q.matrixRows
+              .map(
+                (row) => row.label.isNotEmpty
+                    ? row.label
+                    : 'Row ${q.matrixRows.indexOf(row) + 1}',
+              )
+              .toList()
+        : <String>[];
+    final colLabels = q.matrixColumns.isNotEmpty
+        ? q.matrixColumns
+              .map(
+                (col) => col.label.isNotEmpty
+                    ? col.label
+                    : 'Option ${q.matrixColumns.indexOf(col) + 1}',
+              )
+              .toList()
+        : <String>[];
+
     try {
       final Map<String, dynamic> parsed = Map<String, dynamic>.from(
         _parseJson(answer),
@@ -1186,7 +1279,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
         ),
         child: Column(
           children: [
-            // Header columns (SS, S, TS, STS)
+            // Header columns
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
@@ -1212,12 +1305,12 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                       ),
                     ),
                   ),
-                  ...List.generate(4, (i) {
+                  ...colLabels.asMap().entries.map((entry) {
                     return Expanded(
                       flex: 1,
                       child: Center(
                         child: Text(
-                          ['SS', 'S', 'TS', 'STS'][i],
+                          entry.value,
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -1231,14 +1324,18 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
               ),
             ),
             // Table rows
-            ...List.generate(q.matrixRows.length, (index) {
-              final rowKey = 'row-$index';
-              final selectedValue = parsed[rowKey] as int? ?? -1;
+            ...rowLabels.asMap().entries.map((rowEntry) {
+              final rowIndex = rowEntry.key;
+              final rowLabel = rowEntry.value;
+              final selectedValue =
+                  parsed[rowIndex.toString()] as int? ??
+                  parsed['row-$rowIndex'] as int? ??
+                  -1;
 
               return Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: index.isEven ? Colors.white : Colors.grey.shade50,
+                  color: rowIndex.isEven ? Colors.white : Colors.grey.shade50,
                   border: Border(top: BorderSide(color: Colors.grey.shade200)),
                 ),
                 child: Row(
@@ -1249,17 +1346,25 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                       child: Padding(
                         padding: const EdgeInsets.only(left: 12, right: 8),
                         child: Text(
-                          q.matrixRows[index].label.replaceAll(
-                            RegExp(r'^\d+\.\s*'),
-                            '',
-                          ),
+                          rowLabel,
                           style: const TextStyle(fontSize: 11),
                         ),
                       ),
                     ),
-                    // Radio buttons for each column
-                    ...List.generate(4, (colIndex) {
-                      final isSelected = selectedValue == colIndex;
+                    // Radio/Checkbox icons for each column
+                    ...colLabels.asMap().entries.map((colEntry) {
+                      final colIndex = colEntry.key;
+                      bool isSelected = false;
+                      if (q.matrixType == 'radio') {
+                        isSelected = selectedValue == colIndex;
+                      } else {
+                        final List<dynamic> selectedCols =
+                            parsed[rowIndex.toString()] is List
+                            ? parsed[rowIndex.toString()] as List
+                            : [];
+                        isSelected = selectedCols.contains(colIndex);
+                      }
+
                       return Expanded(
                         flex: 1,
                         child: Center(
@@ -1267,13 +1372,24 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                             width: 24,
                             height: 24,
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
+                              shape: q.matrixType == 'radio'
+                                  ? BoxShape.circle
+                                  : BoxShape.rectangle,
+                              borderRadius: q.matrixType == 'radio'
+                                  ? null
+                                  : BorderRadius.circular(4),
                               color: isSelected
-                                  ? _getMatrixColor(colIndex)
+                                  ? _getMatrixColor(
+                                      colIndex,
+                                      q.matrixColumns.length,
+                                    )
                                   : Colors.transparent,
                               border: Border.all(
                                 color: isSelected
-                                    ? _getMatrixColor(colIndex)
+                                    ? _getMatrixColor(
+                                        colIndex,
+                                        q.matrixColumns.length,
+                                      )
                                     : Colors.grey.shade400,
                                 width: 2,
                               ),
@@ -1308,19 +1424,37 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
     }
   }
 
-  Color _getMatrixColor(int value) {
-    switch (value) {
-      case 0:
-        return AppTheme.monGreenDark; // SS
-      case 1:
-        return AppTheme.monGreenMid; // S
-      case 2:
-        return Colors.orange; // TS
-      case 3:
-        return Colors.red; // STS
-      default:
-        return Colors.grey;
+  Color _getMatrixColor(int index, int totalColumns) {
+    // Jika ada 4 kolom, asumsikan Likert standard
+    if (totalColumns == 4) {
+      switch (index) {
+        case 0:
+          return AppTheme.monGreenDark; // SS
+        case 1:
+          return AppTheme.monGreenMid; // S
+        case 2:
+          return Colors.orange; // TS
+        case 3:
+          return Colors.red; // STS
+      }
     }
+    // Jika ada 5 kolom, asumsikan Likert standard + N/A
+    if (totalColumns == 5) {
+      switch (index) {
+        case 0:
+          return AppTheme.monGreenDark;
+        case 1:
+          return AppTheme.monGreenMid;
+        case 2:
+          return Colors.orange;
+        case 3:
+          return Colors.red;
+        case 4:
+          return Colors.grey;
+      }
+    }
+    // Default fallback
+    return AppTheme.monGreenMid;
   }
 
   Widget _buildCheckboxAnswer(SurveyQuestionData q, String answer) {
@@ -1568,9 +1702,8 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
   }
 
   String _getMatrixColumnLabel(int value, List<MatrixColumnData> columns) {
-    const columnLabels = ['SS', 'S', 'TS', 'STS', 'TR'];
-    if (value >= 0 && value < columnLabels.length) {
-      return columnLabels[value];
+    if (value >= 0 && value < columns.length) {
+      return columns[value].label;
     }
     return 'N/A';
   }

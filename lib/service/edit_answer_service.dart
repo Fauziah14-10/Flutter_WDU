@@ -193,6 +193,22 @@ class EditAnswerService {
     required Map<int, dynamic> currentAnswers,
   }) async {
     try {
+      // Debug: Print pages structure
+      debugPrint(
+        '[EditAnswerService] submitChanges - pages count: ${pages.length}',
+      );
+      for (var i = 0; i < pages.length; i++) {
+        debugPrint(
+          '[EditAnswerService] Page $i - questions count: ${pages[i].questions.length}',
+        );
+        for (var j = 0; j < pages[i].questions.length; j++) {
+          final q = pages[i].questions[j];
+          debugPrint(
+            '[EditAnswerService]   Question $j - id: ${q.id}, type: ${q.questionTypeId}',
+          );
+        }
+      }
+
       final payload = _buildPayload(pages, currentAnswers);
 
       await _api.patch(
@@ -272,10 +288,22 @@ class EditAnswerService {
     List<SurveyPageData> pages,
     Map<int, dynamic> currentAnswers,
   ) {
-    return {
-      'page': pages.map((page) {
+    // Filter pages that have at least one valid question
+    final validPages = pages.where((page) {
+      return page.questions.any(
+        (q) => q.id != null && q.questionTypeId != null,
+      );
+    }).toList();
+
+    final payload = {
+      'page': validPages.map((page) {
+        // Filter questions that have valid id and questionTypeId
+        final validQuestions = page.questions
+            .where((q) => q.id != null && q.questionTypeId != null)
+            .toList();
+
         return {
-          'question': page.questions.map((q) {
+          'question': validQuestions.map((q) {
             return {
               'id': q.id,
               'question_type_id': q.questionTypeId,
@@ -285,6 +313,13 @@ class EditAnswerService {
         };
       }).toList(),
     };
+
+    // Debug: Print payload yang akan dikirim
+    debugPrint(
+      '[EditAnswerService] Payload yang dikirim: ${jsonEncode(payload)}',
+    );
+
+    return payload;
   }
 
   /// Konversi jawaban UI ke format key yang diterima Laravel

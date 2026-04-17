@@ -24,7 +24,7 @@ class CekEditMonitorPage extends StatefulWidget {
 }
 
 class _CekEditMonitorPageState extends State<CekEditMonitorPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final SurveyService _surveyService = SurveyService(); // untuk load
   final EditAnswerService _editService = EditAnswerService(); // untuk save
 
@@ -40,6 +40,7 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -49,11 +50,19 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _animController.dispose();
     super.dispose();
   }
 
-  // ── LOAD: pakai GET report/{responseId} ──────────────────
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadData();
+    }
+  }
+
+  // ── LOAD: pakai GET report/{responseId} dengan cache-busting ──────────────────
   Future<void> _loadData() async {
     if (widget.responseId == 0) {
       setState(() => isLoading = false);
@@ -300,7 +309,12 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
         return _buildTextField(q);
       case 'matrix':
         return _buildMatrix(q);
+      case 'document':
+        return _buildDocument(q);
       default:
+        debugPrint(
+          '[CekEditMonitor] Unknown typeString: ${q.typeString}, questionTypeId: ${q.questionTypeId}',
+        );
         return const SizedBox();
     }
   }
@@ -504,9 +518,32 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
   }
 
   Widget _buildMatrix(SurveyQuestionData q) {
-    if (q.matrixRows.isEmpty || q.matrixColumns.isEmpty) {
-      return const Text('Data matrix tidak tersedia');
-    }
+    // Generate row labels (fallback jika label kosong)
+    final rowLabels = q.matrixRows.isNotEmpty
+        ? q.matrixRows
+              .map(
+                (row) => row.label.isNotEmpty
+                    ? row.label
+                    : 'Row ${q.matrixRows.indexOf(row) + 1}',
+              )
+              .toList()
+        : <String>[];
+
+    // Generate column labels (fallback jika label kosong)
+    final colLabels = q.matrixColumns.isNotEmpty
+        ? q.matrixColumns
+              .map(
+                (col) => col.label.isNotEmpty
+                    ? col.label
+                    : 'Option ${q.matrixColumns.indexOf(col) + 1}',
+              )
+              .toList()
+        : <String>[];
+
+    // Parse current answer
+    final currentMap = answers[q.id] is Map
+        ? Map<int, dynamic>.from(answers[q.id] as Map)
+        : <int, dynamic>{};
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -516,24 +553,21 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
         ),
         columns: [
           const DataColumn(label: Text('')),
-          ...q.matrixColumns.map((col) => DataColumn(label: Text(col.label))),
+          ...colLabels.map((label) => DataColumn(label: Text(label))),
         ],
-        rows: q.matrixRows.asMap().entries.map((rowEntry) {
+        rows: rowLabels.asMap().entries.map((rowEntry) {
           final rowIndex = rowEntry.key;
-          final row = rowEntry.value;
-          final currentMap = answers[q.id] is Map
-              ? Map<int, dynamic>.from(answers[q.id] as Map)
-              : <int, dynamic>{};
+          final rowLabel = rowEntry.value;
 
           return DataRow(
             cells: [
               DataCell(
                 Text(
-                  row.label,
+                  rowLabel,
                   style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
               ),
-              ...q.matrixColumns.asMap().entries.map((colEntry) {
+              ...colLabels.asMap().entries.map((colEntry) {
                 final colIndex = colEntry.key;
 
                 if (q.matrixType == 'radio') {
@@ -577,6 +611,69 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
     );
   }
 
+  // ── DOCUMENT/UPLOAD INPUT ────────────────────────────────
+  Widget _buildDocument(SurveyQuestionData q) {
+    final currentFile = answers[q.id]?.toString() ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (currentFile.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.monGreenPale.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.monGreenMid.withOpacity(0.5)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.insert_drive_file,
+                  color: AppTheme.monGreenMid,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    currentFile,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.monTextDark,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        Text(
+          'Unggah file (PDF, DOC, DOCX, JPG, PNG, GIF)',
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Fitur upload file belum tersedia di edit mode'),
+              ),
+            );
+          },
+          icon: const Icon(Icons.upload_file, size: 18),
+          label: const Text('Pilih File'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.monGreenMid,
+            side: const BorderSide(color: AppTheme.monGreenMid),
+          ),
+        ),
+      ],
+    );
+  }
+
   // ── SAVE: pakai POST change-answer/{responseId} ───────────
   Future<void> _handleSave() async {
     if (surveyData == null) return;
@@ -598,6 +695,7 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
       if (success) {
         originalAnswers = Map<int, dynamic>.from(answers);
         _showSnackbar("Jawaban berhasil disimpan", isSuccess: true);
+        await _loadData();
       } else {
         _showSnackbar("Gagal menyimpan jawaban", isSuccess: false);
       }

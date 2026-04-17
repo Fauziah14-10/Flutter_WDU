@@ -22,11 +22,13 @@ class SurveyDetailResponse {
       survey: SurveyModel.fromJson(json['surveys']),
       project: Project.fromJson(json['projects']),
       client: Client.fromJson(json['clients']),
-      pages: (json['pages'] as List?)
+      pages:
+          (json['pages'] as List?)
               ?.map((e) => SurveyPage.fromJson(e))
               .toList() ??
           [],
-      existingAnswers: (json['answer'] as List?)
+      existingAnswers:
+          (json['answer'] as List?)
               ?.map((e) => SurveyAnswer.fromJson(e))
               .toList() ??
           [],
@@ -55,7 +57,8 @@ class SurveyPage {
       pageName: json['page_name'] ?? '',
       surveyId: json['survey_id'],
       order: json['order'] ?? 0,
-      questions: (json['question'] as List?)
+      questions:
+          (json['question'] as List?)
               ?.map((e) => SurveyQuestionDetail.fromJson(e))
               .toList() ??
           [],
@@ -110,16 +113,19 @@ class SurveyQuestionDetail {
       questionLogicTypeId: json['question_logic_type_id'] ?? 0,
       choiceType: json['choice_type'],
       value: json['value'],
-      choices: (json['choice'] as List?)
+      choices:
+          (json['choice'] as List?)
               ?.map((e) => SurveyChoice.fromJson(e))
               .toList() ??
           [],
       logic: SurveyLogic.fromJson(json['logic'] ?? {}),
-      matrixRows: (json['matrix_rows'] as List?)
+      matrixRows:
+          (json['matrix_rows'] as List?)
               ?.map((e) => SurveyMatrixItem.fromJson(e))
               .toList() ??
           [],
-      matrixColumns: (json['matrix_columns'] as List?)
+      matrixColumns:
+          (json['matrix_columns'] as List?)
               ?.map((e) => SurveyMatrixItem.fromJson(e))
               .toList() ??
           [],
@@ -129,14 +135,46 @@ class SurveyQuestionDetail {
 
   String get uiType {
     switch (questionTypeId) {
-      case 1: return 'text';
-      case 2: return 'radio';
-      case 3: return 'checkbox';
-      case 4: return 'dropdown';
-      case 6: return 'number';
-      case 7: return 'radio';
-      case 9: return 'matrix';
-      default: return 'unknown';
+      case 1:
+        return 'text';
+      case 2:
+        return 'radio';
+      case 3:
+        return 'checkbox';
+      case 4:
+        return 'dropdown';
+      case 6:
+        return 'number';
+      case 7:
+        return 'radio';
+      case 9:
+        return 'matrix';
+      default:
+        return 'unknown';
+    }
+  }
+
+  /// Mapping question_type_id ke string UI (sinkron dengan survey_response_detail_model.dart)
+  String get typeString {
+    switch (questionTypeId) {
+      case 1:
+        return 'text';
+      case 2:
+        return 'radio';
+      case 3:
+        return 'checkbox';
+      case 6:
+        return 'number';
+      case 7:
+        return 'dropdown';
+      case 8:
+        return 'paragraph';
+      case 9:
+        return 'matrix';
+      case 10:
+        return 'document';
+      default:
+        return 'text';
     }
   }
 }
