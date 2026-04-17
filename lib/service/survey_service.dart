@@ -57,6 +57,7 @@ class SurveyService {
   ) async {
     final response = await _api.get(
       Endpoints.surveyReport(clientSlug, projectSlug, surveySlug, responseId),
+      queryParams: {'_t': DateTime.now().millisecondsSinceEpoch.toString()},
     );
 
     return response.data ?? {};
@@ -70,6 +71,7 @@ class SurveyService {
   ) async {
     final response = await _api.get(
       Endpoints.surveyReport(clientSlug, projectSlug, surveySlug, responseId),
+      queryParams: {'_t': DateTime.now().millisecondsSinceEpoch.toString()},
     );
 
     if (response.data != null) {
@@ -88,6 +90,10 @@ class SurveyService {
     required int responseId,
   }) async {
     try {
+      final cacheBuster = {
+        '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+      };
+
       final results = await Future.wait([
         _api.get(
           Endpoints.surveyReport(
@@ -96,6 +102,7 @@ class SurveyService {
             surveySlug,
             responseId,
           ),
+          queryParams: cacheBuster,
         ),
         _api.get(
           Endpoints.surveyAllReport(clientSlug, projectSlug, surveySlug),
@@ -130,7 +137,8 @@ class SurveyService {
           } else if (actualData.containsKey('surveys')) {
             final sData = actualData['surveys'];
             if (sData is Map) {
-              combined['detail_pages'] = sData['page'] ?? sData['pages'] ?? sData['questions'];
+              combined['detail_pages'] =
+                  sData['page'] ?? sData['pages'] ?? sData['questions'];
             }
           }
         }
@@ -140,6 +148,18 @@ class SurveyService {
     } catch (e, st) {
       debugPrint('Error getFullSurveyDetail: $e');
       debugPrint('Stack: $st');
+      // Debug: print raw response
+      try {
+        final rawReport = await _api.get(
+          Endpoints.surveyReport(
+            clientSlug,
+            projectSlug,
+            surveySlug,
+            responseId,
+          ),
+        );
+        debugPrint('Raw report response: ${rawReport.data}');
+      } catch (_) {}
       return null;
     }
   }
