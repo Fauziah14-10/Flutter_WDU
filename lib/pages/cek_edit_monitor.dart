@@ -307,6 +307,7 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
 
   Widget _buildRadio(SurveyQuestionData q) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: q.choices.map((opt) {
         final isSelected = answers[q.id]?.toString() == opt.id.toString();
         return Padding(
@@ -315,6 +316,7 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
             onTap: () => setState(() => answers[q.id] = opt.id.toString()),
             borderRadius: BorderRadius.circular(10),
             child: Container(
+              width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: isSelected ? AppTheme.monGreenPale : Colors.transparent,
@@ -366,6 +368,7 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
         : [];
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: q.choices.map((opt) {
         final optId = opt.id.toString();
         final isChecked = selected.contains(optId);
@@ -381,6 +384,7 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
             },
             borderRadius: BorderRadius.circular(10),
             child: Container(
+              width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: isChecked ? AppTheme.monGreenPale : Colors.transparent,
@@ -504,79 +508,137 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
   }
 
   Widget _buildMatrix(SurveyQuestionData q) {
-    if (q.matrixRows.isEmpty || q.matrixColumns.isEmpty) {
-      return const Text('Data matrix tidak tersedia');
-    }
+  if (q.matrixRows.isEmpty || q.matrixColumns.isEmpty) {
+    return const Text('Data matrix tidak tersedia');
+  }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowColor: WidgetStateProperty.all(
-          AppTheme.monGreenPale.withOpacity(0.4),
+  final currentMap = answers[q.id] is Map
+      ? Map<int, dynamic>.from(answers[q.id] as Map)
+      : <int, dynamic>{};
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: q.matrixRows.asMap().entries.map((rowEntry) {
+      final rowIndex = rowEntry.key;
+      final row = rowEntry.value;
+
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
         ),
-        columns: [
-          const DataColumn(label: Text('')),
-          ...q.matrixColumns.map((col) => DataColumn(label: Text(col.label))),
-        ],
-        rows: q.matrixRows.asMap().entries.map((rowEntry) {
-          final rowIndex = rowEntry.key;
-          final row = rowEntry.value;
-          final currentMap = answers[q.id] is Map
-              ? Map<int, dynamic>.from(answers[q.id] as Map)
-              : <int, dynamic>{};
-
-          return DataRow(
-            cells: [
-              DataCell(
-                Text(
-                  row.label,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            /// Judul pertanyaan baris matrix
+            Text(
+              row.label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: AppTheme.monTextDark,
+                height: 1.4,
               ),
-              ...q.matrixColumns.asMap().entries.map((colEntry) {
-                final colIndex = colEntry.key;
+            ),
 
-                if (q.matrixType == 'radio') {
-                  return DataCell(
-                    Radio<int>(
+            const SizedBox(height: 12),
+
+            /// MATRIX RADIO
+            if (q.matrixType == 'radio')
+              Column(
+                children: q.matrixColumns.asMap().entries.map((colEntry) {
+                  final colIndex = colEntry.key;
+                  final col = colEntry.value;
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: RadioListTile<int>(
                       value: colIndex,
                       groupValue: currentMap[rowIndex] as int?,
                       activeColor: AppTheme.monGreenMid,
-                      onChanged: (_) => setState(() {
-                        currentMap[rowIndex] = colIndex;
-                        answers[q.id] = Map<int, dynamic>.from(currentMap);
-                      }),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                      ),
+                      dense: true,
+                      title: Text(
+                        col.label,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      onChanged: (val) {
+                        setState(() {
+                          currentMap[rowIndex] = val;
+                          answers[q.id] =
+                              Map<int, dynamic>.from(currentMap);
+                        });
+                      },
                     ),
                   );
-                } else {
+                }).toList(),
+              ),
+
+            /// MATRIX CHECKBOX
+            if (q.matrixType != 'radio')
+              Column(
+                children: q.matrixColumns.asMap().entries.map((colEntry) {
+                  final colIndex = colEntry.key;
+                  final col = colEntry.value;
+
                   final rowCols = currentMap[rowIndex] is List
                       ? List<int>.from(currentMap[rowIndex] as List)
                       : <int>[];
-                  return DataCell(
-                    Checkbox(
-                      value: rowCols.contains(colIndex),
+
+                  final isChecked = rowCols.contains(colIndex);
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: CheckboxListTile(
+                      value: isChecked,
                       activeColor: AppTheme.monGreenMid,
-                      onChanged: (checked) => setState(() {
-                        if (checked == true) {
-                          if (!rowCols.contains(colIndex))
-                            rowCols.add(colIndex);
-                        } else {
-                          rowCols.remove(colIndex);
-                        }
-                        currentMap[rowIndex] = rowCols;
-                        answers[q.id] = Map<int, dynamic>.from(currentMap);
-                      }),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                      ),
+                      dense: true,
+                      title: Text(
+                        col.label,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      onChanged: (checked) {
+                        setState(() {
+                          if (checked == true) {
+                            if (!rowCols.contains(colIndex)) {
+                              rowCols.add(colIndex);
+                            }
+                          } else {
+                            rowCols.remove(colIndex);
+                          }
+
+                          currentMap[rowIndex] = rowCols;
+                          answers[q.id] =
+                              Map<int, dynamic>.from(currentMap);
+                        });
+                      },
                     ),
                   );
-                }
-              }),
-            ],
-          );
-        }).toList(),
-      ),
-    );
-  }
-
+                }).toList(),
+              ),
+          ],
+        ),
+      );
+    }).toList(),
+  );
+}
   // ── SAVE: pakai POST change-answer/{responseId} ───────────
   Future<void> _handleSave() async {
     if (surveyData == null) return;
