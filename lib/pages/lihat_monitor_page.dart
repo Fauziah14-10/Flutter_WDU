@@ -1107,6 +1107,8 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
   }
 
   Widget _buildAnswerDisplay(SurveyQuestionData q, String answer) {
+    if (q.typeString == 'info') return const SizedBox.shrink();
+
     // Matrix question
     if (q.typeString == 'matrix') {
       // Generate row labels (fallback jika label kosong)

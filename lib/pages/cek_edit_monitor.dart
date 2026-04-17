@@ -82,12 +82,22 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
       if (data != null) {
         surveyData = data;
 
+        debugPrint('DEBUG _loadData - responseId: ${data.responseId}');
+        debugPrint('DEBUG _loadData - answers count: ${data.answers.length}');
+        for (var i = 0; i < data.answers.length; i++) {
+          debugPrint(
+            'DEBUG Answer[$i]: QID=${data.answers[i].questionId}, Ans=${data.answers[i].answer}',
+          );
+        }
+
         final parsed = _editService.parseExistingAnswers(
           answers: data.answers,
           pages: data.pages,
         );
         answers = Map<int, dynamic>.from(parsed);
         originalAnswers = Map<int, dynamic>.from(parsed);
+
+        debugPrint('DEBUG _loadData - parsed answers: $parsed');
       }
     } catch (e) {
       debugPrint("Error loading monitor data: $e");
@@ -219,6 +229,21 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
   // ── QUESTION CARD ─────────────────────────────────────────
 
   Widget _buildQuestionCard(SurveyQuestionData q, int index) {
+    if (q.typeString == 'info') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Text(
+          q.plainText,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.monTextDark,
+            height: 1.5,
+          ),
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -296,6 +321,7 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
   // ── ANSWER INPUT ──────────────────────────────────────────
 
   Widget _buildAnswerInput(SurveyQuestionData q) {
+    if (q.typeString == 'info') return const SizedBox.shrink();
     switch (q.typeString) {
       case 'radio':
         return _buildRadio(q);
@@ -610,7 +636,9 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
                     child: Padding(
                       padding: const EdgeInsets.only(left: 12, right: 8),
                       child: Text(
-                        row.label.isNotEmpty ? row.label : 'Row ${rowIndex + 1}',
+                        row.label.isNotEmpty
+                            ? row.label
+                            : 'Row ${rowIndex + 1}',
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
@@ -622,7 +650,10 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
                   // Radio/Checkbox inputs for each column
                   ...q.matrixColumns.asMap().entries.map((colEntry) {
                     final colIndex = colEntry.key;
-                    final activeColor = _getMatrixColor(colIndex, q.matrixColumns.length);
+                    final activeColor = _getMatrixColor(
+                      colIndex,
+                      q.matrixColumns.length,
+                    );
 
                     if (q.matrixType == 'radio') {
                       return Expanded(
@@ -632,11 +663,14 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
                             value: colIndex,
                             groupValue: currentMap[rowIndex] as int?,
                             activeColor: activeColor,
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                             onChanged: (val) {
                               setState(() {
                                 currentMap[rowIndex] = val;
-                                answers[q.id] = Map<int, dynamic>.from(currentMap);
+                                answers[q.id] = Map<int, dynamic>.from(
+                                  currentMap,
+                                );
                               });
                             },
                           ),
@@ -654,7 +688,8 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
                           child: Checkbox(
                             value: isChecked,
                             activeColor: activeColor,
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                             onChanged: (checked) {
                               setState(() {
                                 if (checked == true) {
@@ -665,7 +700,9 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
                                   rowCols.remove(colIndex);
                                 }
                                 currentMap[rowIndex] = rowCols;
-                                answers[q.id] = Map<int, dynamic>.from(currentMap);
+                                answers[q.id] = Map<int, dynamic>.from(
+                                  currentMap,
+                                );
                               });
                             },
                           ),
@@ -685,19 +722,28 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
   Color _getMatrixColor(int index, int totalColumns) {
     if (totalColumns == 4) {
       switch (index) {
-        case 0: return AppTheme.monGreenDark;
-        case 1: return AppTheme.monGreenMid;
-        case 2: return Colors.orange;
-        case 3: return Colors.red;
+        case 0:
+          return AppTheme.monGreenDark;
+        case 1:
+          return AppTheme.monGreenMid;
+        case 2:
+          return Colors.orange;
+        case 3:
+          return Colors.red;
       }
     }
     if (totalColumns == 5) {
       switch (index) {
-        case 0: return AppTheme.monGreenDark;
-        case 1: return AppTheme.monGreenMid;
-        case 2: return Colors.orange;
-        case 3: return Colors.red;
-        case 4: return Colors.grey;
+        case 0:
+          return AppTheme.monGreenDark;
+        case 1:
+          return AppTheme.monGreenMid;
+        case 2:
+          return Colors.orange;
+        case 3:
+          return Colors.red;
+        case 4:
+          return Colors.grey;
       }
     }
     return AppTheme.monGreenMid;

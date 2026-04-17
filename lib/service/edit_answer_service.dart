@@ -211,10 +211,13 @@ class EditAnswerService {
 
       final payload = _buildPayload(pages, currentAnswers);
 
-      await _api.patch(
+      debugPrint('[EditAnswerService] Final payload: ${jsonEncode(payload)}');
+
+      final response = await _api.patch(
         Endpoints.changeAnswer(clientSlug, projectSlug, surveySlug, responseId),
         body: payload,
       );
+      debugPrint('[EditAnswerService] Response: ${response.data}');
       return true;
     } catch (e) {
       print("Error submitChanges: $e");
@@ -291,7 +294,10 @@ class EditAnswerService {
     // Filter pages that have at least one valid question
     final validPages = pages.where((page) {
       return page.questions.any(
-        (q) => q.id != null && q.questionTypeId != null,
+        (q) =>
+            q.id != null &&
+            q.questionTypeId != null &&
+            q.questionTypeId != 5, // Must have at least one non-info question
       );
     }).toList();
 
@@ -299,7 +305,12 @@ class EditAnswerService {
       'page': validPages.map((page) {
         // Filter questions that have valid id and questionTypeId
         final validQuestions = page.questions
-            .where((q) => q.id != null && q.questionTypeId != null)
+            .where(
+              (q) =>
+                  q.id != null &&
+                  q.questionTypeId != null &&
+                  q.questionTypeId != 5,
+            ) // Skip Instructions/Petunjuk
             .toList();
 
         return {
@@ -347,8 +358,13 @@ class EditAnswerService {
 
       case 3: // Checkbox
         if (answer is List && answer.isNotEmpty) {
+          // Hapus duplikat sebelum dikirim
+          final uniqueAnswers = answer
+              .map((e) => e.toString())
+              .toSet()
+              .toList();
           return [
-            {'answe': answer.map((e) => e.toString()).toList()},
+            {'answe': uniqueAnswers},
           ];
         }
         return [
@@ -425,20 +441,25 @@ class EditAnswerService {
       final question = questionMap[questionId];
       if (question == null) return;
 
+      // Ambil jawaban terakhir karena itu yang terbaru di database
+      final latestAnswer = answerList.isNotEmpty ? answerList.last : '';
+
       switch (question.questionTypeId) {
         case 3: // Checkbox → List<String>
           result[questionId] = answerList;
           break;
 
         case 9: // Matrix → decode JSON string ke Map
-          final raw = answerList.isNotEmpty ? answerList.first : '';
-          result[questionId] = _decodeMatrixAnswer(raw, question.matrixType);
+          result[questionId] = _decodeMatrixAnswer(
+            latestAnswer,
+            question.matrixType,
+          );
           break;
 
         case 2: // Radio
         case 7: // Dropdown
-          if (answerList.isNotEmpty) {
-            final rawAns = answerList.first;
+          if (latestAnswer.isNotEmpty) {
+            final rawAns = latestAnswer;
             // Cek apakah rawAns adalah salah satu ID dari choices
             final existsAsId = question.choices.any(
               (c) => c.id.toString() == rawAns,
@@ -464,8 +485,8 @@ class EditAnswerService {
           break;
 
         default: // Semua tipe lain (Text, Paragraph, etc.)
-          if (answerList.isNotEmpty) {
-            String raw = answerList.first;
+          if (latestAnswer.isNotEmpty) {
+            String raw = latestAnswer;
             // Jika radio/dropdown tapi tipenya 'text' di map (mungkin data lama)
             if (question.questionTypeId == 2 || question.questionTypeId == 7) {
               final matched = question.choices.where(

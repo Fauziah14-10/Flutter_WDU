@@ -322,8 +322,12 @@ class SurveyQuestionData {
         return 'radio';
       case 3:
         return 'checkbox';
-      case 6:
+      case 4:
         return 'number';
+      case 5:
+        return 'info';
+      case 6:
+        return 'number'; // numbering/rating fallback
       case 7:
         return 'dropdown';
       case 8:

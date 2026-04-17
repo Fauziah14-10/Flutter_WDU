@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Merge Conflict Resolution**: Successfully resolved significant merge conflicts in `CekEditMonitorPage` during the integration of monitoring feature updates into the main branch.
 - **Document Type Support**: Restored handling and UI support for the `document` (file upload) question type in the monitoring edit view.
 - **Parsing Stability**: Fixed "type 'int' is not a subtype of type 'String'" crash across `SubmissionService` and `ProvinceTarget` models by ensuring dynamic values from the API are cast to String before property assignment.
+- Fix: Synchronize matrix question display between CekEditMonitor and LihatMonitor pages
+- Fix: Resolve 500 error when saving checkbox answers with duplicate values
+- Fix: Load latest answers from API instead of first (fixes data not updating after refresh)
+- Feat: Add document upload support in CekEditMonitor page
 
 ### Added
 - **Anonymous Entry Mode**: Added a toggle in `BiodataPage` to switch between "Lengkap" and "Anonim" modes. Anonymous mode requires only a Province selection to proceed.

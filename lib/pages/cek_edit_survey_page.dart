@@ -441,6 +441,21 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
   // ── ANSWER INPUT ──────────────────────────────────────────
 
   Widget _buildQuestionItem(SurveyQuestionData q) {
+    if (q.typeString == 'info') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text(
+          q.plainText,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.monTextDark,
+            height: 1.5,
+          ),
+        ),
+      );
+    }
+
     Widget content;
     switch (q.typeString) {
       case 'radio':
