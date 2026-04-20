@@ -64,23 +64,46 @@ class SubmissionService {
       debugPrint('🚀 [SUBMIT] Starting submission for surveySlug: $surveySlug');
       debugPrint('DEBUG submitSurvey: payload keys = ${answers.keys.toList()}');
 
-      // Wrap payload dalam field "data" sesuai format backend
       final wrappedPayload = {'data': jsonEncode(answers)};
+
+      final voiceNotePath = answers['voice_note'] as String?;
+      if (voiceNotePath != null) {
+        wrappedPayload['voice_note'] = voiceNotePath;
+      }
 
       debugPrint(
         '🔗 [SUBMIT] ENDPOINT: ${Endpoints.submitAnswer(clientSlug, projectSlug, surveySlug)}',
       );
 
-      final response = await _api.post(
-        Endpoints.submitAnswer(clientSlug, projectSlug, surveySlug),
-        body: wrappedPayload,
-      );
+      if (voiceNotePath != null) {
+        final additionalFields = {
+          'data': jsonEncode(answers),
+        };
 
-      if (response.success) {
-        debugPrint('✅ [SUBMIT] SUCCESS: ${response.message}');
-        return true;
+        final response = await _api.postWithFile(
+          Endpoints.submitAnswer(clientSlug, projectSlug, surveySlug),
+          filePath: voiceNotePath,
+          fieldName: 'voice_note',
+          additionalFields: additionalFields,
+        );
+
+        if (response.success) {
+          debugPrint('✅ [SUBMIT] SUCCESS with voice note: ${response.message}');
+          return true;
+        }
+        return false;
+      } else {
+        final response = await _api.post(
+          Endpoints.submitAnswer(clientSlug, projectSlug, surveySlug),
+          body: wrappedPayload,
+        );
+
+        if (response.success) {
+          debugPrint('✅ [SUBMIT] SUCCESS: ${response.message}');
+          return true;
+        }
+        return false;
       }
-      return false;
     } catch (e, st) {
       debugPrint('🚨 [SUBMIT] FATAL ERROR: $e');
       debugPrint('StackTrace: $st');

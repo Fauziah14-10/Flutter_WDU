@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:record/record.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/storage.dart';
 import '../../service/submission_service.dart';
@@ -26,6 +30,8 @@ class SubmissionPage extends StatefulWidget {
 
 class _SubmissionPageState extends State<SubmissionPage> {
   final SubmissionService _service = SubmissionService();
+  final AudioRecorder _recorder = AudioRecorder();
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -37,10 +43,29 @@ class _SubmissionPageState extends State<SubmissionPage> {
   int _currentPageIndex = 0;
   bool _hasDraft = false;
 
+  String? _voiceNotePath;
+  bool _isRecording = false;
+  bool _isPlaying = false;
+  Duration _recordingDuration = Duration.zero;
+
   @override
   void initState() {
     super.initState();
     _loadData().then((_) => _loadDraftIfExists());
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = state == PlayerState.playing;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _recorder.dispose();
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
   Future<void> _loadDraftIfExists() async {
@@ -82,6 +107,295 @@ class _SubmissionPageState extends State<SubmissionPage> {
   Future<void> _clearDraft() async {
     await StorageHelper.deleteDraftSurvey(widget.surveySlug);
     setState(() => _hasDraft = false);
+  }
+
+  Future<bool> _requestMicrophonePermission() async {
+    final status = await Permission.microphone.request();
+    return status.isGranted;
+  }
+
+  Future<void> _startRecording() async {
+    final hasPermission = await _requestMicrophonePermission();
+    if (!hasPermission) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Izin mikrofon diperlukan untuk merekam'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      await _recorder.start(
+        const RecordConfig(encoder: AudioEncoder.aacLc),
+        path: filePath,
+      );
+
+      setState(() {
+        _isRecording = true;
+        _voiceNotePath = filePath;
+        _recordingDuration = Duration.zero;
+      });
+
+      _updateRecordingDuration();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memulai rekaman: $e')),
+        );
+      }
+    }
+  }
+
+  void _updateRecordingDuration() async {
+    while (_isRecording && mounted) {
+      await Future.delayed(const Duration(seconds: 1));
+      if (_isRecording && mounted) {
+        setState(() {
+          _recordingDuration += const Duration(seconds: 1);
+        });
+      }
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    try {
+      await _recorder.stop();
+      setState(() {
+        _isRecording = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menghentikan rekaman: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _playVoiceNote() async {
+    if (_voiceNotePath == null) return;
+
+    try {
+      if (_isPlaying) {
+        await _audioPlayer.stop();
+      } else {
+        await _audioPlayer.play(DeviceFileSource(_voiceNotePath!));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memutar rekaman: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteVoiceNote() async {
+    if (_voiceNotePath != null) {
+      try {
+        final file = File(_voiceNotePath!);
+        if (await file.exists()) {
+          await file.delete();
+        }
+        await _audioPlayer.stop();
+        setState(() {
+          _voiceNotePath = null;
+          _recordingDuration = Duration.zero;
+        });
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal menghapus rekaman: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Widget _buildVoiceNoteSection() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.monGreenMid.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.mic_rounded,
+                  color: AppTheme.monGreenMid,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Voice Note',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.monTextDark,
+                  ),
+                ),
+              ),
+              if (_voiceNotePath != null && !_isRecording)
+                IconButton(
+                  onPressed: _deleteVoiceNote,
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  iconSize: 20,
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Rekam suara jika malas mengetik',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (_voiceNotePath != null && !_isRecording)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: _playVoiceNote,
+                    icon: Icon(
+                      _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                      color: AppTheme.monGreenMid,
+                      size: 40,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Rekaman Tersimpan',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.monTextDark,
+                          ),
+                        ),
+                        Text(
+                          _formatDuration(_recordingDuration),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (_isRecording)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Merekam...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.red,
+                          ),
+                        ),
+                        Text(
+                          _formatDuration(_recordingDuration),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.red.shade400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: _stopRecording,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                    child: const Text('Stop'),
+                  ),
+                ],
+              ),
+            )
+          else
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: _startRecording,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.monGreenMid,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                icon: const Icon(Icons.mic),
+                label: const Text('Mulai Rekam'),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    String minutes = twoDigits(duration.inMinutes.remainder(60));
+    String seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
   }
 
   Future<void> _loadData() async {
@@ -309,6 +623,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
     return Column(
       children: [
+        _buildVoiceNoteSection(),
         _buildPageIndicator(),
         Expanded(child: _buildQuestionPages()),
         _buildBottomBar(),
@@ -915,12 +1230,14 @@ class _SubmissionPageState extends State<SubmissionPage> {
   Map<String, dynamic> _buildPayload() {
     final Map<String, dynamic> payload = {};
 
-    // Tambahkan biodata jika ada
     if (widget.biodata != null && widget.biodata!.isNotEmpty) {
       payload['biodata'] = widget.biodata;
     }
 
-    // Tambahkan jawaban survey - pisahkan question dan answer jadi array terpisah
+    if (_voiceNotePath != null) {
+      payload['voice_note'] = _voiceNotePath;
+    }
+
     payload['page'] = _data!.pages.map((page) {
       return {
         'question': page.questions.map((q) => {'id': q.id}).toList(),
