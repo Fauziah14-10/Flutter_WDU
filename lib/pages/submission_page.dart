@@ -50,6 +50,64 @@ class _SubmissionPageState extends State<SubmissionPage> {
   bool _isPlaying = false;
   Duration _recordingDuration = Duration.zero;
 
+  // Static fallback provinces (38 provinces of Indonesia)
+  static const _fallbackProvinces = [
+    {'id': 1, 'name': 'Nanggroe Aceh Darussalam'},
+    {'id': 2, 'name': 'Sumatera Utara'},
+    {'id': 3, 'name': 'Sumatera Selatan'},
+    {'id': 4, 'name': 'Sumatera Barat'},
+    {'id': 5, 'name': 'Bengkulu'},
+    {'id': 6, 'name': 'Riau'},
+    {'id': 7, 'name': 'Kepulauan Riau'},
+    {'id': 8, 'name': 'Jambi'},
+    {'id': 9, 'name': 'Lampung'},
+    {'id': 10, 'name': 'Bangka Belitung'},
+    {'id': 11, 'name': 'Kalimantan Barat'},
+    {'id': 12, 'name': 'Kalimantan Timur'},
+    {'id': 13, 'name': 'Kalimantan Selatan'},
+    {'id': 14, 'name': 'Kalimantan Tengah'},
+    {'id': 15, 'name': 'Kalimantan Utara'},
+    {'id': 16, 'name': 'Banten'},
+    {'id': 17, 'name': 'DKI Jakarta'},
+    {'id': 18, 'name': 'Jawa Barat'},
+    {'id': 19, 'name': 'Jawa Tengah'},
+    {'id': 20, 'name': 'Daerah Istimewa Yogyakarta'},
+    {'id': 21, 'name': 'Jawa Timur'},
+    {'id': 22, 'name': 'Bali'},
+    {'id': 23, 'name': 'Nusa Tenggara Timur'},
+    {'id': 24, 'name': 'Nusa Tenggara Barat'},
+    {'id': 25, 'name': 'Gorontalo'},
+    {'id': 26, 'name': 'Sulawesi Barat'},
+    {'id': 27, 'name': 'Sulawesi Tengah'},
+    {'id': 28, 'name': 'Sulawesi Utara'},
+    {'id': 29, 'name': 'Sulawesi Tenggara'},
+    {'id': 30, 'name': 'Sulawesi Selatan'},
+    {'id': 31, 'name': 'Maluku Utara'},
+    {'id': 32, 'name': 'Maluku'},
+    {'id': 33, 'name': 'Papua Barat'},
+    {'id': 34, 'name': 'Papua'},
+    {'id': 35, 'name': 'Papua Tengah'},
+    {'id': 36, 'name': 'Papua Pegunungan'},
+    {'id': 37, 'name': 'Papua Selatan'},
+    {'id': 38, 'name': 'Papua Barat Daya'},
+  ];
+
+  List<Map<String, dynamic>> get _provinces {
+    // Use API data if available, otherwise use fallback
+    if (_data?.provinceTargets != null && _data!.provinceTargets.isNotEmpty) {
+      return _data!.provinceTargets
+          .map((p) => {
+                'id': p.provinceId.toString(),
+                'name': p.provinceName,
+              })
+          .toList();
+    }
+    return _fallbackProvinces.map((e) => {
+      'id': e['id'].toString(),
+      'name': e['name'].toString(),
+    }).toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -790,28 +848,40 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   Widget _buildProvinceDropdown(SurveyQuestionData q) {
-    final provinces = _data?.provinceTargets ?? [];
+    final provinces = _provinces;
 
     if (provinces.isEmpty) {
       return _buildDropdownInput(q);
     }
 
-    final items = provinces
-        .map(
-          (p) => DropdownMenuItem(
-            value: p.provinceId.toString(),
-            child: Text(p.provinceName),
-          ),
-        )
-        .toList();
-
     return DropdownButtonFormField<String>(
       value: _answers[q.id]?.toString(),
-      items: items,
+      items: provinces.map((p) {
+        return DropdownMenuItem<String>(
+          value: p['id'].toString(),
+          child: Text(
+            p['name'].toString(),
+            style: const TextStyle(fontSize: 12),
+          ),
+        );
+      }).toList(),
       onChanged: (val) => setState(() => _answers[q.id] = val),
+      icon: const Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: Color(0xFF4285F4),
+        size: 24,
+      ),
+      elevation: 2,
+      dropdownColor: Colors.white,
       decoration: InputDecoration(
+        hintText: 'Pilih provinsi',
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
         filled: true,
         fillColor: Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: Colors.grey.shade300),
@@ -822,9 +892,15 @@ class _SubmissionPageState extends State<SubmissionPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF4285F4)),
+          borderSide: const BorderSide(color: Color(0xFF4285F4), width: 2),
         ),
       ),
+      validator: (val) {
+        if (q.isRequired && (val == null || val.isEmpty)) {
+          return 'Pilihan ini wajib diisi';
+        }
+        return null;
+      },
     );
   }
 
@@ -998,7 +1074,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
         .map(
           (opt) => DropdownMenuItem(
             value: opt.id.toString(),
-            child: Text(opt.value),
+            child: Text(
+              opt.value,
+              style: const TextStyle(fontSize: 12),
+            ),
           ),
         )
         .toList();
@@ -1006,10 +1085,27 @@ class _SubmissionPageState extends State<SubmissionPage> {
     return DropdownButtonFormField<String>(
       value: _answers[q.id]?.toString(),
       items: items,
-      onChanged: (val) => setState(() => _answers[q.id] = val),
+      onChanged: (val) {
+        setState(() {
+          _answers[q.id] = val;
+        });
+      },
+      icon: const Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: Color(0xFF4285F4),
+        size: 24,
+      ),
+      elevation: 2,
+      dropdownColor: Colors.white,
       decoration: InputDecoration(
+        hintText: 'Pilih salah satu',
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
         filled: true,
         fillColor: Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: Colors.grey.shade300),
@@ -1020,9 +1116,15 @@ class _SubmissionPageState extends State<SubmissionPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF4285F4)),
+          borderSide: const BorderSide(color: Color(0xFF4285F4), width: 2),
         ),
       ),
+      validator: (val) {
+        if (q.isRequired && (val == null || val.isEmpty)) {
+          return 'Pilihan ini wajib diisi';
+        }
+        return null;
+      },
     );
   }
 
@@ -1302,8 +1404,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
     }
   }
 
-  dynamic _buildMatrixValue(String matrixType, dynamic answer) {
-    if (answer is! Map || answer.isEmpty) return '{}';
+  Map<String, dynamic> _buildMatrixValue(String matrixType, dynamic answer) {
+    if (answer is! Map || answer.isEmpty) return {};
 
     final Map<String, dynamic> result = {};
     answer.forEach((key, value) {
@@ -1314,6 +1416,6 @@ class _SubmissionPageState extends State<SubmissionPage> {
       }
     });
 
-    return jsonEncode(result);
+    return result;
   }
 }

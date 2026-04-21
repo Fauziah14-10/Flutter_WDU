@@ -180,6 +180,15 @@ class _ClientCard extends StatelessWidget {
   final Client client;
   const _ClientCard({required this.client});
 
+  String _getInitials(String name) {
+    if (name.trim().isEmpty) return '?';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, parts[0].length > 1 ? 2 : 1).toUpperCase();
+  }
+
   Widget _buildFallback(String name) {
     final lower = name.toLowerCase();
     if (lower.contains('transjakarta') || lower.contains('trans jakarta')) {
@@ -187,10 +196,30 @@ class _ClientCard extends StatelessWidget {
     } else if (lower.contains('bpk') || lower.contains('badan pemeriksa keuangan')) {
       return Image.asset('assets/images/logo_bpk.png', fit: BoxFit.cover);
     }
-    return const Icon(
-      Icons.account_balance,
-      size: 36,
-      color: Color(0xFFBDBDBD),
+    
+    // Premium Initials Fallback
+    final initials = _getInitials(name);
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.primary.withValues(alpha: 0.1),
+            AppTheme.primary.withValues(alpha: 0.05),
+          ],
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w900,
+          color: AppTheme.primary,
+          letterSpacing: -0.5,
+        ),
+      ),
     );
   }
 
