@@ -180,6 +180,20 @@ class _ClientCard extends StatelessWidget {
   final Client client;
   const _ClientCard({required this.client});
 
+  Widget _buildFallback(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('transjakarta') || lower.contains('trans jakarta')) {
+      return Image.asset('assets/images/logo_trans.jpeg', fit: BoxFit.cover);
+    } else if (lower.contains('bpk') || lower.contains('badan pemeriksa keuangan')) {
+      return Image.asset('assets/images/logo_bpk.png', fit: BoxFit.cover);
+    }
+    return const Icon(
+      Icons.account_balance,
+      size: 36,
+      color: Color(0xFFBDBDBD),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final url = client.imageUrl ?? client.image;
@@ -222,17 +236,9 @@ class _ClientCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    errorWidget: (context, url, error) => const Icon(
-                      Icons.account_balance,
-                      size: 36,
-                      color: Color(0xFFBDBDBD),
-                    ),
+                    errorWidget: (context, url, error) => _buildFallback(client.clientName),
                   )
-                : const Icon(
-                    Icons.account_balance,
-                    size: 36,
-                    color: Color(0xFFBDBDBD),
-                  ),
+                : _buildFallback(client.clientName),
           ),
           const SizedBox(width: 20),
           Expanded(

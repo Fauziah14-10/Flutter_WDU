@@ -33,6 +33,16 @@ class ClientCard extends StatelessWidget {
     );
   }
 
+  Widget _buildFallback(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('transjakarta') || lower.contains('trans jakarta')) {
+      return Image.asset('assets/images/logo_trans.jpeg', fit: BoxFit.cover);
+    } else if (lower.contains('bpk') || lower.contains('badan pemeriksa keuangan')) {
+      return Image.asset('assets/images/logo_bpk.png', fit: BoxFit.cover);
+    }
+    return const Icon(Icons.business, size: 36, color: AppTheme.border);
+  }
+
   Widget _buildAvatar() {
     // prioritas: imageUrl → image → null
     final imageUrl = client.imageUrl ?? client.image;
@@ -60,10 +70,9 @@ class ClientCard extends StatelessWidget {
                   ),
                 ),
               ),
-              errorWidget: (context, url, error) =>
-                  const Icon(Icons.business, size: 36, color: AppTheme.border),
+              errorWidget: (context, url, error) => _buildFallback(client.clientName),
             )
-          : const Icon(Icons.business, size: 36, color: AppTheme.border),
+          : _buildFallback(client.clientName),
     );
   }
 

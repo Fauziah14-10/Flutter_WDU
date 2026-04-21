@@ -167,7 +167,16 @@ class ClientCard extends StatelessWidget {
   }
 
   Widget _buildFallback(String name) {
-    return _imagePlaceholder(name);
+    String nameLower = name.toLowerCase();
+    if (nameLower.contains('transjakarta') ||
+        nameLower.contains('trans jakarta')) {
+      return Image.asset('assets/images/logo_trans.jpeg', fit: BoxFit.contain);
+    } else if (nameLower.contains('bpk') ||
+        nameLower.contains('badan pemeriksa keuangan')) {
+      return Image.asset('assets/images/logo_bpk.png', fit: BoxFit.contain);
+    } else {
+      return _imagePlaceholder(name);
+    }
   }
 
   Widget _imagePlaceholder(String name) {
