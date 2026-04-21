@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/storage.dart';
+import '../../models/submission_model.dart';
 import '../../service/submission_service.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -637,7 +638,6 @@ class _SubmissionPageState extends State<SubmissionPage> {
     return Column(
       children: [
         _buildVoiceNoteSection(),
-        _buildPageIndicator(),
         Expanded(child: _buildQuestionPages()),
         _buildBottomBar(),
       ],
@@ -668,35 +668,28 @@ class _SubmissionPageState extends State<SubmissionPage> {
   Widget _buildQuestionPages() {
     final pages = _data!.pages;
 
-    return PageView.builder(
-      itemCount: pages.length,
-      onPageChanged: (index) {
-        setState(() => _currentPageIndex = index);
-      },
-      itemBuilder: (context, pageIndex) {
-        final page = pages[pageIndex];
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (page.pageName.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    page.pageName,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.monTextDark,
-                    ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: pages.expand((page) {
+          return [
+            if (page.pageName.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  page.pageName,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.monTextDark,
                   ),
                 ),
-              ...page.questions.map((q) => _buildQuestionItem(q)),
-            ],
-          ),
-        );
-      },
+              ),
+            ...page.questions.map((q) => _buildQuestionItem(q)),
+          ];
+        }).toList(),
+      ),
     );
   }
 
@@ -768,6 +761,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   Widget _buildAnswerInput(SurveyQuestionData q) {
+    if (_isProvinceQuestion(q)) {
+      return _buildProvinceDropdown(q);
+    }
     switch (q.typeString) {
       case 'radio':
         return _buildRadioInput(q);
@@ -786,6 +782,50 @@ class _SubmissionPageState extends State<SubmissionPage> {
       default:
         return const SizedBox();
     }
+  }
+
+  bool _isProvinceQuestion(SurveyQuestionData q) {
+    final text = q.questionText.toLowerCase();
+    return text.contains('provinsi') || text.contains('province');
+  }
+
+  Widget _buildProvinceDropdown(SurveyQuestionData q) {
+    final provinces = _data?.provinceTargets ?? [];
+
+    if (provinces.isEmpty) {
+      return _buildDropdownInput(q);
+    }
+
+    final items = provinces
+        .map(
+          (p) => DropdownMenuItem(
+            value: p.provinceId.toString(),
+            child: Text(p.provinceName),
+          ),
+        )
+        .toList();
+
+    return DropdownButtonFormField<String>(
+      value: _answers[q.id]?.toString(),
+      items: items,
+      onChanged: (val) => setState(() => _answers[q.id] = val),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF4285F4)),
+        ),
+      ),
+    );
   }
 
   Widget _buildRadioInput(SurveyQuestionData q) {
@@ -1099,10 +1139,6 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   Widget _buildBottomBar() {
-    final totalPages = _data!.pages.length;
-    final isFirstPage = _currentPageIndex == 0;
-    final isLastPage = _currentPageIndex == totalPages - 1;
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -1118,55 +1154,25 @@ class _SubmissionPageState extends State<SubmissionPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              if (!isFirstPage && !isLastPage)
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      setState(() => _currentPageIndex--);
-                      _saveDraft();
-                    },
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: Colors.grey),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text(
-                      'Sebelumnya',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _submitSurvey,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.monGreenMid,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              if (!isFirstPage && !isLastPage) const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (isLastPage) {
-                      _submitSurvey();
-                    } else {
-                      setState(() => _currentPageIndex++);
-                      _saveDraft();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.monGreenMid,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    isLastPage ? 'Kirim Jawaban' : 'Selanjutnya',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
+                elevation: 0,
               ),
-            ],
+              child: const Text(
+                'Kirim Jawaban',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -1290,7 +1296,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
         }
         return {'checkboxes': []};
       case 9: // Matrix
-        return {'answe': _buildMatrixValue(q.matrixType, answer)};
+        return {'matrix': _buildMatrixValue(q.matrixType, answer)};
       default:
         return {'texts': answer.toString()};
     }
