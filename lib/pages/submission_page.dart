@@ -896,7 +896,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
         ),
       ),
       validator: (val) {
-        if (q.isRequired && (val == null || val.isEmpty)) {
+        if (q.required && (val == null || val.isEmpty)) {
           return 'Pilihan ini wajib diisi';
         }
         return null;
@@ -1120,7 +1120,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
         ),
       ),
       validator: (val) {
-        if (q.isRequired && (val == null || val.isEmpty)) {
+        if (q.required && (val == null || val.isEmpty)) {
           return 'Pilihan ini wajib diisi';
         }
         return null;
