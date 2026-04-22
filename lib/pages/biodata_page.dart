@@ -120,6 +120,38 @@ class _BiodataPageState extends State<BiodataPage> {
         debugPrint(
           'DEBUG: data.provinceTargets sample: ${data.provinceTargets.isNotEmpty ? data.provinceTargets.first.provinceName : "empty"}',
         );
+
+        final isBiodataEnabled = data.survey?.isBiodataEnabled ?? true;
+
+        if (!isBiodataEnabled) {
+          if (mounted) {
+            final emptyBiodata = {
+              'name': 'Anonim',
+              'address': '-',
+              'province_id': null,
+              'province_name': null,
+              'phone': '-',
+              'instansi': '-',
+              'is_anonymous': true,
+            };
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pushReplacementNamed(
+                context,
+                '/submission',
+                arguments: {
+                  'surveySlug': widget.surveySlug,
+                  'clientSlug': widget.clientSlug,
+                  'projectSlug': widget.projectSlug,
+                  'biodata': emptyBiodata,
+                  'surveyTitle': data.survey?.title ?? '',
+                },
+              );
+            });
+          }
+          return;
+        }
+
         setState(() {
           _provinceTargets = data.provinceTargets;
           _surveyTitle = data.survey?.title ?? '';

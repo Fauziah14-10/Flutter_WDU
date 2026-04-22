@@ -7,7 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/storage.dart';
 import '../../models/submission_model.dart';
 import '../../service/submission_service.dart';
-import 'dart:convert';
+import 'package:speech_to_text/speech_to_text.dart';
 import 'dart:io';
 
 class SubmissionPage extends StatefulWidget {
@@ -32,6 +32,7 @@ class SubmissionPage extends StatefulWidget {
 
 class _SubmissionPageState extends State<SubmissionPage> {
   final SubmissionService _service = SubmissionService();
+  final SpeechToText _speech = SpeechToText();
   final AudioRecorder _recorder = AudioRecorder();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
@@ -45,10 +46,11 @@ class _SubmissionPageState extends State<SubmissionPage> {
   int _currentPageIndex = 0;
   bool _hasDraft = false;
 
+  bool _isListening = false;
+  String _voiceResult = '';
   String? _voiceNotePath;
-  bool _isRecording = false;
-  bool _isPlaying = false;
-  Duration _recordingDuration = Duration.zero;
+  bool _isPlayingVoice = false;
+  Duration _voiceDuration = Duration.zero;
 
   // Static fallback provinces (38 provinces of Indonesia)
   static const _fallbackProvinces = [
@@ -115,7 +117,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (mounted) {
         setState(() {
-          _isPlaying = state == PlayerState.playing;
+          _isPlayingVoice = state == PlayerState.playing;
         });
       }
     });
@@ -125,6 +127,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
   void dispose() {
     _recorder.dispose();
     _audioPlayer.dispose();
+    if (_isListening) {
+      _speech.stop();
+    }
     super.dispose();
   }
 
@@ -169,169 +174,41 @@ class _SubmissionPageState extends State<SubmissionPage> {
     setState(() => _hasDraft = false);
   }
 
-  Future<bool> _requestMicrophonePermission() async {
-    final status = await Permission.microphone.request();
-    return status.isGranted;
-  }
-
-  Future<void> _startRecording() async {
-    final hasPermission = await _requestMicrophonePermission();
-    if (!hasPermission) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Izin mikrofon diperlukan untuk merekam'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
-
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final filePath =
-          '${directory.path}/voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
-
-      await _recorder.start(
-        const RecordConfig(encoder: AudioEncoder.aacLc),
-        path: filePath,
-      );
-
-      setState(() {
-        _isRecording = true;
-        _voiceNotePath = filePath;
-        _recordingDuration = Duration.zero;
-      });
-
-      _updateRecordingDuration();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal memulai rekaman: $e')));
-      }
-    }
-  }
-
-  void _updateRecordingDuration() async {
-    while (_isRecording && mounted) {
-      await Future.delayed(const Duration(seconds: 1));
-      if (_isRecording && mounted) {
-        setState(() {
-          _recordingDuration += const Duration(seconds: 1);
-        });
-      }
-    }
-  }
-
-  Future<void> _stopRecording() async {
-    try {
-      await _recorder.stop();
-      setState(() {
-        _isRecording = false;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menghentikan rekaman: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _playVoiceNote() async {
-    if (_voiceNotePath == null) return;
-
-    try {
-      if (_isPlaying) {
-        await _audioPlayer.stop();
-      } else {
-        await _audioPlayer.play(DeviceFileSource(_voiceNotePath!));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal memutar rekaman: $e')));
-      }
-    }
-  }
-
-  Future<void> _deleteVoiceNote() async {
-    if (_voiceNotePath != null) {
-      try {
-        final file = File(_voiceNotePath!);
-        if (await file.exists()) {
-          await file.delete();
-        }
-        await _audioPlayer.stop();
-        setState(() {
-          _voiceNotePath = null;
-          _recordingDuration = Duration.zero;
-        });
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal menghapus rekaman: $e')),
-          );
-        }
-      }
-    }
-  }
-
   Widget _buildVoiceNoteSection() {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.monGreenMid.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.mic_rounded,
-                  color: AppTheme.monGreenMid,
-                  size: 20,
+              Icon(
+                _isListening ? Icons.mic : Icons.mic_none,
+                color: _isListening ? Colors.red : Colors.green,
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                "Voice Auto Fill Survey",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
                 ),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Voice Note',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.monTextDark,
-                  ),
-                ),
-              ),
-              if (_voiceNotePath != null && !_isRecording)
-                IconButton(
-                  onPressed: _deleteVoiceNote,
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  iconSize: 20,
-                ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Rekam suara jika malas mengetik',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          const SizedBox(height: 10),
+          const Text(
+            "Ucapkan jawaban lengkap, sistem akan isi otomatis ke field yang sesuai.",
+            style: TextStyle(fontSize: 12),
           ),
-          const SizedBox(height: 16),
-          if (_voiceNotePath != null && !_isRecording)
+          const SizedBox(height: 15),
+
+          if (_voiceNotePath != null && !_isListening) ...[
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -344,9 +221,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
                   IconButton(
                     onPressed: _playVoiceNote,
                     icon: Icon(
-                      _isPlaying
-                          ? Icons.pause_circle_filled
-                          : Icons.play_circle_filled,
+                      _isPlayingVoice ? Icons.pause_circle : Icons.play_circle,
                       color: AppTheme.monGreenMid,
                       size: 40,
                     ),
@@ -365,7 +240,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
                           ),
                         ),
                         Text(
-                          _formatDuration(_recordingDuration),
+                          _formatDuration(_voiceDuration),
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey.shade600,
@@ -374,84 +249,60 @@ class _SubmissionPageState extends State<SubmissionPage> {
                       ],
                     ),
                   ),
-                ],
-              ),
-            )
-          else if (_isRecording)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.red.shade200),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Merekam...',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.red,
-                          ),
-                        ),
-                        Text(
-                          _formatDuration(_recordingDuration),
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.red.shade400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: _stopRecording,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                    ),
-                    child: const Text('Stop'),
+                  IconButton(
+                    onPressed: _deleteVoiceNote,
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
                   ),
                 ],
-              ),
-            )
-          else
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: _startRecording,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.monGreenMid,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                icon: const Icon(Icons.mic),
-                label: const Text('Mulai Rekam'),
               ),
             ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _startVoiceRecording,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Rekam Ulang'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.orange,
+                  side: const BorderSide(color: Colors.orange),
+                ),
+              ),
+            ),
+          ] else ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isListening
+                    ? _stopVoiceRecording
+                    : _startVoiceRecording,
+                icon: Icon(
+                  _isListening ? Icons.stop : Icons.mic,
+                ),
+                label: Text(
+                  _isListening
+                      ? "Stop Rekam (${_formatDuration(_voiceDuration)})"
+                      : "Mulai Rekam",
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _isListening ? Colors.red : Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
+
+          if (_voiceResult.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              "Hasil: $_voiceResult",
+              style: const TextStyle(
+                color: Colors.green,
+                fontSize: 12,
+              ),
+            )
+          ]
         ],
       ),
     );
@@ -462,6 +313,213 @@ class _SubmissionPageState extends State<SubmissionPage> {
     String minutes = twoDigits(duration.inMinutes.remainder(60));
     String seconds = twoDigits(duration.inSeconds.remainder(60));
     return '$minutes:$seconds';
+  }
+
+  Future<void> _startVoiceAutoFill() async {
+    bool available = await _speech.initialize();
+
+    if (!available) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Speech recognition tidak tersedia"),
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() {
+      _isListening = true;
+      _voiceResult = '';
+    });
+
+    _speech.listen(
+      localeId: 'id_ID',
+      listenMode: ListenMode.confirmation,
+      onResult: (result) {
+        setState(() {
+          _voiceResult = result.recognizedWords;
+        });
+      },
+    );
+  }
+
+  Future<void> _stopVoiceAutoFill() async {
+    await _speech.stop();
+
+    setState(() {
+      _isListening = false;
+    });
+
+    _autoFillAnswers(_voiceResult);
+  }
+
+  void _autoFillAnswers(String text) {
+    if (_data == null) return;
+
+    text = text.toLowerCase();
+
+    for (var page in _data!.pages) {
+      for (var q in page.questions) {
+        final question = q.questionText.toLowerCase();
+
+        if (question.contains("nama")) {
+          final nama = _extractAfter(text, "nama");
+          if (nama.isNotEmpty) _answers[q.id] = nama;
+        } else if (question.contains("umur")) {
+          final umur = _extractNumber(text);
+          if (umur.isNotEmpty) _answers[q.id] = umur;
+        } else if (question.contains("alamat")) {
+          final alamat = _extractAfter(text, "alamat");
+          if (alamat.isNotEmpty) _answers[q.id] = alamat;
+        } else if (question.contains("pekerjaan") || question.contains("kerja")) {
+          final kerja = _extractAfter(text, "kerja");
+          if (kerja.isNotEmpty) _answers[q.id] = kerja;
+        } else if (question.contains("kota")) {
+          final kota = _extractAfter(text, "kota");
+          if (kota.isNotEmpty) _answers[q.id] = kota;
+        }
+      }
+    }
+
+    setState(() {});
+  }
+
+  String _extractAfter(String text, String key) {
+    if (!text.contains(key)) return '';
+
+    final split = text.split(key);
+
+    if (split.length < 2) return '';
+
+    return split[1].trim().split(' ').take(3).join(' ');
+  }
+
+  String _extractNumber(String text) {
+    final reg = RegExp(r'\d+');
+    final match = reg.firstMatch(text);
+
+    if (match != null) {
+      return match.group(0)!;
+    }
+
+    return '';
+  }
+
+  Future<bool> _requestMicrophonePermission() async {
+    final status = await Permission.microphone.request();
+    return status.isGranted;
+  }
+
+  Future<void> _startVoiceRecording() async {
+    final hasPermission = await _requestMicrophonePermission();
+    if (!hasPermission) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Izin mikrofon diperlukan'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      await _recorder.start(
+        const RecordConfig(encoder: AudioEncoder.aacLc),
+        path: filePath,
+      );
+
+      setState(() {
+        _voiceNotePath = filePath;
+        _voiceDuration = Duration.zero;
+        _isListening = true;
+        _voiceResult = '';
+      });
+
+      _updateRecordingDuration();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memulai rekaman: $e')),
+        );
+      }
+    }
+  }
+
+  void _updateRecordingDuration() async {
+    while (_isListening && mounted) {
+      await Future.delayed(const Duration(seconds: 1));
+      if (_isListening && mounted) {
+        setState(() {
+          _voiceDuration += const Duration(seconds: 1);
+        });
+      }
+    }
+  }
+
+  Future<void> _stopVoiceRecording() async {
+    try {
+      await _recorder.stop();
+
+      setState(() {
+        _isListening = false;
+      });
+
+      _autoFillAnswers(_voiceResult);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menghentikan rekaman: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _playVoiceNote() async {
+    if (_voiceNotePath == null) return;
+
+    try {
+      if (_isPlayingVoice) {
+        await _audioPlayer.stop();
+      } else {
+        await _audioPlayer.play(DeviceFileSource(_voiceNotePath!));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memutar rekaman: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteVoiceNote() async {
+    if (_voiceNotePath != null) {
+      try {
+        final file = File(_voiceNotePath!);
+        if (await file.exists()) {
+          await file.delete();
+        }
+        await _audioPlayer.stop();
+        setState(() {
+          _voiceNotePath = null;
+          _voiceDuration = Duration.zero;
+          _voiceResult = '';
+        });
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal menghapus rekaman: $e')),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _loadData() async {
@@ -1322,6 +1380,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
         if (success) {
           await _clearDraft();
           await StorageHelper.deleteDraftPhoto(widget.surveySlug);
+          
+          if (!mounted) return;
+          
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("Kuisioner berhasil dikirim!"),
@@ -1353,10 +1414,6 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
     if (widget.biodata != null && widget.biodata!.isNotEmpty) {
       payload['biodata'] = widget.biodata;
-    }
-
-    if (_voiceNotePath != null) {
-      payload['voice_note'] = _voiceNotePath;
     }
 
     payload['page'] = _data!.pages.map((page) {

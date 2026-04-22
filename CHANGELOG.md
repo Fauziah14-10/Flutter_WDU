@@ -5,6 +5,46 @@ All notable changes to this Flutter project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+## [1.4.0] - 2026-04-22
+### Added
+- **Biodata Toggle Setting**: Added support for `is_biodata_enabled` in survey_settings table to control whether respondent biodata form is required before starting the survey.
+- **Voice Auto-Fill Survey**: Added smart voice note feature that records user speech, converts it to text, and automatically fills survey answers based on spoken responses.
+- **Central Voice Recorder**: Implemented a single voice recorder section at the top of the questionnaire page for hands-free survey input.
+- **Merge Conflict Resolution**: Successfully merged remote changes with local standardizations, specifically integrating `CachedNetworkImage` and improved logo fallback logic.
+- **Smart Logo Fallbacks**: Implemented specialized, theme-consistent fallbacks for "TransJakarta" and "BPK" clients.
+- **Improved Image Loading**: Switched to `CachedNetworkImage` for smoother profile and client logo rendering.
+
+### Improved
+- **Dynamic Survey Flow**: The app now automatically checks biodata settings when loading survey data.
+- **Voice Input Experience**: Improved accessibility and usability by allowing users to answer surveys without typing manually.
+
+### Changed
+- **Skip Biodata Process**: If biodata is disabled, users are redirected directly to the questionnaire/camera capture page without filling the biodata form.
+- **Auto Default Biodata Values**: When biodata is skipped, the system automatically saves placeholder biodata values (- / anonymous) for submission consistency.
+- **Survey Interaction Flow**: Users can now complete surveys using either manual input or voice-assisted auto-fill.
+- **Emerald Green UI Standardization**: Replaced all hardcoded and legacy colors with the unified `AppTheme` design system across the Dashboard, Project Details, Survey List, and Monitoring modules.
+- **Map Visual Refinement**: Updated map coordinate markers in `LihatMonitorPage` to **Red** for superior contrast and readability.
+- **Global Navigation**: Modernized the dashboard's bottom navigation active state with `AppTheme.ijoGelap` for better visual hierarchy.
+- **Modernized Survey Page**: Updated `SurveyBentoCard` and `ProjectCard` with premium Emerald accents, consistent status badges, and refined button styling.
+
+### Fixed
+- **Submission Compatibility**: Ensured surveys without biodata still proceed normally and remain compatible with existing submission flow.
+- **Voice Mapping Stability**: Improved spoken answer detection and assignment to the correct survey questions.
+
+---
+
+## [1.3.9] - 2026-04-21
+### Fixed
+- **Client Logos**: Resolved 404 errors for client logos by correcting the root path to `/img/client/` in `client_model.dart`.
+- **Matrix Question**: Fixed data persistence issue where matrix answers were failing to save due to double JSON encoding. Answers are now sent as a raw JSON Map, allowing the backend to encode them correctly for database storage.
+
+### Added
+- **Initials Fallback**: Implemented a premium-look initials-based fallback (with gradients) for clients without logos in `ProjectClientCard` and `ProjectBpkPage`.
+- **Dropdown Enhancements**: Added clear dropdown icons (`Icons.keyboard_arrow_down_rounded`) and professional styling to all dropdown fields in `SubmissionPage` for better visibility and UX.
+- **Province Fallback**: Integrated a comprehensive list of all 38 Indonesian provinces as a fallback in `SubmissionPage` to prevent empty dropdowns when API data is missing.
+
+---
+
 ## [1.3.8] - 2026-04-20
 ### Added
 - **UniversalImage**: Implemented a cross-platform image loading solution that uses native HTML `<img>` tags on Web to bypass CORS decoding issues (`EncodingError`) while maintaining `CachedNetworkImage` for Mobile/Desktop.

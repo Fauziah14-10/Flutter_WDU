@@ -1,9 +1,9 @@
-import 'dart:io';
+import 'dart:io' show File;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/storage.dart';
@@ -29,13 +29,16 @@ class CameraCapturePage extends StatefulWidget {
 }
 
 class _CameraCapturePageState extends State<CameraCapturePage> {
-  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
+
+  XFile? _imageFile;
   Position? _position;
   DateTime? _timestamp;
+
   bool _isLoading = false;
   String _errorMessage = '';
 
-  final ImagePicker _picker = ImagePicker();
+  bool isCameraEnabled = false;
 
   @override
   void initState() {
@@ -44,150 +47,103 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   }
 
   Future<void> _loadDraftPhoto() async {
-    final draftPhoto = await StorageHelper.getDraftPhoto(widget.surveySlug);
-    if (draftPhoto != null && mounted) {
-      String? photoPath = draftPhoto['photo_path'] as String?;
-      
-      // Fix OS path changes (iOS sandbox issue or general robustness)
-      if (photoPath != null) {
-        final fileName = photoPath.split('/').last;
-        final docDir = await getApplicationDocumentsDirectory();
-        final actualPath = '${docDir.path}/$fileName';
-        if (File(actualPath).existsSync()) {
-          photoPath = actualPath;
-        } else if (!File(photoPath).existsSync()) {
-          photoPath = null;
-        }
-      }
+    final draft = await StorageHelper.getDraftPhoto(widget.surveySlug);
 
-      if (photoPath != null && File(photoPath).existsSync()) {
-        final lat = draftPhoto['latitude'] as double?;
-        final lng = draftPhoto['longitude'] as double?;
+    if (draft != null && mounted) {
+      final path = draft['photo_path'];
+
+      if (path != null) {
         setState(() {
-          _imageFile = File(photoPath!);
-          if (lat != null && lng != null) {
-            _position = Position(
-              latitude: lat,
-              longitude: lng,
-              timestamp: DateTime.now(),
-              accuracy: 0,
-              altitude: 0,
-              altitudeAccuracy: 0,
-              heading: 0,
-              headingAccuracy: 0,
-              speed: 0,
-              speedAccuracy: 0,
-            );
-          }
-          _timestamp = DateTime.tryParse(draftPhoto['capture_time'] as String? ?? '');
+          _imageFile = XFile(path);
+          _timestamp =
+              DateTime.tryParse(draft['capture_time'] ?? '');
         });
       }
     }
   }
 
-  Future<void> _checkPermissionsAndCapture() async {
+  Future<void> _capturePhoto() async {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
     });
 
     try {
-      // 1. Request Permissions
-      Map<Permission, PermissionStatus> statuses = await [
+      final statuses = await [
         Permission.camera,
         Permission.locationWhenInUse,
       ].request();
 
-      final cameraStatus = statuses[Permission.camera];
-      final locationStatus = statuses[Permission.locationWhenInUse];
-
-      if (cameraStatus != PermissionStatus.granted) {
+      if (statuses[Permission.camera] !=
+          PermissionStatus.granted) {
         setState(() {
-          _errorMessage = 'Izin kamera ditolak. Tidak bisa mengambil foto.';
+          _errorMessage = 'Izin kamera ditolak';
           _isLoading = false;
         });
         return;
       }
 
-      if (locationStatus != PermissionStatus.granted) {
-        setState(() {
-          _errorMessage = 'Izin lokasi ditolak. Tidak bisa mencatat koordinat.';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // 2. Cek apakah GPS aktif
-      bool isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!isLocationServiceEnabled) {
-        setState(() {
-          _errorMessage = 'GPS tidak aktif. Mohon aktifkan GPS device Anda.';
-          _isLoading = false; //
-        });
-        return;
-      }
-
-      // 3. Ambil Foto
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
-        imageQuality: 70, // Kompres sedikit agar tidak terlalu besar
+        imageQuality: 70,
       );
 
       if (photo == null) {
-        setState(() {
-          _isLoading = false; //
-          // User canceled camera
-        });
+        setState(() => _isLoading = false);
         return;
       }
 
-      // 4. Dapatkan Lokasi (Latitude, Longitude)
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.best,
-      );
+      Position? position;
 
-      // 5. Simpan file ke Local Storage (App Documents)
-      final directory = await getApplicationDocumentsDirectory();
-      final String fileName = '${DateTime.now().millisecondsSinceEpoch}_capture.jpg';
-      final String localPath = '${directory.path}/$fileName';
-      
-      final File localFile = await File(photo.path).copy(localPath);
+      try {
+        bool gps =
+            await Geolocator.isLocationServiceEnabled();
+
+        if (gps) {
+          position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          );
+        }
+      } catch (_) {}
 
       await StorageHelper.saveDraftPhoto(
         surveySlug: widget.surveySlug,
-        photoPath: localFile.path,
-        latitude: position.latitude,
-        longitude: position.longitude,
+        photoPath: photo.path,
+        latitude: position?.latitude ?? 0,
+        longitude: position?.longitude ?? 0,
         captureTime: DateTime.now().toIso8601String(),
       );
 
       setState(() {
-        _imageFile = localFile;
+        _imageFile = photo;
         _position = position;
         _timestamp = DateTime.now();
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
+        _errorMessage = '$e';
         _isLoading = false;
-        _errorMessage = 'Terjadi kesalahan: $e';
       });
     }
   }
 
   Future<void> _lanjutkan() async {
-    // Memasukkan data foto & lokasi ke biodata jika perlu
-    final updatedBiodata = Map<String, dynamic>.from(widget.biodata ?? {});
-    
+    final biodata =
+        Map<String, dynamic>.from(widget.biodata ?? {});
+
     if (_imageFile != null) {
-      updatedBiodata['photo_path'] = _imageFile!.path;
+      biodata['photo_path'] = _imageFile!.path;
     }
+
     if (_position != null) {
-      updatedBiodata['latitude'] = _position!.latitude;
-      updatedBiodata['longitude'] = _position!.longitude;
+      biodata['latitude'] = _position!.latitude;
+      biodata['longitude'] = _position!.longitude;
     }
+
     if (_timestamp != null) {
-      updatedBiodata['capture_time'] = _timestamp!.toIso8601String();
+      biodata['capture_time'] =
+          _timestamp!.toIso8601String();
     }
 
     final result = await Navigator.pushNamed(
@@ -197,7 +153,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
         'surveySlug': widget.surveySlug,
         'clientSlug': widget.clientSlug,
         'projectSlug': widget.projectSlug,
-        'biodata': updatedBiodata,
+        'biodata': biodata,
         'surveyTitle': widget.surveyTitle,
       },
     );
@@ -207,243 +163,405 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.monBgColor,
-      appBar: AppBar(
-        title: const Text(
-          'Ambil Foto',
-          style: TextStyle(color: Colors.white, fontSize: 16),
+  Widget _buildPreview() {
+    if (!isCameraEnabled) {
+      return Container(
+        height: 320,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
-        backgroundColor: AppTheme.monGreenMid,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
-          onPressed: () => Navigator.pop(context),
+        child: Center(
+          child: Icon(
+            Icons.no_photography,
+            size: 90,
+            color: Colors.grey.shade400,
+          ),
         ),
-      ),
-      body: _isLoading
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: AppTheme.monGreenMid),
-                  SizedBox(height: 16),
-                  Text('Sedang mengambil data & lokasi...', style: TextStyle(color: Colors.grey)),
-                ],
-              ),
+      );
+    }
+
+    if (_imageFile == null) {
+      return Container(
+        height: 320,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Icon(
+            Icons.camera_alt,
+            size: 90,
+            color: Colors.grey.shade400,
+          ),
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: kIsWeb
+          ? Image.network(
+              _imageFile!.path,
+              height: 320,
+              width: double.infinity,
+              fit: BoxFit.cover,
             )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (_errorMessage.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        border: Border.all(color: Colors.red.shade200),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        _errorMessage,
-                        style: TextStyle(color: Colors.red.shade700),
-                      ),
-                    ),
-
-                  // Area Tampilan Foto
-                  if (_imageFile == null)
-                    Container(
-                      height: 300,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.camera_alt, size: 64, color: Colors.grey.shade400),
-                          const SizedBox(height: 16),
-                          const Text('Belum ada foto', style: TextStyle(color: Colors.grey)),
-                        ],
-                      ),
-                    )
-                  else
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.file(
-                        _imageFile!,
-                        height: 300,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  
-                  const SizedBox(height: 24),
-
-                  // Informasi Keterangan
-                  if (_imageFile != null && _position != null && _timestamp != null)
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'KETERANGAN OBJEK',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.monTextDark,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Divider(color: Colors.grey.shade200, thickness: 1),
-                          const SizedBox(height: 8),
-
-                          _buildInfoRow(
-                            icon: Icons.person_outline,
-                            label: 'Nama Responden',
-                            value: widget.biodata?['name'] ?? '-',
-                          ),
-                          const SizedBox(height: 12),
-                          _buildInfoRow(
-                            icon: Icons.business_outlined,
-                            label: 'Instansi',
-                            value: widget.biodata?['instansi'] ?? '-',
-                          ),
-                          const SizedBox(height: 12),
-                          _buildInfoRow(
-                            icon: Icons.location_on_outlined,
-                            label: 'Koordinat Lokasi',
-                            value: '${_position!.latitude}, ${_position!.longitude}',
-                          ),
-                          const SizedBox(height: 12),
-                          _buildInfoRow(
-                            icon: Icons.access_time_outlined,
-                            label: 'Waktu Tercatat',
-                            value: DateFormat('dd MMMM yyyy, HH:mm:ss').format(_timestamp!),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  const SizedBox(height: 32),
-
-                  // Tombol Aksi
-                  if (_imageFile == null)
-                    ElevatedButton.icon(
-                      onPressed: _checkPermissionsAndCapture,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.monGreenMid,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text(
-                        'Jepret Foto Sekarang',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
-                    )
-                  else
-                    Column(
-                      children: [
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton(
-                            onPressed: _lanjutkan,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.monGreenMid,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Lanjutkan ke Form Kuisioner',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                                ),
-                                SizedBox(width: 8),
-                                Icon(Icons.arrow_forward_rounded, size: 20),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: TextButton.icon(
-                            onPressed: _checkPermissionsAndCapture,
-                            icon: const Icon(Icons.refresh, color: AppTheme.monGreenMid),
-                            label: const Text(
-                              'Ulangi Foto',
-                              style: TextStyle(
-                                fontSize: 16, 
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.monGreenMid,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
+          : Image.file(
+              File(_imageFile!.path),
+              height: 320,
+              width: double.infinity,
+              fit: BoxFit.cover,
             ),
     );
   }
 
-  Widget _buildInfoRow({required IconData icon, required String label, required String value}) {
+  Widget _buildInfoCard() {
+    if (_imageFile == null) return const SizedBox();
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "KETERANGAN OBJEK",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Divider(color: Colors.grey.shade200),
+
+          const SizedBox(height: 18),
+
+          _rowInfo(
+            Icons.person_outline,
+            "Nama Responden",
+            widget.biodata?['name'] ?? '-',
+          ),
+
+          const SizedBox(height: 16),
+
+          _rowInfo(
+            Icons.business_outlined,
+            "Instansi",
+            widget.biodata?['instansi'] ?? '-',
+          ),
+
+          const SizedBox(height: 16),
+
+          _rowInfo(
+            Icons.location_on_outlined,
+            "Koordinat Lokasi",
+            _position == null
+                ? '-'
+                : '${_position!.latitude}, ${_position!.longitude}',
+          ),
+
+          const SizedBox(height: 16),
+
+          _rowInfo(
+            Icons.access_time_outlined,
+            "Waktu Tercatat",
+            _timestamp == null
+                ? '-'
+                : DateFormat(
+                    'dd MMMM yyyy, HH:mm:ss',
+                  ).format(_timestamp!),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rowInfo(
+    IconData icon,
+    String label,
+    String value,
+  ) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: AppTheme.monGreenMid),
-        const SizedBox(width: 12),
+        Icon(
+          icon,
+          color: AppTheme.monGreenMid,
+          size: 22,
+        ),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 13,
+                ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 value,
                 style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.monTextDark,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
                 ),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _toggleButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () {
+              setState(() {
+                isCameraEnabled = true;
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  isCameraEnabled
+                      ? AppTheme.monGreenMid
+                      : Colors.grey.shade300,
+              foregroundColor:
+                  isCameraEnabled
+                      ? Colors.white
+                      : Colors.black87,
+              shape:
+                  RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.circular(16),
+              ),
+              elevation: 0,
+            ),
+            child:
+                const Text("Aktifkan Kamera"),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () {
+              setState(() {
+                isCameraEnabled = false;
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  !isCameraEnabled
+                      ? Colors.red.shade400
+                      : Colors.grey.shade300,
+              foregroundColor:
+                  !isCameraEnabled
+                      ? Colors.white
+                      : Colors.black87,
+              shape:
+                  RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.circular(16),
+              ),
+              elevation: 0,
+            ),
+            child:
+                const Text("Nonaktifkan"),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _actionButtons() {
+    if (isCameraEnabled) {
+      if (_imageFile == null) {
+        return SizedBox(
+          width: double.infinity,
+          height: 55,
+          child: ElevatedButton(
+            onPressed: _capturePhoto,
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  AppTheme.monGreenMid,
+              shape:
+                  RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.circular(18),
+              ),
+              elevation: 0,
+            ),
+            child:
+                const Text("Jepret Foto"),
+          ),
+        );
+      }
+
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 55,
+            child: ElevatedButton(
+              onPressed: _lanjutkan,
+              style:
+                  ElevatedButton.styleFrom(
+                backgroundColor:
+                    AppTheme.monGreenMid,
+                shape:
+                    RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(
+                          18),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                  "Lanjutkan ke Form Kuisioner"),
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextButton(
+            onPressed: _capturePhoto,
+            child: const Text(
+              "Ulangi Foto",
+              style: TextStyle(
+                color:
+                    AppTheme.monGreenMid,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: ElevatedButton(
+        onPressed: _lanjutkan,
+        style: ElevatedButton.styleFrom(
+          backgroundColor:
+              AppTheme.monGreenMid,
+          shape: RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(
+                    18),
+          ),
+          elevation: 0,
+        ),
+        child: const Text(
+            "Lanjutkan ke Kuisioner"),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor:
+          const Color(0xffF5F6F8),
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor:
+            AppTheme.monGreenMid,
+        title: const Text(
+          "Ambil Foto Objek",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+          ),
+        ),
+      ),
+      body: _isLoading
+          ? const Center(
+              child:
+                  CircularProgressIndicator(),
+            )
+          : SingleChildScrollView(
+              padding:
+                  const EdgeInsets.all(
+                      20),
+              child: Column(
+                children: [
+                  if (_errorMessage
+                      .isNotEmpty)
+                    Container(
+                      width:
+                          double.infinity,
+                      padding:
+                          const EdgeInsets
+                              .all(14),
+                      margin:
+                          const EdgeInsets
+                              .only(
+                              bottom:
+                                  18),
+                      decoration:
+                          BoxDecoration(
+                        color: Colors
+                            .red.shade50,
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                                    16),
+                      ),
+                      child: Text(
+                          _errorMessage),
+                    ),
+
+                  _buildPreview(),
+
+                  const SizedBox(
+                      height: 18),
+
+                  _toggleButtons(),
+
+                  _buildInfoCard(),
+
+                  const SizedBox(
+                      height: 24),
+
+                  _actionButtons(),
+                ],
+              ),
+            ),
     );
   }
 }
