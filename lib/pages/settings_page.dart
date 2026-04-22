@@ -88,28 +88,20 @@ class _SettingsPageState extends State<SettingsPage> {
                     _buildUserHeader(user, authProvider),
                     const SizedBox(height: 32),
                     
-                    _buildSectionHeader('Profile Information', 'Your account\'s profile information and email address.'),
-                    _buildProfileInfoCard(user),
-                    const SizedBox(height: 24),
-
-                    _buildSectionHeader('Update Password', 'Ensure your account is using a long, random password to stay secure.'),
+                    _buildSectionHeader('Update Password'),
                     _buildActionCard(
-                      icon: Icons.lock_outline_rounded,
                       title: 'Change Password',
-                      subtitle: 'Update your login credentials',
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordPage())),
                     ),
                     const SizedBox(height: 24),
 
-                    _buildSectionHeader('Two-Factor Authentication', 'Add additional security to your account using two-factor authentication.'),
+                    _buildSectionHeader('Two-Factor Authentication'),
                     _build2FACard(user),
                     const SizedBox(height: 24),
 
-                    _buildSectionHeader('Browser Sessions', 'Manage and log out your active sessions on other browsers and devices.'),
+                    _buildSectionHeader('Browser Sessions'),
                     _buildActionCard(
-                      icon: Icons.devices_rounded,
                       title: 'Active Sessions',
-                      subtitle: 'View where you are currently logged in',
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Feature coming soon')));
                       },
@@ -208,30 +200,16 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildSectionHeader(String title, String subtitle) {
+  Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.manrope(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: AppTheme.outline,
-              height: 1.4,
-            ),
-          ),
-        ],
+      child: Text(
+        title,
+        style: GoogleFonts.manrope(
+          fontSize: 15,
+          fontWeight: FontWeight.w800,
+          color: AppTheme.onSurface,
+        ),
       ),
     );
   }
@@ -247,9 +225,9 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoRow(Icons.person_outline_rounded, 'Name', user?['name'] ?? '-'),
-          const Divider(height: 32, indent: 40),
-          _buildInfoRow(Icons.email_outlined, 'Email', user?['email'] ?? '-'),
+          _buildInfoRow('Name', user?['name'] ?? '-'),
+          const Divider(height: 32),
+          _buildInfoRow('Email', user?['email'] ?? '-'),
           const SizedBox(height: 24),
           
           // Read-only notice
@@ -260,22 +238,14 @@ class _SettingsPageState extends State<SettingsPage> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
             ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline_rounded, size: 18, color: Colors.blue),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Kontak administrator (PIC WDU) untuk perubahan identitas.',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: Colors.blue[800],
-                      fontWeight: FontWeight.w500,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
+            child: Text(
+              'Kontak administrator (PIC WDU) untuk perubahan identitas.',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: Colors.blue[800],
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -283,21 +253,13 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Row(
+  Widget _buildInfoRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: AppTheme.primary),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: GoogleFonts.inter(fontSize: 11, color: AppTheme.outline, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 2),
-              Text(value, style: GoogleFonts.inter(fontSize: 14, color: AppTheme.onSurface, fontWeight: FontWeight.w600)),
-            ],
-          ),
-        ),
+        Text(label, style: GoogleFonts.inter(fontSize: 11, color: AppTheme.outline, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 2),
+        Text(value, style: GoogleFonts.inter(fontSize: 14, color: AppTheme.onSurface, fontWeight: FontWeight.w600)),
       ],
     );
   }
@@ -315,37 +277,13 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: (isEnabled ? Colors.green : Colors.grey).withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  isEnabled ? Icons.shield_rounded : Icons.shield_outlined,
-                  color: isEnabled ? Colors.green : Colors.grey,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                isEnabled ? '2FA is Enabled' : '2FA is Disabled',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: isEnabled ? Colors.green : AppTheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
           Text(
-            isEnabled 
-              ? 'You have enabled two-factor authentication. When you log in, you will be prompted for a secure, random token from your email.'
-              : 'You have not enabled two-factor authentication. We recommend enabling it for better security.',
-            style: GoogleFonts.inter(fontSize: 12, color: AppTheme.outline, height: 1.5),
+            isEnabled ? '2FA is Enabled' : '2FA is Disabled',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: isEnabled ? Colors.green : AppTheme.onSurface,
+            ),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -366,7 +304,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildActionCard({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+  Widget _buildActionCard({required String title, required VoidCallback onTap}) {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainerLowest,
@@ -376,21 +314,9 @@ class _SettingsPageState extends State<SettingsPage> {
       child: ListTile(
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppTheme.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: AppTheme.primary, size: 24),
-        ),
         title: Text(
           title,
           style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.onSurface),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: GoogleFonts.inter(fontSize: 12, color: AppTheme.outline),
         ),
         trailing: const Icon(Icons.chevron_right_rounded, color: AppTheme.outline),
       ),
@@ -408,14 +334,7 @@ class _SettingsPageState extends State<SettingsPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         onPressed: () => _confirmLogout(context),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.logout_rounded, size: 20),
-            const SizedBox(width: 8),
-            Text('Log Out', style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w800)),
-          ],
-        ),
+        child: Text('Log Out', style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w800)),
       ),
     );
   }
