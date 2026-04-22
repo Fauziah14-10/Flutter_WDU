@@ -14,7 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Foundation Package**: Utilized the foundation package for safe platform detection.
 
 ### Improved
-- **Error Messages**: Enhanced clarity for incorrect password and expired OTP messages by removing technical jargon.
+- **Profile Settings UI**: Revamped the settings page to match Laravel Jetstream's profile structure, including dynamic user data (name, email, photo) and 2FA status. *By Fadel
+- **Error Messages**: Enhanced clarity for incorrect password and expired OTP messages by removing technical jargon. *By Fadel
 - **Navigation Logic**: Fixed automatic redirection to Dashboard or OTP Page post-login.
 - **Login Footer**: Updated copyright year to 2026 and refined the UI.
 
