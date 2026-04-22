@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/client_model.dart';
 import '../../pages/project_bpk_page.dart';
@@ -53,13 +54,7 @@ class ClientCard extends StatelessWidget {
                   if (url != null && url.isNotEmpty) {
                     return Hero(
                       tag: 'client_${client.clientName}',
-                      child: Image.network(
-                        url,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildFallback(client.clientName);
-                        },
-                      ),
+                      child: _buildImageWithRetry(url, client.clientName),
                     );
                   }
                   return _buildFallback(client.clientName);
@@ -146,6 +141,30 @@ class ClientCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildImageWithRetry(String url, String clientName) {
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.contain,
+      placeholder: (context, url) => Container(
+        color: AppTheme.surfaceContainerLow,
+        child: const Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppTheme.primary,
+            ),
+          ),
+        ),
+      ),
+      errorWidget: (context, url, error) {
+        debugPrint('[ClientCard] ERROR loading image for $clientName: $error');
+        return _buildFallback(clientName);
+      },
     );
   }
 

@@ -1,6 +1,5 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/client_model.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -34,6 +33,49 @@ class ClientCard extends StatelessWidget {
     );
   }
 
+  String _getInitials(String name) {
+    if (name.trim().isEmpty) return '?';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, parts[0].length > 1 ? 2 : 1).toUpperCase();
+  }
+
+  Widget _buildFallback(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('transjakarta') || lower.contains('trans jakarta')) {
+      return Image.asset('assets/images/logo_trans.jpeg', fit: BoxFit.cover);
+    } else if (lower.contains('bpk') || lower.contains('badan pemeriksa keuangan')) {
+      return Image.asset('assets/images/logo_bpk.png', fit: BoxFit.cover);
+    }
+    
+    // Premium Initials Fallback
+    final initials = _getInitials(name);
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.primary.withValues(alpha: 0.1),
+            AppTheme.primary.withValues(alpha: 0.05),
+          ],
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w900,
+          color: AppTheme.primary,
+          letterSpacing: -0.5,
+        ),
+      ),
+    );
+  }
+
   Widget _buildAvatar() {
     // prioritas: imageUrl → image → null
     final imageUrl = client.imageUrl ?? client.image;
@@ -47,19 +89,23 @@ class ClientCard extends StatelessWidget {
         border: Border.all(color: AppTheme.border, width: 1.5),
       ),
       clipBehavior: Clip.hardEdge,
-      child: imageUrl != null
-          ? Image.network(
-              imageUrl,
+      child: imageUrl != null && imageUrl.isNotEmpty
+          ? CachedNetworkImage(
+              imageUrl: imageUrl,
               fit: BoxFit.cover,
-              loadingBuilder: (_, child, progress) => progress == null
-                  ? child
-                  : const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-              errorBuilder: (_, __, ___) =>
-                  const Icon(Icons.business, size: 36, color: AppTheme.border),
+              placeholder: (context, url) => const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppTheme.primary,
+                  ),
+                ),
+              ),
+              errorWidget: (context, url, error) => _buildFallback(client.clientName),
             )
-          : const Icon(Icons.business, size: 36, color: AppTheme.border),
+          : _buildFallback(client.clientName),
     );
   }
 
@@ -124,55 +170,3 @@ class ClientCard extends StatelessWidget {
   }
 }
 
-class _HttpImageCircle extends StatefulWidget {
-  final String url;
-  final Widget fallback;
-
-  const _HttpImageCircle({required this.url, required this.fallback});
-
-  @override
-  State<_HttpImageCircle> createState() => _HttpImageCircleState();
-}
-
-class _HttpImageCircleState extends State<_HttpImageCircle> {
-  late Future<Uint8List> _imageData;
-
-  @override
-  void initState() {
-    super.initState();
-    _imageData = _fetchImage();
-  }
-
-  Future<Uint8List> _fetchImage() async {
-    try {
-      final response = await http.get(Uri.parse(widget.url));
-      if (response.statusCode == 200) {
-        return response.bodyBytes;
-      }
-      throw Exception('Failed to load image: ${response.statusCode}');
-    } catch (e) {
-      print('HTTP Error for ${widget.url}: $e');
-      rethrow;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<Uint8List>(
-      future: _imageData,
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          return Image.memory(
-            snapshot.data!,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => widget.fallback,
-          );
-        } else if (snapshot.hasError) {
-          print('Image load error for ${widget.url}: ${snapshot.error}');
-          return widget.fallback;
-        }
-        return const Center(child: CircularProgressIndicator(strokeWidth: 2));
-      },
-    );
-  }
-}

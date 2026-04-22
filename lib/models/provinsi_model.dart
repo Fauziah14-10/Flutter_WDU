@@ -16,8 +16,7 @@ class ProvinceTarget {
       // API pakai 'province_id' dan 'province_name'
       id: json['province_id'] ?? json['id'] ?? 0,
       name: json['province_name'] ?? json['name'] ?? '-',
-      targetResponse:
-          int.tryParse(json['target_response'].toString()) ?? 0,
+      targetResponse: int.tryParse(json['target_response'].toString()) ?? 0,
       submissionResponse: json['submission_response'] ?? 0,
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../models/client_model.dart';
 import '../models/project_model.dart';
@@ -179,6 +181,49 @@ class _ClientCard extends StatelessWidget {
   final Client client;
   const _ClientCard({required this.client});
 
+  String _getInitials(String name) {
+    if (name.trim().isEmpty) return '?';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, parts[0].length > 1 ? 2 : 1).toUpperCase();
+  }
+
+  Widget _buildFallback(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('transjakarta') || lower.contains('trans jakarta')) {
+      return Image.asset('assets/images/logo_trans.jpeg', fit: BoxFit.cover);
+    } else if (lower.contains('bpk') || lower.contains('badan pemeriksa keuangan')) {
+      return Image.asset('assets/images/logo_bpk.png', fit: BoxFit.cover);
+    }
+    
+    // Premium Initials Fallback
+    final initials = _getInitials(name);
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.primary.withValues(alpha: 0.1),
+            AppTheme.primary.withValues(alpha: 0.05),
+          ],
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w900,
+          color: AppTheme.primary,
+          letterSpacing: -0.5,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final url = client.imageUrl ?? client.image;
@@ -208,20 +253,22 @@ class _ClientCard extends StatelessWidget {
             ),
             clipBehavior: Clip.hardEdge,
             child: url != null && url.isNotEmpty
-                ? Image.network(
-                    url,
+                ? CachedNetworkImage(
+                    imageUrl: url,
                     fit: BoxFit.cover,
-                    errorBuilder: (c, e, s) => const Icon(
-                      Icons.account_balance,
-                      size: 36,
-                      color: Color(0xFFBDBDBD),
+                    placeholder: (context, url) => const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.primary,
+                        ),
+                      ),
                     ),
+                    errorWidget: (context, url, error) => _buildFallback(client.clientName),
                   )
-                : const Icon(
-                    Icons.account_balance,
-                    size: 36,
-                    color: Color(0xFFBDBDBD),
-                  ),
+                : _buildFallback(client.clientName),
           ),
           const SizedBox(width: 20),
           Expanded(

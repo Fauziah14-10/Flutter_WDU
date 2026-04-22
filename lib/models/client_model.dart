@@ -109,21 +109,23 @@ class Client {
 
   static String? _buildImageUrl(String? url) {
     if (url == null || url.isEmpty) return null;
+
+    // Jika sudah full URL, langsung kembalikan
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
 
-    final base = Endpoints.storageUrl;
+    // Ambil base domain (tanpa /api atau /storage)
+    final root = Endpoints.baseUrl.split('/api').first;
 
-    // Jika url mengandung 'img/client/', kita pastikan tidak ada double slash saat tempel ke base
-    if (url.contains('img/client/')) {
-      // Bersihkan url dari leading slash jika ada, agar kita bisa kontrol manual
-      final cleanPath = url.startsWith('/') ? url.substring(1) : url;
-      return '$base/$cleanPath';
+    // Normalisasi url: buang leading slash
+    final path = url.startsWith('/') ? url.substring(1) : url;
+
+    // Jika mengandung 'img/client/', tempel langsung ke root
+    if (path.contains('img/client/')) {
+      return '$root/$path';
     }
 
-    // Paksa tambahkan /img/client/ jika belum ada
-    // Dan bersihkan input url dari leading slash agar tidak merusak struktur
-    final cleanUrl = url.startsWith('/') ? url.substring(1) : url;
-    return '$base/img/client/$cleanUrl';
+    // Default ke img/client/ sesuai link yang diberikan user
+    return '$root/img/client/$path';
   }
 
   @override

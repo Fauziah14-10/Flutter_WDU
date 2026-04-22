@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/storage.dart';
+import '../../models/submission_model.dart';
 import '../../service/submission_service.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -48,6 +49,64 @@ class _SubmissionPageState extends State<SubmissionPage> {
   bool _isRecording = false;
   bool _isPlaying = false;
   Duration _recordingDuration = Duration.zero;
+
+  // Static fallback provinces (38 provinces of Indonesia)
+  static const _fallbackProvinces = [
+    {'id': 1, 'name': 'Nanggroe Aceh Darussalam'},
+    {'id': 2, 'name': 'Sumatera Utara'},
+    {'id': 3, 'name': 'Sumatera Selatan'},
+    {'id': 4, 'name': 'Sumatera Barat'},
+    {'id': 5, 'name': 'Bengkulu'},
+    {'id': 6, 'name': 'Riau'},
+    {'id': 7, 'name': 'Kepulauan Riau'},
+    {'id': 8, 'name': 'Jambi'},
+    {'id': 9, 'name': 'Lampung'},
+    {'id': 10, 'name': 'Bangka Belitung'},
+    {'id': 11, 'name': 'Kalimantan Barat'},
+    {'id': 12, 'name': 'Kalimantan Timur'},
+    {'id': 13, 'name': 'Kalimantan Selatan'},
+    {'id': 14, 'name': 'Kalimantan Tengah'},
+    {'id': 15, 'name': 'Kalimantan Utara'},
+    {'id': 16, 'name': 'Banten'},
+    {'id': 17, 'name': 'DKI Jakarta'},
+    {'id': 18, 'name': 'Jawa Barat'},
+    {'id': 19, 'name': 'Jawa Tengah'},
+    {'id': 20, 'name': 'Daerah Istimewa Yogyakarta'},
+    {'id': 21, 'name': 'Jawa Timur'},
+    {'id': 22, 'name': 'Bali'},
+    {'id': 23, 'name': 'Nusa Tenggara Timur'},
+    {'id': 24, 'name': 'Nusa Tenggara Barat'},
+    {'id': 25, 'name': 'Gorontalo'},
+    {'id': 26, 'name': 'Sulawesi Barat'},
+    {'id': 27, 'name': 'Sulawesi Tengah'},
+    {'id': 28, 'name': 'Sulawesi Utara'},
+    {'id': 29, 'name': 'Sulawesi Tenggara'},
+    {'id': 30, 'name': 'Sulawesi Selatan'},
+    {'id': 31, 'name': 'Maluku Utara'},
+    {'id': 32, 'name': 'Maluku'},
+    {'id': 33, 'name': 'Papua Barat'},
+    {'id': 34, 'name': 'Papua'},
+    {'id': 35, 'name': 'Papua Tengah'},
+    {'id': 36, 'name': 'Papua Pegunungan'},
+    {'id': 37, 'name': 'Papua Selatan'},
+    {'id': 38, 'name': 'Papua Barat Daya'},
+  ];
+
+  List<Map<String, dynamic>> get _provinces {
+    // Use API data if available, otherwise use fallback
+    if (_data?.provinceTargets != null && _data!.provinceTargets.isNotEmpty) {
+      return _data!.provinceTargets
+          .map((p) => {
+                'id': p.provinceId.toString(),
+                'name': p.provinceName,
+              })
+          .toList();
+    }
+    return _fallbackProvinces.map((e) => {
+      'id': e['id'].toString(),
+      'name': e['name'].toString(),
+    }).toList();
+  }
 
   @override
   void initState() {
@@ -131,7 +190,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
     try {
       final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final filePath =
+          '${directory.path}/voice_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
       await _recorder.start(
         const RecordConfig(encoder: AudioEncoder.aacLc),
@@ -147,9 +207,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
       _updateRecordingDuration();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memulai rekaman: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal memulai rekaman: $e')));
       }
     }
   }
@@ -191,9 +251,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memutar rekaman: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal memutar rekaman: $e')));
       }
     }
   }
@@ -268,10 +328,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
           const SizedBox(height: 8),
           Text(
             'Rekam suara jika malas mengetik',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
           if (_voiceNotePath != null && !_isRecording)
@@ -287,7 +344,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
                   IconButton(
                     onPressed: _playVoiceNote,
                     icon: Icon(
-                      _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                      _isPlaying
+                          ? Icons.pause_circle_filled
+                          : Icons.play_circle_filled,
                       color: AppTheme.monGreenMid,
                       size: 40,
                     ),
@@ -364,7 +423,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                     ),
                     child: const Text('Stop'),
                   ),
@@ -378,7 +440,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.monGreenMid,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -435,7 +500,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Keluar dari Kuisioner?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Keluar dari Kuisioner?',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         content: const Text(
           'Apakah Anda ingin menyimpan jawaban Anda sebagai draft sebelum keluar?',
           style: TextStyle(fontSize: 14),
@@ -443,7 +511,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Keluar Tanpa Simpan', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Keluar Tanpa Simpan',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -625,7 +696,6 @@ class _SubmissionPageState extends State<SubmissionPage> {
     return Column(
       children: [
         _buildVoiceNoteSection(),
-        _buildPageIndicator(),
         Expanded(child: _buildQuestionPages()),
         _buildBottomBar(),
       ],
@@ -656,35 +726,28 @@ class _SubmissionPageState extends State<SubmissionPage> {
   Widget _buildQuestionPages() {
     final pages = _data!.pages;
 
-    return PageView.builder(
-      itemCount: pages.length,
-      onPageChanged: (index) {
-        setState(() => _currentPageIndex = index);
-      },
-      itemBuilder: (context, pageIndex) {
-        final page = pages[pageIndex];
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (page.pageName.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    page.pageName,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.monTextDark,
-                    ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: pages.expand((page) {
+          return [
+            if (page.pageName.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  page.pageName,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.monTextDark,
                   ),
                 ),
-              ...page.questions.map((q) => _buildQuestionItem(q)),
-            ],
-          ),
-        );
-      },
+              ),
+            ...page.questions.map((q) => _buildQuestionItem(q)),
+          ];
+        }).toList(),
+      ),
     );
   }
 
@@ -756,6 +819,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   Widget _buildAnswerInput(SurveyQuestionData q) {
+    if (_isProvinceQuestion(q)) {
+      return _buildProvinceDropdown(q);
+    }
     switch (q.typeString) {
       case 'radio':
         return _buildRadioInput(q);
@@ -774,6 +840,68 @@ class _SubmissionPageState extends State<SubmissionPage> {
       default:
         return const SizedBox();
     }
+  }
+
+  bool _isProvinceQuestion(SurveyQuestionData q) {
+    final text = q.questionText.toLowerCase();
+    return text.contains('provinsi') || text.contains('province');
+  }
+
+  Widget _buildProvinceDropdown(SurveyQuestionData q) {
+    final provinces = _provinces;
+
+    if (provinces.isEmpty) {
+      return _buildDropdownInput(q);
+    }
+
+    return DropdownButtonFormField<String>(
+      value: _answers[q.id]?.toString(),
+      items: provinces.map((p) {
+        return DropdownMenuItem<String>(
+          value: p['id'].toString(),
+          child: Text(
+            p['name'].toString(),
+            style: const TextStyle(fontSize: 12),
+          ),
+        );
+      }).toList(),
+      onChanged: (val) => setState(() => _answers[q.id] = val),
+      icon: const Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: Color(0xFF4285F4),
+        size: 24,
+      ),
+      elevation: 2,
+      dropdownColor: Colors.white,
+      decoration: InputDecoration(
+        hintText: 'Pilih provinsi',
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF4285F4), width: 2),
+        ),
+      ),
+      validator: (val) {
+        if (q.required && (val == null || val.isEmpty)) {
+          return 'Pilihan ini wajib diisi';
+        }
+        return null;
+      },
+    );
   }
 
   Widget _buildRadioInput(SurveyQuestionData q) {
@@ -946,7 +1074,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
         .map(
           (opt) => DropdownMenuItem(
             value: opt.id.toString(),
-            child: Text(opt.value),
+            child: Text(
+              opt.value,
+              style: const TextStyle(fontSize: 12),
+            ),
           ),
         )
         .toList();
@@ -954,10 +1085,27 @@ class _SubmissionPageState extends State<SubmissionPage> {
     return DropdownButtonFormField<String>(
       value: _answers[q.id]?.toString(),
       items: items,
-      onChanged: (val) => setState(() => _answers[q.id] = val),
+      onChanged: (val) {
+        setState(() {
+          _answers[q.id] = val;
+        });
+      },
+      icon: const Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: Color(0xFF4285F4),
+        size: 24,
+      ),
+      elevation: 2,
+      dropdownColor: Colors.white,
       decoration: InputDecoration(
+        hintText: 'Pilih salah satu',
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
         filled: true,
         fillColor: Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: Colors.grey.shade300),
@@ -971,6 +1119,12 @@ class _SubmissionPageState extends State<SubmissionPage> {
           borderSide: BorderSide(color: AppTheme.primary),
         ),
       ),
+      validator: (val) {
+        if (q.required && (val == null || val.isEmpty)) {
+          return 'Pilihan ini wajib diisi';
+        }
+        return null;
+      },
     );
   }
 
@@ -1087,10 +1241,6 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   Widget _buildBottomBar() {
-    final totalPages = _data!.pages.length;
-    final isFirstPage = _currentPageIndex == 0;
-    final isLastPage = _currentPageIndex == totalPages - 1;
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -1106,55 +1256,25 @@ class _SubmissionPageState extends State<SubmissionPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              if (!isFirstPage && !isLastPage)
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      setState(() => _currentPageIndex--);
-                      _saveDraft();
-                    },
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: Colors.grey),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text(
-                      'Sebelumnya',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _submitSurvey,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.monGreenMid,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              if (!isFirstPage && !isLastPage) const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (isLastPage) {
-                      _submitSurvey();
-                    } else {
-                      setState(() => _currentPageIndex++);
-                      _saveDraft();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.monGreenMid,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    isLastPage ? 'Kirim Jawaban' : 'Selanjutnya',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
+                elevation: 0,
               ),
-            ],
+              child: const Text(
+                'Kirim Jawaban',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -1284,26 +1404,17 @@ class _SubmissionPageState extends State<SubmissionPage> {
     }
   }
 
-  dynamic _buildMatrixValue(String matrixType, dynamic answer) {
-    if (answer is! Map) return [];
+  Map<String, dynamic> _buildMatrixValue(String matrixType, dynamic answer) {
+    if (answer is! Map || answer.isEmpty) return {};
 
-    final List<dynamic> result = [];
-    final mapAnswer = Map<int, dynamic>.from(answer as Map);
-
-    for (int i = 0; i < mapAnswer.length; i++) {
-      final value = mapAnswer[i];
+    final Map<String, dynamic> result = {};
+    answer.forEach((key, value) {
       if (matrixType == 'radio') {
-        // Radio: simpan column index saja
-        result.add(value ?? -1);
+        result[key.toString()] = value;
       } else {
-        // Checkbox: simpan list column index
-        if (value is List) {
-          result.add(value);
-        } else {
-          result.add([]);
-        }
+        result[key.toString()] = value is List ? value : [];
       }
-    }
+    });
 
     return result;
   }
