@@ -5,6 +5,27 @@ All notable changes to this Flutter project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+## [1.4.0] - 2026-04-22
+### Added
+- **Merge Conflict Resolution**: Successfully merged remote changes with local standardizations, specifically integrating `CachedNetworkImage` and improved logo fallback logic.
+- **Smart Logo Fallbacks**: Implemented specialized, theme-consistent fallbacks for "TransJakarta" and "BPK" clients.
+- **Improved Image Loading**: Switched to `CachedNetworkImage` for smoother profile and client logo rendering.
+
+### Fixed
+- Properly merged `main` into `fix/submission-page` and resolved structural conflicts.
+- Re-aligned `AppTheme` with the main branch color scheme.
+- Updated `LihatMonitorPage` map markers to use actual GPS coordinates (Latitude/Longitude).
+- Changed map marker color to **Red** for better contrast.
+- Fixed Dropdown button responsiveness in `SubmissionPage`.
+- Implemented horizontal scrolling for survey questions to improve UX.
+- Enhanced page navigation logic and draft persistence.
+
+### Changed
+- **Emerald Green UI Standardization**: Replaced all hardcoded and legacy colors with the unified `AppTheme` design system across the Dashboard, Project Details, Survey List, and Monitoring modules.
+- **Map Visual Refinement**: Updated map coordinate markers in `LihatMonitorPage` to **Red** for superior contrast and readability.
+- **Global Navigation**: Modernized the dashboard's bottom navigation active state with `AppTheme.ijoGelap` for better visual hierarchy.
+- **Modernized Survey Page**: Updated `SurveyBentoCard` and `ProjectCard` with premium Emerald accents, consistent status badges, and refined button styling.
+
 ## [1.3.8] - 2026-04-20
 ### Added
 - **UniversalImage**: Implemented a cross-platform image loading solution that uses native HTML `<img>` tags on Web to bypass CORS decoding issues (`EncodingError`) while maintaining `CachedNetworkImage` for Mobile/Desktop.

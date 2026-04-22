@@ -991,7 +991,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                       height: 40,
                       child: const Icon(
                         Icons.location_on,
-                        color: AppTheme.monGreenMid,
+                        color: Colors.red,
                         size: 40,
                       ),
                     ),
