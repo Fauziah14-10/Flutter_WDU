@@ -21,6 +21,7 @@ class StorageHelper {
   static const _keyRememberMe = 'remember_me';
   static const _keyLastEmail = 'last_email';
   static const _keyAppLanguage = 'app_language';
+  static const _keyFontSizeScale = 'font_size_scale';
   static const _keyLastRouteName = 'last_route_name';
   static const _keyLastRouteArgs = 'last_route_args';
 
@@ -129,6 +130,17 @@ class StorageHelper {
     return prefs.getString(_keyAppLanguage) ?? 'id';
   }
 
+  /// Simpan skala ukuran font
+  static Future<void> saveFontSizeScale(double scale) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_keyFontSizeScale, scale);
+  }
+
+  static Future<double> getFontSizeScale() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(_keyFontSizeScale) ?? 1.0;
+  }
+
   // ═══════════════════════════════════════════════════════════
   // SHARED PREFERENCES — NAVIGATION
   // ═══════════════════════════════════════════════════════════
@@ -205,7 +217,17 @@ class StorageHelper {
 
         rawAnswers.forEach((k, v) {
           final intKey = int.tryParse(k) ?? 0;
-          converted[intKey] = v;
+          if (v is Map) {
+            // Konversi key dalam map (untuk data Matrix: Row ID)
+            final convertedMatrix = <int, dynamic>{};
+            v.forEach((mk, mv) {
+              final mIntKey = int.tryParse(mk.toString()) ?? 0;
+              convertedMatrix[mIntKey] = mv;
+            });
+            converted[intKey] = convertedMatrix;
+          } else {
+            converted[intKey] = v;
+          }
         });
 
         data['answers'] = converted;

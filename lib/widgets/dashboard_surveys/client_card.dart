@@ -117,7 +117,7 @@ class ClientCard extends StatelessWidget {
                                   style: GoogleFonts.inter(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
-                                    color: AppTheme.primary,
+                                    color: AppTheme.ijoGelap,
                                     letterSpacing: 0.5,
                                   ),
                                 ),
@@ -125,7 +125,7 @@ class ClientCard extends StatelessWidget {
                                 const Icon(
                                   Icons.arrow_forward_rounded,
                                   size: 10,
-                                  color: AppTheme.primary,
+                                  color: AppTheme.ijoGelap,
                                 ),
                               ],
                             ),

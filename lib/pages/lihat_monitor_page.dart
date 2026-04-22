@@ -39,6 +39,8 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
 
+  final MapController _mapController = MapController();
+
   @override
   void initState() {
     super.initState();
@@ -247,7 +249,11 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 48),
+          const Icon(
+            Icons.error_outline,
+            color: AppTheme.monGreenMid,
+            size: 48,
+          ),
           const SizedBox(height: 16),
           Text(_errorMessage ?? "Terjadi kesalahan"),
           const SizedBox(height: 16),
@@ -291,7 +297,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                   ),
                   child: const Icon(
                     Icons.assignment_outlined,
-                    color: AppTheme.monGreenMid,
+                    color: Color(0xFF4F46E5), // Indigo blue
                     size: 18,
                   ),
                 ),
@@ -335,7 +341,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                     ),
                     Expanded(
                       flex: 1,
-                      child: _buildRightGeotaggingColumn(location),
+                      child: _buildRightGeotaggingColumn(location, biodata),
                     ),
                   ],
                 );
@@ -354,7 +360,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                       thickness: 1,
                       color: Color(0xFFF0F0F0),
                     ),
-                    _buildRightGeotaggingColumn(location),
+                    _buildRightGeotaggingColumn(location, biodata),
                   ],
                 );
               }
@@ -387,7 +393,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                 width: 54,
                 height: 54,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3F51B5),
+                  color: const Color(0xFF9333EA), // Purple
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
@@ -431,7 +437,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEBEDFF),
+                        color: const Color(0xFFEEF2FF), // Soft Indigo
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
@@ -440,7 +446,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                           const Icon(
                             Icons.public,
                             size: 14,
-                            color: Color(0xFF3F51B5),
+                            color: Color(0xFF4F46E5), // Indigo
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -448,7 +454,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF3F51B5),
+                              color: Color(0xFF4F46E5), // Indigo
                             ),
                           ),
                         ],
@@ -573,12 +579,20 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildTimelineItem("MULAI", start, Colors.green),
-          _buildTimelineItem("SELESAI", finish, Colors.blue),
+          _buildTimelineItem(
+            "MULAI",
+            start,
+            const Color(0xFF10B981),
+          ), // Emerald
+          _buildTimelineItem(
+            "SELESAI",
+            finish,
+            const Color(0xFF3B82F6),
+          ), // Azure Blue
           _buildTimelineItem(
             "DURASI",
             durasi,
-            Colors.orange,
+            const Color(0xFFF59E0B), // Amber
             icon: Icons.access_time_rounded,
           ),
         ],
@@ -643,11 +657,20 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
     _timelineDuration = calcDuration(startRaw, finishRaw);
   }
 
-  Widget _buildRightGeotaggingColumn(Map<String, dynamic>? location) {
+  Widget _buildRightGeotaggingColumn(
+    Map<String, dynamic>? location,
+    Map<String, dynamic>? biodata,
+  ) {
     final ip = location?['ip']?.toString() ?? '-';
     final wilayah = _getWilayah(location);
-    final lat = location?['latitude']?.toString() ?? '-';
-    final lng = location?['longitude']?.toString() ?? '-';
+
+    // Prioritaskan koordinat dari BIODATA (Real GPS dari perangkat)
+    // Jika tidak ada, baru fallback ke data LOCATION (seringkali berbasis IP)
+    final latRaw = biodata?['latitude'] ?? location?['latitude'];
+    final lngRaw = biodata?['longitude'] ?? location?['longitude'];
+
+    final lat = latRaw?.toString() ?? '-';
+    final lng = lngRaw?.toString() ?? '-';
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -681,9 +704,11 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
+                  color: const Color(0xFFFFFBEB), // Soft Yellow
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFC8E6C9)),
+                  border: Border.all(
+                    color: const Color(0xFFFDE68A), // Light Amber
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -691,7 +716,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                       width: 6,
                       height: 6,
                       decoration: const BoxDecoration(
-                        color: Colors.green,
+                        color: Color(0xFFF59E0B), // Amber
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -701,7 +726,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                        color: Color(0xFFB45309), // Dark Amber
                       ),
                     ),
                   ],
@@ -759,7 +784,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
           ),
 
           const SizedBox(height: 24),
-          _buildEnhancedMapPreview(location),
+          _buildEnhancedMapPreview(lat, lng),
         ],
       ),
     );
@@ -867,16 +892,18 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.08),
+                      color: AppTheme.monGreenMid.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      border: Border.all(
+                        color: AppTheme.monGreenMid.withOpacity(0.3),
+                      ),
                     ),
                     child: const Row(
                       children: [
                         Icon(
                           Icons.open_in_new_rounded,
                           size: 12,
-                          color: Colors.blue,
+                          color: AppTheme.monGreenMid,
                         ),
                         SizedBox(width: 6),
                         Text(
@@ -884,7 +911,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue,
+                            color: AppTheme.monGreenMid,
                           ),
                         ),
                       ],
@@ -899,9 +926,9 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
     );
   }
 
-  Widget _buildEnhancedMapPreview(Map<String, dynamic>? location) {
-    final lat = double.tryParse(location?['latitude']?.toString() ?? '');
-    final lng = double.tryParse(location?['longitude']?.toString() ?? '');
+  Widget _buildEnhancedMapPreview(String latStr, String lngStr) {
+    final lat = double.tryParse(latStr);
+    final lng = double.tryParse(lngStr);
 
     if (lat == null || lng == null) {
       return Container(
@@ -934,41 +961,86 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        height: 220,
+        height: 240,
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: const Color(0xFFEEEEEE)),
         ),
-        child: FlutterMap(
-          options: MapOptions(
-            initialCenter: LatLng(lat, lng),
-            initialZoom: 14,
-            interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.none,
-            ),
-          ),
+        child: Stack(
           children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.example.flutter_application_wdu',
-            ),
-            MarkerLayer(
-              markers: [
-                Marker(
-                  point: LatLng(lat, lng),
-                  width: 40,
-                  height: 40,
-                  child: const Icon(
-                    Icons.location_on,
-                    color: Colors.red,
-                    size: 40,
-                  ),
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: LatLng(lat, lng),
+                initialZoom: 16,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all,
+                ),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.flutter_application_wdu',
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: LatLng(lat, lng),
+                      width: 40,
+                      height: 40,
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.red,
+                        size: 40,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
+            // Zoom Controls
+            Positioned(
+              right: 12,
+              bottom: 12,
+              child: Column(
+                children: [
+                  _buildZoomButton(Icons.add, () {
+                    final newZoom = _mapController.camera.zoom + 1;
+                    _mapController.move(_mapController.camera.center, newZoom);
+                  }),
+                  const SizedBox(height: 8),
+                  _buildZoomButton(Icons.remove, () {
+                    final newZoom = _mapController.camera.zoom - 1;
+                    _mapController.move(_mapController.camera.center, newZoom);
+                  }),
+                ],
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildZoomButton(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(icon, size: 20, color: AppTheme.monTextDark),
       ),
     );
   }
@@ -1023,7 +1095,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
-              color: Colors.grey,
+              color: AppTheme.monGreenMid,
               letterSpacing: 1.2,
             ),
           ),
@@ -1510,28 +1582,26 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
     if (totalColumns == 4) {
       switch (index) {
         case 0:
-          return AppTheme.monGreenDark; // SS
         case 1:
-          return AppTheme.monGreenMid; // S
         case 2:
-          return Colors.orange; // TS
         case 3:
-          return Colors.red; // STS
+          return AppTheme.monGreenDark;
+        default:
+          return AppTheme.monGreenMid;
       }
     }
     // Jika ada 5 kolom, asumsikan Likert standard + N/A
     if (totalColumns == 5) {
       switch (index) {
         case 0:
-          return AppTheme.monGreenDark;
         case 1:
-          return AppTheme.monGreenMid;
         case 2:
-          return Colors.orange;
         case 3:
-          return Colors.red;
+          return AppTheme.monGreenDark;
         case 4:
           return Colors.grey;
+        default:
+          return AppTheme.monGreenMid;
       }
     }
     // Default fallback
@@ -1577,7 +1647,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                     ),
                     decoration: BoxDecoration(
                       color: isChecked
-                          ? const Color(0xFFF0F7FF)
+                          ? AppTheme.monGreenPale
                           : Colors.transparent,
                       border: Border(
                         bottom: !isLast
@@ -1591,13 +1661,11 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                           width: 20,
                           height: 20,
                           decoration: BoxDecoration(
-                            color: isChecked
-                                ? const Color(0xFF4285F4)
-                                : Colors.white,
+                            color: isChecked ? AppTheme.ijoGelap : Colors.white,
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
                               color: isChecked
-                                  ? const Color(0xFF4285F4)
+                                  ? AppTheme.ijoGelap
                                   : Colors.grey.shade400,
                               width: 2,
                             ),
@@ -1699,7 +1767,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                   ),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFFF0F7FF)
+                        ? AppTheme.monGreenPale
                         : Colors.transparent,
                     border: Border(
                       bottom: !isLast
@@ -1714,12 +1782,10 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                         height: 20,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isSelected
-                              ? const Color(0xFF4285F4)
-                              : Colors.white,
+                          color: isSelected ? AppTheme.ijoGelap : Colors.white,
                           border: Border.all(
                             color: isSelected
-                                ? const Color(0xFF4285F4)
+                                ? AppTheme.ijoGelap
                                 : Colors.grey.shade400,
                             width: 2,
                           ),

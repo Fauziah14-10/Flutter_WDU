@@ -28,8 +28,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Modernized Survey Page**: Updated `SurveyBentoCard` and `ProjectCard` with premium Emerald accents, consistent status badges, and refined button styling.
 
 ### Fixed
-- **Submission Compatibility**: Ensured surveys without biodata still proceed normally and remain compatible with existing submission flow.
-- **Voice Mapping Stability**: Improved spoken answer detection and assignment to the correct survey questions.
+- Properly merged `main` into `fix/submission-page` and resolved structural conflicts.
+- Re-aligned `AppTheme` with the main branch color scheme.
+- Updated `LihatMonitorPage` map markers to use actual GPS coordinates (Latitude/Longitude).
+- Changed map marker color to **Red** for better contrast.
+- Fixed Dropdown button responsiveness in `SubmissionPage`.
+- Implemented horizontal scrolling for survey questions to improve UX.
+- Enhanced page navigation logic and draft persistence.
+- Submission Compatibility: Ensured surveys without biodata still proceed normally and remain compatible with existing submission flow.
+- Voice Mapping Stability: Improved spoken answer detection and assignment to the correct survey questions.
 
 ---
 
@@ -45,6 +52,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+=======
+>>>>>>> 29466a375922dff18e251f6d527733c9aeeb54d6
 ## [1.3.8] - 2026-04-20
 ### Added
 - **UniversalImage**: Implemented a cross-platform image loading solution that uses native HTML `<img>` tags on Web to bypass CORS decoding issues (`EncodingError`) while maintaining `CachedNetworkImage` for Mobile/Desktop.
