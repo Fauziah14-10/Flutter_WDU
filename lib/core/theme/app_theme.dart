@@ -15,33 +15,33 @@ class AppTheme {
   
   static const Color secondary = Color(0xFF505F55);
   static const Color secondaryContainer = Color(0xFFD6E7D9);
-  
+
   static const Color tertiary = Color(0xFF00656F);
   static const Color tertiaryContainer = Color(0xFF10EAFE);
-  
+
   static const Color background = Color(0xFFF5F7F6);
   static const Color surface = Color(0xFFF5F7F6);
   static const Color onSurface = Color(0xFF2C2F2F);
   static const Color onSurfaceVariant = Color(0xFF595C5C);
-  
+
   static const Color outline = Color(0xFF747777);
   static const Color outlineVariant = Color(0xFFABAEAD);
-  
+
   static const Color surfaceContainerLowest = Color(0xFFFFFFFF);
   static const Color surfaceContainerLow = Color(0xFFEFF1F0);
   static const Color surfaceContainer = Color(0xFFE6E9E8);
   static const Color surfaceContainerHigh = Color(0xFFDFE3E2);
   static const Color surfaceContainerHighest = Color(0xFFD9DEDD);
-  
+
   static const Color error = Color(0xFFB02500);
 
   // ── LEGACY COLORS (Kept for compatibility where needed) ──
-  static const Color dashSage50    = Color(0xFFF0FAF1);
-  static const Color dashSage100   = Color(0xFFDDF2E0);
-  static const Color dashSage200   = Color(0xFFB2E0BA);
-  static const Color dashSage500   = Color(0xFF4CAF50);
-  static const Color dashTextDark  = Color(0xFF1A2E1C);
-  static const Color dashTextMid   = Color(0xFF4A6350);
+  static const Color dashSage50 = Color(0xFFF0FAF1);
+  static const Color dashSage100 = Color(0xFFDDF2E0);
+  static const Color dashSage200 = Color(0xFFB2E0BA);
+  static const Color dashSage500 = Color(0xFF4CAF50);
+  static const Color dashTextDark = Color(0xFF1A2E1C);
+  static const Color dashTextMid = Color(0xFF4A6350);
   static const Color dashTextLight = Color(0xFF8AAB8F);
 
   static const Color monGreenDark   = ijoGelap;
@@ -58,7 +58,7 @@ class AppTheme {
   static const Color darkGreenColor  = ijoGelap;
   static const Color lightGreenBg    = Color(0xFFC7EBC0);
   static const Color backgroundColor = Color(0xFFF5F7FA);
-  static const Color cardColor       = Colors.white;
+  static const Color cardColor = Colors.white;
 
   static const Color green     = ijoTerang;
   static const Color textDark  = Color(0xFF1A2340);
@@ -109,8 +109,8 @@ class AppTheme {
 
   // ── BORDER RADIUS ──
   static BorderRadius get defaultRadius => BorderRadius.circular(8);
-  static BorderRadius get cardRadius    => BorderRadius.circular(12);
-  static BorderRadius get smallRadius   => BorderRadius.circular(6);
+  static BorderRadius get cardRadius => BorderRadius.circular(12);
+  static BorderRadius get smallRadius => BorderRadius.circular(6);
 
   // ── THEME DATA ──
   static ThemeData get themeData {
@@ -169,8 +169,8 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: ijoTerang,
-        ),
       ),
     );
   }
 }
+
