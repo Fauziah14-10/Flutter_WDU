@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../core/api/api_client.dart';
 import '../core/constants/endpoints.dart';
 import '../core/utils/storage.dart';
@@ -84,6 +85,23 @@ class AuthService {
     } on ApiException {
       return null;
     }
+  }
+
+  // ── UPDATE PHOTO ──────────────────────────────────────────
+  Future<String?> updateProfilePhoto(XFile image) async {
+    final bytes = await image.readAsBytes();
+    
+    final response = await _api.postWithFile(
+      '/user/photo',
+      filePath: image.path,
+      fieldName: 'photo',
+      bytes: bytes, // Pass bytes for Web support
+    );
+    
+    if (response.success) {
+      return response.data?['profile_photo_url'] as String?;
+    }
+    return null;
   }
 
   // ── LOGOUT ────────────────────────────────────────────────

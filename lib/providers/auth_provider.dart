@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../service/auth_service.dart';
 import '../core/api/api_client.dart';
 
@@ -38,6 +39,34 @@ class AuthProvider extends ChangeNotifier {
     } finally {
       _loading = false;
       notifyListeners();
+    }
+  }
+
+  // ── UPDATE PHOTO ──────────────────────────────────────────
+  Future<bool> updateProfilePhoto(XFile image) async {
+    _loading = true;
+    notifyListeners();
+
+    try {
+      final newPhotoUrl = await _authService.updateProfilePhoto(image);
+      if (newPhotoUrl != null && _user != null) {
+        // Create a copy of the user map and update the photo URL
+        final updatedUser = Map<String, dynamic>.from(_user!);
+        updatedUser['profile_photo_url'] = newPhotoUrl;
+        _user = updatedUser;
+        
+        _loading = false;
+        notifyListeners();
+        return true;
+      }
+      _loading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      debugPrint('[AuthProvider] updateProfilePhoto error: $e');
+      _loading = false;
+      notifyListeners();
+      return false;
     }
   }
 

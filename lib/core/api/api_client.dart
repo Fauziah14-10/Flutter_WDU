@@ -476,6 +476,7 @@ class ApiClient {
     String endpoint, {
     required String filePath,
     required String fieldName,
+    List<int>? bytes, // Add bytes for Web support
     Map<String, String>? additionalFields,
     bool requireAuth = true,
   }) async {
@@ -491,7 +492,17 @@ class ApiClient {
       headers.remove('Content-Type');
       request.headers.addAll(headers);
 
-      request.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
+      if (kIsWeb && bytes != null) {
+        // Use bytes for Web
+        request.files.add(http.MultipartFile.fromBytes(
+          fieldName,
+          bytes,
+          filename: filePath.split('/').last,
+        ));
+      } else {
+        // Use path for Mobile
+        request.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
+      }
 
       if (additionalFields != null) {
         request.fields.addAll(additionalFields);

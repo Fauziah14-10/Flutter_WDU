@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ---
 ## [1.4.1] - 2026-04-23 *By Fadel
 ### Added
+- **Profile Photo Upload**: Integrated `image_picker` and implemented profile photo upload functionality with backend synchronization.
 - **2FA System (Email OTP)**: Integrated email OTP verification during login.
 - **OTP Resend Timer**: Added a 60-second countdown for resending codes.
 - **OTP Input Limit**: Restricted OTP input to exactly 6 digits.
@@ -15,7 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Foundation Package**: Utilized the foundation package for safe platform detection.
 
 ### Improved
-- **Profile Settings UI**: Fully revamped the settings page to mirror Laravel Jetstream's profile structure, including dynamic user data (name, email, photo) and real-time 2FA status.
+- **Profile Settings UI**: Fully revamped the settings page to mirror Laravel Jetstream's profile structure. Includes read-only identity fields with a notice to contact administrators.
+- **Web Compatibility**: Enhanced `ApiClient` to support multipart file uploads on Web using binary data (bytes) instead of file paths.
 - **UI Restructuring**: Removed the bottom navigation bar and moved the settings button to the Dashboard AppBar actions for a more streamlined experience.
 - **Profile Photo Logic**: Integrated sanitization and the new `UniversalImage` widget to ensure profile photos load correctly across all environments.
 - **Error Messages**: Enhanced clarity for incorrect password and expired OTP messages by removing technical jargon.

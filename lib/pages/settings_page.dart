@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/universal_image.dart';
@@ -21,6 +22,29 @@ class _SettingsPageState extends State<SettingsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthProvider>().getUser();
     });
+  }
+
+  Future<void> _pickAndUploadImage(AuthProvider provider) async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+      maxWidth: 512,
+      maxHeight: 512,
+    );
+
+    if (image != null) {
+      final success = await provider.updateProfilePhoto(image);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? 'Foto profil berhasil diperbarui' : 'Gagal memperbarui foto profil'),
+            backgroundColor: success ? AppTheme.primary : Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -61,10 +85,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildUserHeader(user),
+                    _buildUserHeader(user, authProvider),
                     const SizedBox(height: 32),
                     
-                    _buildSectionHeader('Profile Information', 'Update your account\'s profile information and email address.'),
+                    _buildSectionHeader('Profile Information', 'Your account\'s profile information and email address.'),
                     _buildProfileInfoCard(user),
                     const SizedBox(height: 24),
 
@@ -101,7 +125,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildUserHeader(Map<String, dynamic>? user) {
+  Widget _buildUserHeader(Map<String, dynamic>? user, AuthProvider authProvider) {
     String? photoUrl = user?['profile_photo_url'];
     final name = user?['name'] ?? 'User';
     final email = user?['email'] ?? '';
@@ -114,24 +138,57 @@ class _SettingsPageState extends State<SettingsPage> {
     return Center(
       child: Column(
         children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppTheme.primary.withValues(alpha: 0.1),
-              border: Border.all(color: AppTheme.primary, width: 2),
-            ),
-            child: photoUrl != null 
-              ? UniversalImage(
-                  imageUrl: photoUrl,
-                  width: 100,
-                  height: 100,
-                  borderRadius: 50,
-                  fit: BoxFit.cover,
-                  errorWidget: const Icon(Icons.person_rounded, size: 50, color: AppTheme.primary),
-                )
-              : const Icon(Icons.person_rounded, size: 50, color: AppTheme.primary),
+          Stack(
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  border: Border.all(color: AppTheme.primary, width: 2),
+                ),
+                child: photoUrl != null 
+                  ? UniversalImage(
+                      imageUrl: photoUrl,
+                      width: 100,
+                      height: 100,
+                      borderRadius: 50,
+                      fit: BoxFit.cover,
+                      errorWidget: const Icon(Icons.person_rounded, size: 50, color: AppTheme.primary),
+                    )
+                  : const Icon(Icons.person_rounded, size: 50, color: AppTheme.primary),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: authProvider.loading ? null : () => _pickAndUploadImage(authProvider),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: authProvider.loading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.camera_alt_rounded, size: 16, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Text(
@@ -188,22 +245,37 @@ class _SettingsPageState extends State<SettingsPage> {
         border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildInfoRow(Icons.person_outline_rounded, 'Name', user?['name'] ?? '-'),
           const Divider(height: 32, indent: 40),
           _buildInfoRow(Icons.email_outlined, 'Email', user?['email'] ?? '-'),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                elevation: 0,
-              ),
-              child: const Text('Save Information', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          
+          // Read-only notice
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, size: 18, color: Colors.blue),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Kontak administrator (PIC WDU) untuk perubahan identitas.',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: Colors.blue[800],
+                      fontWeight: FontWeight.w500,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
