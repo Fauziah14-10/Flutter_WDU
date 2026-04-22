@@ -8,6 +8,7 @@ import '../../core/utils/storage.dart';
 import '../../models/submission_model.dart';
 import '../../service/submission_service.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'dart:convert';
 import 'dart:io';
 
 class SubmissionPage extends StatefulWidget {
@@ -101,7 +102,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
   @override
   void initState() {
     super.initState();
-<<<<<<< HEAD
+    _pageController = PageController(initialPage: _currentPageIndex);
     _loadData().then((_) => _loadDraftIfExists());
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (mounted) {
@@ -109,11 +110,6 @@ class _SubmissionPageState extends State<SubmissionPage> {
           _isPlayingVoice = state == PlayerState.playing;
         });
       }
-=======
-    _pageController = PageController(initialPage: _currentPageIndex);
-    _loadData().then((_) {
-      _loadDraftIfExists();
->>>>>>> 29466a375922dff18e251f6d527733c9aeeb54d6
     });
   }
 
