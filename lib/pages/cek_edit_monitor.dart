@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:typed_data';
 import '../core/theme/app_theme.dart';
+import '../core/utils/storage.dart';
 import '../models/survey_response_detail_model.dart';
-import '../service/survey_service.dart'; // ← pakai SurveyService untuk load
-import '../service/edit_answer_service.dart'; // ← pakai EditAnswerService untuk save
+import '../service/survey_service.dart';
+import '../service/edit_answer_service.dart';
 
 class CekEditMonitorPage extends StatefulWidget {
   final String surveySlug;
@@ -351,6 +354,8 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
         return _buildTextField(q);
       case 'matrix':
         return _buildMatrix(q);
+      case 'image':
+        return _buildImage(q);
       case 'document':
         return _buildDocument(q);
       default:
@@ -826,7 +831,26 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
     );
   }
 
-  // ── SAVE: pakai POST change-answer/{responseId} ───────────
+  Widget _buildImage(SurveyQuestionData q) {
+    final filename = q.questionText.trim();
+    if (filename.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          "Gambar tidak tersedia",
+          style: TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+      );
+    }
+
+    final imageUrl = 'https://sis.wahanadata.co.id/img/question/$filename';
+    return _AuthImage(url: imageUrl);
+  }
+
   Future<void> _handleSave() async {
     if (surveyData == null) return;
 
@@ -876,6 +900,104 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.only(bottom: 80, left: 20, right: 20),
+      ),
+    );
+  }
+}
+
+class _AuthImage extends StatefulWidget {
+  final String url;
+  const _AuthImage({required this.url});
+
+  @override
+  State<_AuthImage> createState() => _AuthImageState();
+}
+
+class _AuthImageState extends State<_AuthImage> {
+  Uint8List? _imageBytes;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImage();
+  }
+
+  Future<void> _loadImage() async {
+    try {
+      final token = await StorageHelper.getToken();
+      final response = await http
+          .get(
+            Uri.parse(widget.url),
+            headers: {'Authorization': 'Bearer $token', 'Accept': 'image/*'},
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          setState(() {
+            _imageBytes = response.bodyBytes;
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _error = 'HTTP ${response.statusCode}';
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Container(
+        width: double.infinity,
+        height: 200,
+        color: Colors.grey.shade100,
+        child: const Center(
+          child: CircularProgressIndicator(color: AppTheme.monGreenMid),
+        ),
+      );
+    }
+
+    if (_error != null || _imageBytes == null) {
+      return Container(
+        width: double.infinity,
+        height: 200,
+        color: Colors.grey.shade100,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.broken_image, color: Colors.grey.shade400, size: 48),
+            const SizedBox(height: 8),
+            Text(
+              _error ?? "Gagal memuat gambar",
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.memory(
+        _imageBytes!,
+        width: double.infinity,
+        height: 200,
+        fit: BoxFit.contain,
       ),
     );
   }

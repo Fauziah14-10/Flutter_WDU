@@ -76,9 +76,7 @@ class SubmissionService {
       );
 
       if (voiceNotePath != null) {
-        final additionalFields = {
-          'data': jsonEncode(answers),
-        };
+        final additionalFields = {'data': jsonEncode(answers)};
 
         final response = await _api.postWithFile(
           Endpoints.submitAnswer(clientSlug, projectSlug, surveySlug),
@@ -214,13 +212,20 @@ class SurveyInfo {
 
   factory SurveyInfo.fromJson(Map<String, dynamic> json) {
     bool biodataEnabled = true;
-    if (json.containsKey('survey_settings') && json['survey_settings'] != null) {
+    if (json.containsKey('survey_settings') &&
+        json['survey_settings'] != null) {
       final settings = json['survey_settings'] as Map<String, dynamic>;
       if (settings.containsKey('is_biodata_enabled')) {
-         biodataEnabled = settings['is_biodata_enabled'] == 1 || settings['is_biodata_enabled'] == true || settings['is_biodata_enabled'] == '1';
+        biodataEnabled =
+            settings['is_biodata_enabled'] == 1 ||
+            settings['is_biodata_enabled'] == true ||
+            settings['is_biodata_enabled'] == '1';
       }
     } else if (json.containsKey('is_biodata_enabled')) {
-      biodataEnabled = json['is_biodata_enabled'] == 1 || json['is_biodata_enabled'] == true || json['is_biodata_enabled'] == '1';
+      biodataEnabled =
+          json['is_biodata_enabled'] == 1 ||
+          json['is_biodata_enabled'] == true ||
+          json['is_biodata_enabled'] == '1';
     }
 
     return SurveyInfo(
@@ -408,7 +413,7 @@ class SurveyQuestionData {
       case 3:
         return 'checkbox';
       case 4:
-        return 'number';
+        return 'image';
       case 5:
         return 'info';
       case 6:
@@ -419,6 +424,8 @@ class SurveyQuestionData {
         return 'paragraph';
       case 9:
         return 'matrix';
+      case 10:
+        return 'document';
       default:
         return 'unknown';
     }

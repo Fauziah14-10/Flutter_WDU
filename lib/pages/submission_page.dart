@@ -1,15 +1,20 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/storage.dart';
-import '../../models/submission_model.dart';
 import '../../service/submission_service.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 
 class SubmissionPage extends StatefulWidget {
   final String surveySlug;
@@ -18,7 +23,7 @@ class SubmissionPage extends StatefulWidget {
   final Map<String, dynamic>? biodata;
   final String surveyTitle;
 
-  const SubmissionPage({    
+  const SubmissionPage({
     super.key,
     required this.surveySlug,
     required this.clientSlug,
@@ -58,10 +63,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
     // Use API data if available
     if (_data?.provinceTargets != null && _data!.provinceTargets.isNotEmpty) {
       return _data!.provinceTargets
-          .map((p) => {
-                'id': p.provinceId.toString(),
-                'name': p.provinceName,
-              })
+          .map((p) => {'id': p.provinceId.toString(), 'name': p.provinceName})
           .toList();
     }
     return [];
@@ -185,10 +187,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
               const SizedBox(width: 10),
               const Text(
                 "Voice Auto Fill Survey",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
               ),
             ],
           ),
@@ -267,9 +266,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
                 onPressed: _isListening
                     ? _stopVoiceRecording
                     : _startVoiceRecording,
-                icon: Icon(
-                  _isListening ? Icons.stop : Icons.mic,
-                ),
+                icon: Icon(_isListening ? Icons.stop : Icons.mic),
                 label: Text(
                   _isListening
                       ? "Stop Rekam (${_formatDuration(_voiceDuration)})"
@@ -288,12 +285,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
             const SizedBox(height: 12),
             Text(
               "Hasil: $_voiceResult",
-              style: const TextStyle(
-                color: Colors.green,
-                fontSize: 12,
-              ),
-            )
-          ]
+              style: const TextStyle(color: Colors.green, fontSize: 12),
+            ),
+          ],
         ],
       ),
     );
@@ -312,9 +306,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
     if (!available) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Speech recognition tidak tersedia"),
-          ),
+          const SnackBar(content: Text("Speech recognition tidak tersedia")),
         );
       }
       return;
@@ -364,7 +356,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
         } else if (question.contains("alamat")) {
           final alamat = _extractAfter(text, "alamat");
           if (alamat.isNotEmpty) _answers[q.id] = alamat;
-        } else if (question.contains("pekerjaan") || question.contains("kerja")) {
+        } else if (question.contains("pekerjaan") ||
+            question.contains("kerja")) {
           final kerja = _extractAfter(text, "kerja");
           if (kerja.isNotEmpty) _answers[q.id] = kerja;
         } else if (question.contains("kota")) {
@@ -419,7 +412,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
     try {
       final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final filePath =
+          '${directory.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
       await _recorder.start(
         const RecordConfig(encoder: AudioEncoder.aacLc),
@@ -436,9 +430,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
       _updateRecordingDuration();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memulai rekaman: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal memulai rekaman: $e')));
       }
     }
   }
@@ -483,9 +477,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memutar rekaman: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal memutar rekaman: $e')));
       }
     }
   }
@@ -727,7 +721,11 @@ class _SubmissionPageState extends State<SubmissionPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, color: AppTheme.monGreenMid, size: 48),
+          const Icon(
+            Icons.error_outline,
+            color: AppTheme.monGreenMid,
+            size: 48,
+          ),
           const SizedBox(height: 16),
           Text(_errorMessage ?? "Terjadi kesalahan"),
           const SizedBox(height: 16),
@@ -898,6 +896,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
         return _buildMatrixInput(q);
       case 'dropdown':
         return _buildDropdownInput(q);
+      case 'image':
+        return _buildImageDisplay(q);
       default:
         return const SizedBox();
     }
@@ -905,7 +905,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
   bool _isProvinceQuestion(SurveyQuestionData q) {
     final text = q.questionText.toLowerCase();
-    return text.contains('provinsi') || text.contains('province');
+    return text.contains('provinsi') ||
+        text.contains('province') ||
+        text.contains('lokasi') ||
+        text.contains('location');
   }
 
   Widget _buildProvinceDropdown(SurveyQuestionData q) {
@@ -986,9 +989,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
             borderRadius: BorderRadius.circular(10),
             color: isSelected ? AppTheme.monGreenPale : Colors.transparent,
             border: Border.all(
-              color: isSelected
-                  ? AppTheme.primary
-                  : Colors.grey.shade300,
+              color: isSelected ? AppTheme.primary : Colors.grey.shade300,
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -1029,9 +1030,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
             borderRadius: BorderRadius.circular(10),
             color: isSelected ? AppTheme.monGreenPale : Colors.transparent,
             border: Border.all(
-              color: isSelected
-                  ? AppTheme.primary
-                  : Colors.grey.shade300,
+              color: isSelected ? AppTheme.primary : Colors.grey.shade300,
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -1146,10 +1145,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
         .map(
           (opt) => DropdownMenuItem(
             value: opt.id.toString(),
-            child: Text(
-              opt.value,
-              style: const TextStyle(fontSize: 12),
-            ),
+            child: Text(opt.value, style: const TextStyle(fontSize: 12)),
           ),
         )
         .toList();
@@ -1280,8 +1276,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
                       ),
                     );
                   } else {
-                    final rowCols = currentMap[rowIndex] is List
-                        ? List<int>.from(currentMap[rowIndex] as List)
+                    final rawList = currentMap[rowIndex];
+                    final rowCols = (rawList is List)
+                        ? rawList.whereType<int>().toList()
                         : <int>[];
 
                     return Center(
@@ -1310,6 +1307,49 @@ class _SubmissionPageState extends State<SubmissionPage> {
         ],
       ),
     );
+  }
+
+  Widget _buildImageDisplay(SurveyQuestionData q) {
+    final rawText = q.questionText;
+    debugPrint('DEBUG image question: id=${q.id}, questionText="$rawText"');
+    debugPrint('DEBUG image question: plainText="${q.plainText}"');
+
+    String? filename;
+    final imgRegex = RegExp(
+      r'<img[^>]+src=["'
+      "'"
+      r']([^"'
+      "'"
+      r']+)["'
+      "'"
+      r']',
+    );
+    final imgMatch = imgRegex.firstMatch(rawText);
+    if (imgMatch != null) {
+      final src = imgMatch.group(1) ?? '';
+      filename = src.split('/').last;
+    } else {
+      filename = q.plainText.trim();
+    }
+
+    if (filename.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          "Gambar tidak tersedia",
+          style: TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+      );
+    }
+
+    final imageUrl = 'https://sis.wahanadata.co.id/img/question/$filename';
+    debugPrint('DEBUG image URL: $imageUrl');
+
+    return _AuthImage(url: imageUrl);
   }
 
   Widget _buildBottomBar() {
@@ -1397,7 +1437,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
                     SizedBox(width: 6),
                     Text(
                       'Simpan Draft',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -1442,9 +1485,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
         if (success) {
           await _clearDraft();
           await StorageHelper.deleteDraftPhoto(widget.surveySlug);
-          
+
           if (!mounted) return;
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("Kuisioner berhasil dikirim!"),
@@ -1478,10 +1521,13 @@ class _SubmissionPageState extends State<SubmissionPage> {
       payload['biodata'] = widget.biodata;
     }
 
-    payload['page'] = _data!.pages.map((page) {
+    payload['page'] = _visiblePages.map((page) {
+      final visibleQuestions = page.questions
+          .where((q) => _isQuestionVisible(q))
+          .toList();
       return {
-        'question': page.questions.map((q) => {'id': q.id}).toList(),
-        'answer': page.questions
+        'question': visibleQuestions.map((q) => {'id': q.id}).toList(),
+        'answer': visibleQuestions
             .map((q) => _buildAnswerValue(q, _answers[q.id]))
             .toList(),
       };
@@ -1493,17 +1539,27 @@ class _SubmissionPageState extends State<SubmissionPage> {
   Map<String, dynamic> _buildAnswerValue(SurveyQuestionData q, dynamic answer) {
     if (answer == null) return {'texts': ''};
 
+    debugPrint(
+      'BUILD ANSWER: QID=${q.id}, type=${q.typeString}(${q.questionTypeId}), answer=$answer',
+    );
+
     switch (q.questionTypeId) {
       case 1: // Text
       case 8: // Paragraph
         return {'texts': answer.toString()};
       case 2: // Radio
         // Backend menyimpan sebagai integer ID choice
-        final radioVal = int.tryParse(answer.toString()) ?? answer;
-        return {'radios': radioVal};
+        final radioVal = int.tryParse(answer.toString());
+        if (radioVal != null) {
+          return {'radios': radioVal};
+        } else {
+          return {'texts': answer.toString()};
+        }
       case 7: // Dropdown
         // Backend mencari QuestionChoice berdasarkan ID dan simpan value-nya
-        final dropdownVal = int.tryParse(answer.toString()) ?? answer;
+        // Tapi untuk Provinsi, valuenya adalah string label, bukan ID choice
+        final dropdownVal =
+            int.tryParse(answer.toString()) ?? answer.toString();
         return {'dropdowns': dropdownVal};
       case 3: // Checkbox
         if (answer is List) {
@@ -1516,8 +1572,14 @@ class _SubmissionPageState extends State<SubmissionPage> {
           };
         }
         return {'checkboxes': []};
-      case 9: // Matrix
-        return {'matrix': _buildMatrixValue(q, answer)};
+      case 9:
+        final matrixVal = _buildMatrixValue(q, answer);
+        if (matrixVal == null) return {'matrix': null};
+        return {'matrix': matrixVal};
+      case 11: // Location Dropdown
+        return {
+          'locationDropdown': {'province': answer.toString()},
+        };
       default:
         return {'texts': answer.toString()};
     }
@@ -1527,15 +1589,168 @@ class _SubmissionPageState extends State<SubmissionPage> {
     if (answer is! Map || answer.isEmpty) return null;
 
     final Map<String, dynamic> result = {};
-    answer.forEach((key, value) {
+
+    answer.forEach((rowKey, value) {
+      final rowIndex = rowKey is int ? rowKey : int.tryParse(rowKey.toString());
+      if (rowIndex == null) return;
+
+      final rowLabel = (rowIndex < q.matrixRows.length)
+          ? q.matrixRows[rowIndex].label
+          : rowIndex.toString();
+
       if (q.matrixType == 'radio') {
-        result[key.toString()] = value;
+        final colIndex = value is int ? value : int.tryParse(value.toString());
+        if (colIndex != null) {
+          result[rowLabel] = colIndex;
+        }
       } else {
-        result[key.toString()] = value is List ? value : [];
+        if (value is List) {
+          result[rowLabel] = value.map((colIdx) {
+            final ci = colIdx is int ? colIdx : int.tryParse(colIdx.toString());
+            return ci;
+          }).toList();
+        } else {
+          result[rowLabel] = [];
+        }
       }
     });
 
-    // Mengembalikan string JSON agar bisa disimpan sebagai TEXT/JSON di database
-    return jsonEncode(result);
+    return result;
+  }
+}
+
+class _AuthImage extends StatefulWidget {
+  final String url;
+  const _AuthImage({required this.url});
+
+  @override
+  State<_AuthImage> createState() => _AuthImageState();
+}
+
+class _AuthImageState extends State<_AuthImage> {
+  Uint8List? _imageBytes;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImage();
+  }
+
+  Future<void> _loadImage() async {
+    try {
+      final token = await StorageHelper.getToken();
+      debugPrint('DEBUG _AuthImage: fetching ${widget.url}');
+
+      if (kIsWeb) {
+        // ── Web: gunakan XHR (html.HttpRequest) agar bisa kirim Bearer token ──
+        // http.get() dari Dart di web diblokir CORS, tapi XHR juga pakai CORS.
+        // Bedanya: kita bisa set responseType='arraybuffer' dan dapat bytes-nya.
+        final completer = Completer<Uint8List?>();
+
+        final xhr = html.HttpRequest()
+          ..open('GET', widget.url)
+          ..setRequestHeader('Authorization', 'Bearer $token')
+          ..setRequestHeader('Accept', 'image/*')
+          ..responseType = 'arraybuffer';
+
+        xhr.onLoad.listen((_) {
+          if (xhr.status == 200) {
+            final buffer = xhr.response as ByteBuffer;
+            completer.complete(buffer.asUint8List());
+          } else {
+            debugPrint('DEBUG _AuthImage: XHR status = ${xhr.status}');
+            completer.complete(null);
+          }
+        });
+        xhr.onError.listen((_) {
+          debugPrint('DEBUG _AuthImage: XHR error (CORS?)');
+          completer.complete(null);
+        });
+        xhr.send();
+
+        final bytes = await completer.future;
+        if (mounted) {
+          setState(() {
+            _imageBytes = bytes;
+            _error = bytes == null ? 'Gagal memuat (CORS/auth error)' : null;
+            _isLoading = false;
+          });
+        }
+      } else {
+        // ── Mobile: http.get() dengan Bearer token ──
+        final response = await http
+            .get(
+              Uri.parse(widget.url),
+              headers: {'Authorization': 'Bearer $token', 'Accept': 'image/*'},
+            )
+            .timeout(const Duration(seconds: 15));
+
+        debugPrint('DEBUG _AuthImage: statusCode = ${response.statusCode}');
+
+        if (mounted) {
+          setState(() {
+            if (response.statusCode == 200) {
+              _imageBytes = response.bodyBytes;
+            } else {
+              _error = 'HTTP ${response.statusCode}';
+            }
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('DEBUG _AuthImage: error = $e');
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Container(
+        width: double.infinity,
+        height: 200,
+        color: Colors.grey.shade100,
+        child: const Center(
+          child: CircularProgressIndicator(color: AppTheme.monGreenMid),
+        ),
+      );
+    }
+
+    if (_error != null || _imageBytes == null) {
+      return Container(
+        width: double.infinity,
+        height: 200,
+        color: Colors.grey.shade100,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.broken_image, color: Colors.grey.shade400, size: 48),
+            const SizedBox(height: 8),
+            Text(
+              _error ?? 'Gagal memuat gambar',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.memory(
+        _imageBytes!,
+        width: double.infinity,
+        height: 200,
+        fit: BoxFit.contain,
+      ),
+    );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -40,6 +41,12 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
   late Animation<Offset> _slideAnim;
 
   final MapController _mapController = MapController();
+  Timer? _pollingTimer;
+  static const _pollingInterval = Duration(seconds: 5);
+  double? _currentLat;
+  double? _currentLng;
+  String _coordStatus = 'Aktif';
+  int _updateCount = 0;
 
   @override
   void initState() {
@@ -80,6 +87,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
           _detail = detail;
           _isLoading = false;
         });
+        _startPolling();
       } else {
         setState(() {
           _errorMessage = "Data tidak ditemukan.";
@@ -94,10 +102,52 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
     }
   }
 
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(
+      _pollingInterval,
+      (_) => _pollForCoordinates(),
+    );
+  }
+
+  Future<void> _pollForCoordinates() async {
+    try {
+      final detail = await SurveyService().getFullSurveyDetail(
+        clientSlug: widget.clientSlug,
+        projectSlug: widget.projectSlug,
+        surveySlug: widget.surveySlug,
+        responseId: widget.responseId,
+      );
+
+      if (detail != null) {
+        final latRaw =
+            detail.biodata?['latitude'] ?? detail.location?['latitude'];
+        final lngRaw =
+            detail.biodata?['longitude'] ?? detail.location?['longitude'];
+        final lat = latRaw != null ? double.tryParse(latRaw.toString()) : null;
+        final lng = lngRaw != null ? double.tryParse(lngRaw.toString()) : null;
+
+        bool changed = false;
+        if (lat != null && lng != null) {
+          if (_currentLat != lat || _currentLng != lng) {
+            _currentLat = lat;
+            _currentLng = lng;
+            _updateCount++;
+            _coordStatus = 'Update #$_updateCount';
+            changed = true;
+          }
+        }
+
+        if (changed && mounted) {
+          setState(() {});
+          if (lat != null && lng != null) {
+            _mapController.move(LatLng(lat, lng), _mapController.camera.zoom);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Polling error: $e');
+    }
   }
 
   @override
@@ -664,13 +714,19 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
     final ip = location?['ip']?.toString() ?? '-';
     final wilayah = _getWilayah(location);
 
-    // Prioritaskan koordinat dari BIODATA (Real GPS dari perangkat)
-    // Jika tidak ada, baru fallback ke data LOCATION (seringkali berbasis IP)
-    final latRaw = biodata?['latitude'] ?? location?['latitude'];
-    final lngRaw = biodata?['longitude'] ?? location?['longitude'];
+    final latRaw =
+        _currentLat?.toStringAsFixed(6) ??
+        biodata?['latitude']?.toString() ??
+        location?['latitude']?.toString() ??
+        '-';
+    final lngRaw =
+        _currentLng?.toStringAsFixed(6) ??
+        biodata?['longitude']?.toString() ??
+        location?['longitude']?.toString() ??
+        '-';
 
-    final lat = latRaw?.toString() ?? '-';
-    final lng = lngRaw?.toString() ?? '-';
+    final lat = latRaw != 'null' ? latRaw : '-';
+    final lng = lngRaw != 'null' ? lngRaw : '-';
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -698,40 +754,7 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFBEB), // Soft Yellow
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFFFDE68A), // Light Amber
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF59E0B), // Amber
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      "GPS Aktif",
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFB45309), // Dark Amber
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _buildLiveStatusBadge(),
             ],
           ),
           const SizedBox(height: 24),
@@ -1490,12 +1513,19 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
             final rowIndex = rowEntry.key;
             final rowLabel = rowEntry.value;
             int selectedValue = -1;
+            List<dynamic> selectedCols = [];
             if (hasAnswer) {
-              final v = parsed[rowIndex.toString()] ?? parsed['row-$rowIndex'];
-              if (v is int) {
-                selectedValue = v;
-              } else if (v is List) {
-                // checkbox type - handled below
+              // New format: parsed contains {rowLabel: colIndex/colIndices}
+              final v = parsed[rowLabel];
+              // Backward compat: try numeric key format too
+              final vFallback =
+                  parsed[rowIndex.toString()] ?? parsed['row-$rowIndex'];
+              final effectiveV = v ?? vFallback;
+
+              if (effectiveV is int) {
+                selectedValue = effectiveV;
+              } else if (effectiveV is List) {
+                selectedCols = effectiveV.cast<dynamic>();
               }
             }
 
@@ -1526,10 +1556,6 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
                       if (q.matrixType == 'radio') {
                         isSelected = selectedValue == colIndex;
                       } else {
-                        final dynamic v = parsed[rowIndex.toString()];
-                        final List<dynamic> selectedCols = v is List
-                            ? v.cast<dynamic>()
-                            : <dynamic>[];
                         isSelected = selectedCols.contains(colIndex);
                       }
                     }
@@ -1853,5 +1879,45 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
       return columns[value].label;
     }
     return 'N/A';
+  }
+
+  Widget _buildLiveStatusBadge() {
+    final hasUpdate = _updateCount > 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: hasUpdate ? const Color(0xFFDCFCE7) : const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: hasUpdate ? const Color(0xFF86EFAC) : const Color(0xFFFDE68A),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: hasUpdate
+                  ? const Color(0xFF22C55E)
+                  : const Color(0xFFF59E0B),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            hasUpdate ? 'LIVE' : 'GPS Aktif',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: hasUpdate
+                  ? const Color(0xFF15803D)
+                  : const Color(0xFFB45309),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
