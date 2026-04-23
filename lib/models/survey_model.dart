@@ -106,6 +106,12 @@ class SurveyModel {
       : '-';
 
   // helper: status open
-  bool get isOpen =>
-      status == 'DIBUKA' || status == 'OPEN' || status == '1';
+  bool get isOpen {
+    final s = status.toUpperCase();
+    return s == 'DIBUKA' || 
+           s == 'OPEN' || 
+           s == 'OPENED' || 
+           s == '1' || 
+           s == 'TRUE';
+  }
 }

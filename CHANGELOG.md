@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Activity Logging**: Implemented background logging to Laravel for login, logout, 2FA changes, and active session detection with [SIS-APP] prefix and user email.
 
 ### Fixed
+- **Survey Status Validation**: Fixed an issue where "DIBUKA" (open) surveys were incorrectly displayed as "DITUTUP" (closed) due to rigid status parsing. Added support for boolean and multiple string formats from the API.
 - **UI Improvements**: Fixed `SurveyBentoCard` to prevent title/description truncation and removed excessive white space in survey grids.
 - **Client Image Fixes**: Resolved image loading issues by implementing `UniversalImage` for CORS bypass, automatic URL encoding for special characters, and improved logo scaling/padding (zoom-out effect) across project and survey pages.
 

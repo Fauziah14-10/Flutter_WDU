@@ -215,8 +215,15 @@ class MonitoringProvider extends ChangeNotifier {
         _resolvedName = surveyData['title'] ?? surveyName;
         targetRespon = surveyData['target_response'] ?? 0;
 
-        final status = surveyData['status'];
-        isOpen = status == 1 || status == '1' || status == 'DIBUKA';
+        final statusRaw = surveyData['status'];
+        final statusStr = (statusRaw ?? '').toString().toUpperCase();
+        isOpen = statusRaw == 1 || 
+                 statusRaw == '1' || 
+                 statusRaw == true || 
+                 statusStr == 'DIBUKA' || 
+                 statusStr == 'OPEN' || 
+                 statusStr == 'OPENED' || 
+                 statusStr == 'TRUE';
 
         // province_targets: List langsung atau String JSON
         final rawTargets = surveyData['province_targets'];
