@@ -216,23 +216,38 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
 
     return SliverPadding(
       padding: const EdgeInsets.all(20),
-      sliver: SliverGrid(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: isDesktop ? 2 : 1,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          mainAxisExtent: 180,
-        ),
-        delegate: SliverChildBuilderDelegate((context, index) {
-          final survey = filtered[index];
-          return SurveyBentoCard(
-            survey: survey,
-            clientSlug: widget.clientSlug,
-            projectSlug: widget.projectSlug,
-            hasAnswered: provider.hasUserAnswered(survey.slug),
-          );
-        }, childCount: filtered.length),
-      ),
+      sliver: isDesktop
+          ? SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                mainAxisExtent: 220,
+              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final survey = filtered[index];
+                return SurveyBentoCard(
+                  survey: survey,
+                  clientSlug: widget.clientSlug,
+                  projectSlug: widget.projectSlug,
+                  hasAnswered: provider.hasUserAnswered(survey.slug),
+                );
+              }, childCount: filtered.length),
+            )
+          : SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final survey = filtered[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: SurveyBentoCard(
+                    survey: survey,
+                    clientSlug: widget.clientSlug,
+                    projectSlug: widget.projectSlug,
+                    hasAnswered: provider.hasUserAnswered(survey.slug),
+                  ),
+                );
+              }, childCount: filtered.length),
+            ),
     );
   }
 
