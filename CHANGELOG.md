@@ -5,6 +5,11 @@ All notable changes to this Flutter project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+## [1.4.2] - 2026-04-23 *By Fadel
+### Added
+- **Activity Logging**: Implemented background logging to Laravel for login, logout, 2FA changes, and active session detection with [SIS-APP] prefix and user email.
+
+---
 ## [1.4.1] - 2026-04-23 *By Fadel
 ### Added
 - **Integrated 2FA Settings**: Implemented a comprehensive 2FA management page (`TwoFactorSettingsPage`) that handles password confirmation and OTP verification in a single, seamless flow.
