@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 - **Survey Status Validation**: Fixed an issue where "DIBUKA" (open) surveys were incorrectly displayed as "DITUTUP" (closed) due to rigid status parsing. Added support for boolean and multiple string formats from the API.
 - **UI Improvements**: Fixed `SurveyBentoCard` to prevent title/description truncation and removed excessive white space in survey grids.
+- **Monitoring UI Refactor**: Redesigned monitoring header with status breakdown (Pending, Revision, etc.), implemented a compact list view for responses, and synchronized response timing with Laravel's `updated_at`.
 - **Client Image Fixes**: Resolved image loading issues by implementing `UniversalImage` for CORS bypass, automatic URL encoding for special characters, and improved logo scaling/padding (zoom-out effect) across project and survey pages.
 
 ---
