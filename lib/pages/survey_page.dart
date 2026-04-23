@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../providers/survey_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../widgets/project_list/survey_bento_card.dart';
+import '../widgets/universal_image.dart';
 
 class SurveyBpkPage extends StatefulWidget {
   final String clientSlug;
@@ -360,8 +361,8 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
 
   Widget _buildClientLogo() {
     return Container(
-      width: 120,
-      height: 120,
+      width: 100,
+      height: 100,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.white,
@@ -374,13 +375,13 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
           ),
         ],
       ),
+      padding: const EdgeInsets.all(24),
       child: widget.clientLogoUrl != null && widget.clientLogoUrl!.isNotEmpty
-          ? ClipOval(
-              child: Image.network(
-                widget.clientLogoUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, url, error) => _buildFallbackLogo(),
-              ),
+          ? UniversalImage(
+              imageUrl: widget.clientLogoUrl!,
+              fit: BoxFit.contain,
+              borderRadius: 0,
+              errorWidget: _buildFallbackLogo(),
             )
           : _buildFallbackLogo(),
     );
@@ -390,14 +391,10 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
     String nameLower = widget.clientName.toLowerCase();
     if (nameLower.contains('transjakarta') ||
         nameLower.contains('trans jakarta')) {
-      return ClipOval(
-        child: Image.asset('assets/images/logo_trans.jpeg', fit: BoxFit.cover),
-      );
+      return Image.asset('assets/images/logo_trans.jpeg', fit: BoxFit.contain);
     } else if (nameLower.contains('bpk') ||
         nameLower.contains('badan pemeriksa keuangan')) {
-      return ClipOval(
-        child: Image.asset('assets/images/logo_bpk.png', fit: BoxFit.cover),
-      );
+      return Image.asset('assets/images/logo_bpk.png', fit: BoxFit.contain);
     } else {
       return _defaultLogoIcon(widget.clientName);
     }

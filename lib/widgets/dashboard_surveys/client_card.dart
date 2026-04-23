@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/client_model.dart';
 import '../../pages/project_bpk_page.dart';
+import '../universal_image.dart';
 
 class ClientCard extends StatelessWidget {
   final Client client;
@@ -54,7 +55,11 @@ class ClientCard extends StatelessWidget {
                   if (url != null && url.isNotEmpty) {
                     return Hero(
                       tag: 'client_${client.clientName}',
-                      child: _buildImageWithRetry(url, client.clientName),
+                      child: UniversalImage(
+                        imageUrl: url,
+                        fit: BoxFit.contain,
+                        errorWidget: _buildFallback(client.clientName),
+                      ),
                     );
                   }
                   return _buildFallback(client.clientName);

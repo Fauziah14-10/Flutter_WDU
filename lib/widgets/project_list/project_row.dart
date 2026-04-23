@@ -139,6 +139,7 @@ class ProjectRow extends StatelessWidget {
           clientName:   client.clientName,
           projectSlug:  project.slug!,
           projectTitle: project.projectName,
+          clientLogoUrl: client.image,
         ),
       ),
     );

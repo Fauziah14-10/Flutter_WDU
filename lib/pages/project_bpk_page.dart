@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/client_model.dart';
 import '../models/project_model.dart';
 import 'list_survey_page.dart';
+import '../widgets/universal_image.dart';
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
@@ -247,26 +248,17 @@ class _ClientCard extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F0F0),
+              color: Colors.white,
               shape: BoxShape.circle,
               border: Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
             ),
-            clipBehavior: Clip.hardEdge,
+            padding: const EdgeInsets.all(16),
             child: url != null && url.isNotEmpty
-                ? CachedNetworkImage(
+                ? UniversalImage(
                     imageUrl: url,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => const Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => _buildFallback(client.clientName),
+                    fit: BoxFit.contain,
+                    borderRadius: 0,
+                    errorWidget: _buildFallback(client.clientName),
                   )
                 : _buildFallback(client.clientName),
           ),
