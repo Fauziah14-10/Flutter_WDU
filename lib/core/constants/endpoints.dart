@@ -28,6 +28,10 @@ class Endpoints {
   // POST /api/change-password
   static const String changePassword = '/change-password';
 
+  // ── 2FA ──────────────────────────────────────────────────
+  static const String verifyOtp = '/2fa/verify';
+  static const String resendOtp = '/2fa/resend';
+
   // ── CLIENT ────────────────────────────────────────────────
   // GET /api/clients
   static const String clients = '/clients';

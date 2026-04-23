@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../constants/endpoints.dart';
 import '../utils/storage.dart';
 import '../utils/logger.dart';
@@ -29,7 +30,7 @@ class ApiException implements Exception {
   ApiException(this.message, {this.statusCode});
 
   @override
-  String toString() => 'ApiException($statusCode): $message';
+  String toString() => message;
 }
 
 class UnauthorizedException extends ApiException {
@@ -58,9 +59,31 @@ class ApiClient {
 
   // ── BUILD HEADERS ──────────────────────────────────────────
   Future<Map<String, String>> _buildHeaders({bool requireAuth = true}) async {
+    String platform = 'Unknown';
+    if (kIsWeb) {
+      platform = 'Web';
+    } else {
+      switch (defaultTargetPlatform) {
+        case TargetPlatform.android:
+          platform = 'Android';
+          break;
+        case TargetPlatform.iOS:
+          platform = 'iOS';
+          break;
+        case TargetPlatform.windows:
+          platform = 'Windows';
+          break;
+        default:
+          platform = 'Unknown';
+      }
+    }
+    
     final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'User-Agent': 'WDU-Flutter-App/$platform',
+      'X-App-Source': 'WDU-Flutter-App',
+      'X-App-Platform': platform,
     };
 
     if (requireAuth) {
@@ -453,6 +476,7 @@ class ApiClient {
     String endpoint, {
     required String filePath,
     required String fieldName,
+    List<int>? bytes, // Add bytes for Web support
     Map<String, String>? additionalFields,
     bool requireAuth = true,
   }) async {
@@ -468,7 +492,17 @@ class ApiClient {
       headers.remove('Content-Type');
       request.headers.addAll(headers);
 
-      request.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
+      if (kIsWeb && bytes != null) {
+        // Use bytes for Web
+        request.files.add(http.MultipartFile.fromBytes(
+          fieldName,
+          bytes,
+          filename: filePath.split('/').last,
+        ));
+      } else {
+        // Use path for Mobile
+        request.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
+      }
 
       if (additionalFields != null) {
         request.fields.addAll(additionalFields);

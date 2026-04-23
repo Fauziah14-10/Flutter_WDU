@@ -5,6 +5,32 @@ All notable changes to this Flutter project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+## [1.4.1] - 2026-04-23 *By Fadel
+### Added
+- **Integrated 2FA Settings**: Implemented a comprehensive 2FA management page (`TwoFactorSettingsPage`) that handles password confirmation and OTP verification in a single, seamless flow.
+- **Profile Photo Upload**: Integrated `image_picker` and implemented profile photo upload functionality with backend synchronization.
+- **2FA System (Email OTP)**: Integrated email OTP verification during login.
+- **OTP Resend Timer**: Added a 60-second countdown for resending codes.
+- **OTP Input Limit**: Restricted OTP input to exactly 6 digits.
+- **UniversalImage Widget**: Implemented a cross-platform image component that uses native HTML `<img>` tags on Web to bypass CORS restrictions for profile photos.
+- **X-App-Platform Header**: Added OS identification (Android/iOS) for Laravel server.
+- **Foundation Package**: Utilized the foundation package for safe platform detection.
+
+### Improved
+- **Settings UI Simplification**: Streamlined the settings page by removing icons and descriptive subtitles for a cleaner, text-focused look.
+- **Profile Settings UI**: Fully revamped the settings page to mirror Laravel Jetstream's profile structure. Includes read-only identity fields with a notice to contact administrators.
+- **Web Compatibility**: Enhanced `ApiClient` to support multipart file uploads on Web using binary data (bytes) instead of file paths.
+- **UI Restructuring**: Removed the bottom navigation bar and moved the settings button to the Dashboard AppBar actions for a more streamlined experience.
+- **Profile Photo Logic**: Integrated sanitization and the new `UniversalImage` widget to ensure profile photos load correctly across all environments.
+- **Error Messages**: Enhanced clarity for incorrect password and expired OTP messages by removing technical jargon.
+- **Navigation Logic**: Fixed automatic redirection to Dashboard or OTP Page post-login.
+- **Login Footer**: Updated copyright year to 2026 and refined the UI.
+
+### Fixed
+- **Platform Error**: Resolved `Unsupported operation: Platform` crash on Flutter Web.
+- **Merge Conflicts**: Cleaned up remaining conflicts and missing imports on the submission page.
+
+---
 ## [1.4.0] - 2026-04-22
 ### Added
 - **Biodata Toggle Setting**: Added support for `is_biodata_enabled` in survey_settings table to control whether respondent biodata form is required before starting the survey.
@@ -12,7 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Central Voice Recorder**: Implemented a single voice recorder section at the top of the questionnaire page for hands-free survey input.
 - **Merge Conflict Resolution**: Successfully merged remote changes with local standardizations, specifically integrating `CachedNetworkImage` and improved logo fallback logic.
 - **Smart Logo Fallbacks**: Implemented specialized, theme-consistent fallbacks for "TransJakarta" and "BPK" clients.
-- **Improved Image Loading**: Switched to `CachedNetworkImage` for smoother profile and client logo rendering.
+- **Improved Image Loading**: Switched to `CachedNetworkImage` for smoother profile and client logo rendering.  
 
 ### Improved
 - **Dynamic Survey Flow**: The app now automatically checks biodata settings when loading survey data.
@@ -36,7 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Implemented horizontal scrolling for survey questions to improve UX.
 - Enhanced page navigation logic and draft persistence.
 - Submission Compatibility: Ensured surveys without biodata still proceed normally and remain compatible with existing submission flow.
-- Voice Mapping Stability: Improved spoken answer detection and assignment to the correct survey questions.
+- Voice Mapping Stability: Improved spoken answer detection and assignment to the correct survey questions.     
 
 ---
 
@@ -54,7 +80,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [1.3.8] - 2026-04-20
 ### Added
-- **UniversalImage**: Implemented a cross-platform image loading solution that uses native HTML `<img>` tags on Web to bypass CORS decoding issues (`EncodingError`) while maintaining `CachedNetworkImage` for Mobile/Desktop.
+- **UniversalImage**: Implemented a cross-platform image loading solution that uses native HTML `<img>` tags on Web to bypass CORS decoding issues (`EncodingError`) while maintaining `CachedNetworkImage` for Mobile/Desktop. 
 - Added proper type checking to prevent TypeError when parsing JSON answers
 - Voice message / voice note recording support.
 - Audio playback support for recorded voice notes.
@@ -121,7 +147,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [1.3.3] - 2026-04-14
 ### Added
 - Added dynamic sorting feature for survey responses in the Monitoring Interface (dropdown to toggle between "Terbaru / Terlama" ordering)
-- Implemented a new search bar functionality in the Clients section of `DashboardPage` for quick lookups
+- Implemented a new search bar functionality in the Clients section of `DashboardPage` for quick lookups        
 
 ### Changed
 - Modernized `CekEditSurveyPage` AppBar styling with a sleek two-tone green gradient design
@@ -132,24 +158,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [1.3.2] - 2026-04-13
 ### Added
 - Automated client logo synchronization in `DashboardProvider`: projects now automatically inherit logos from the client list if missing in the API response
-- Logout confirmation dialog (pop-up) to `DashboardPage` and `SettingsPage` to prevent accidental logout
+- Logout confirmation dialog (pop-up) to `DashboardPage` and `SettingsPage` to prevent accidental logout        
 - Metadata persistence (Client Slug, Project Slug, Survey Title) to local drafts for full recovery
 - Enhanced `ArchivePage` with original survey titles, "Last Updated" timestamps, and direct navigation to resume kuis
-- Configurable `baseUrl` detection logic in `endpoints.dart` to support physical device testing via local IP
+- Configurable `baseUrl` detection logic in `endpoints.dart` to support physical device testing via local IP    
 - Detailed JSON debug logging in `SubmissionService` for better payload monitoring
 
 ### Fixed
 - Fixed missing client logos in `SurveyBpkPage` header when navigating from "Active Projects"
 - Enhanced `UserProject` model with `copyWith` and robust multi-key image detection (image, client_image, logo, etc.)
-- Stabilized JSON encoding for Matrix questions by implementing recursive key normalization in `StorageHelper`
+- Stabilized JSON encoding for Matrix questions by implementing recursive key normalization in `StorageHelper`  
 - Fixed data type inconsistencies (String vs Int keys) ensuring responses are correctly restored from local storage
-- Resolved "Error 302" redirect issues by refining API endpoint and protocol handling for local environments
+- Resolved "Error 302" redirect issues by refining API endpoint and protocol handling for local environments    
 - Fixed asset loading paths by adding dynamic `storageUrl` resolution in `Endpoints` and `Client` model
 
 ### Technical Changes
 - Refactored `_loadDraftIfExists` in `SubmissionPage` for more robust data restoration
-- Moved Matrix-to-JSON encoding logic to the page layer to prevent payload corruption of non-matrix data
-- Implemented data enrichment pattern in `DashboardProvider` to link disparate API models (Client & Project)
+- Moved Matrix-to-JSON encoding logic to the page layer to prevent payload corruption of non-matrix data        
+- Implemented data enrichment pattern in `DashboardProvider` to link disparate API models (Client & Project)    
 
 ---
 
@@ -207,7 +233,7 @@ fix: improve dashboard & view survey UI
 ### Backend Issue Found
 - Identified bug in Laravel EnumEditAnswer: uses $authUser->id instead of $userId parameter
 - Fix required in backend Laravel controller (not a Flutter issue)
-- Root cause found: answers table empty for response_id=362, meaning answers not being saved during submission
+- Root cause found: answers table empty for response_id=362, meaning answers not being saved during submission  
 
 ### Known Issues
 - Answers not persisting to database - this is a backend issue, not Flutter
@@ -219,7 +245,7 @@ fix: improve dashboard & view survey UI
 ### Features
 - Add Biodata page for respondent data input before survey
 - Dynamic button labels (Isi Kuisioner / Cek Edit) based on answer status
-- Local storage draft for answers (saves before database submission)
+- Local storage helper draft for answers (saves before database submission)
 ### Bug Fixes
 - Fix submit payload format (wrap in "data" field)
 - Fix edit answer payload (separate question & answer arrays)
@@ -239,7 +265,7 @@ fix: improve dashboard & view survey UI
   - Checkbox questions: displayed with checkbox UI showing all options (checked for selected)
   - Radio questions: displayed with radio button UI showing all options (highlighted for selected)
   - Text/Paragraph: displayed as plain text answer
-  
+
 ### Fixed
 - Fixed API endpoint from /detail to /all-report for fetching survey questions
 - Fixed answer filtering by responseId to show only selected respondent's answers
@@ -286,7 +312,7 @@ fix: improve dashboard & view survey UI
 - Updated survey response detail model parsing to handle various API response formats
 - Improved model parsing to support data wrapped in arrays or different key structures
 - Button label changed from "Cek / Edit" to "Cek / Isi Kuisioner"
-- AppBar title dynamically changes between "Isi Kuisioner" (for new) and "Cek / Edit Survey" (for existing)
+- AppBar title dynamically changes between "Isi Kuisioner" (for new) and "Cek / Edit Survey" (for existing)     
 
 ### Fixed
 - Fixed issue where users were stuck on "Data tidak ditemukan" page instead of being redirected to fill the survey
@@ -358,7 +384,7 @@ fix: improve dashboard & view survey UI
 - Added `provider` folder for state management.
 
 ### Changed
-- Updated the `model` folder to match Laravel data structure (removed hardcoded data, connected to API).
+- Updated the `model` folder to match Laravel data structure (removed hardcoded data, connected to API).        
 - Refactored the project folder structure to follow Clean Architecture principles.
 
 ## [1.2.0] - 2026-03-02
