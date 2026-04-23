@@ -476,28 +476,116 @@ class _LihatMonitorPageState extends State<LihatMonitorPage>
       );
     }
 
+    final isFlagged = q.supervisionNote != null && q.supervisionNote!.isNotEmpty;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.1)),
+        border: Border.all(
+          color: isFlagged ? AppTheme.error.withOpacity(0.3) : AppTheme.outlineVariant.withOpacity(0.1),
+          width: isFlagged ? 1.5 : 1,
+        ),
+        boxShadow: isFlagged ? [
+          BoxShadow(
+            color: AppTheme.error.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ] : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            q.plainText,
-            style: GoogleFonts.manrope(
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-              color: AppTheme.onSurface,
-              height: 1.4,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  q.plainText,
+                  style: GoogleFonts.manrope(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: AppTheme.onSurface,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              if (isFlagged)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.flag_rounded, size: 12, color: AppTheme.error),
+                      const SizedBox(width: 4),
+                      Text(
+                        'FLAGGED',
+                        style: GoogleFonts.inter(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          color: AppTheme.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 16),
           _buildAnswerDisplay(q, answer),
+          if (isFlagged) ...[
+            const SizedBox(height: 16),
+            _buildFlaggingNote(q.supervisionNote!),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFlaggingNote(String note) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2), // Very light red
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppTheme.error.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.feedback_rounded, size: 14, color: AppTheme.error),
+              const SizedBox(width: 8),
+              Text(
+                'CATATAN SUPERVISI',
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.error,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            note,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF991B1B), // Darker red text
+              height: 1.4,
+            ),
+          ),
         ],
       ),
     );

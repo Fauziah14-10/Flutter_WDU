@@ -57,6 +57,21 @@ class SurveyResponseDetail {
             : null) ??
         _extractMap(json['response']);
 
+    // ── PARSE SUPERVISION NOTES (FLAGGING) ────────────────────
+    final Map<int, String> questionNotesMap = {};
+    final rawNotes = json['supervision_notes'] ?? responsesMap?['supervision_notes'];
+    if (rawNotes is List) {
+      for (var noteObj in rawNotes) {
+        if (noteObj is Map) {
+          final qId = _toInt(noteObj['question_id']);
+          final noteText = noteObj['note']?.toString();
+          if (qId != null && noteText != null && noteText.isNotEmpty) {
+            questionNotesMap[qId] = noteText;
+          }
+        }
+      }
+    }
+
     // ── PARSE PAGES ──────────────────────────────────────────
     final List<dynamic> rawPages = 
         json['pages'] as List? ?? 
@@ -66,7 +81,7 @@ class SurveyResponseDetail {
     
     List<SurveyPageData> parsedPages = rawPages
         .whereType<Map<String, dynamic>>()
-        .map((e) => SurveyPageData.fromJson(e))
+        .map((e) => SurveyPageData.fromJson(e, questionNotesMap))
         .toList();
     
     // Sort pages by order
@@ -83,7 +98,7 @@ class SurveyResponseDetail {
       if (rawQuestions.isNotEmpty) {
         final List<SurveyQuestionData> questions = rawQuestions
             .whereType<Map<String, dynamic>>()
-            .map((e) => SurveyQuestionData.fromJson(e))
+            .map((e) => SurveyQuestionData.fromJson(e, questionNotesMap))
             .toList();
         
         // Sort questions by order
@@ -203,11 +218,11 @@ class SurveyPageData {
     required this.questions,
   });
 
-  factory SurveyPageData.fromJson(Map<String, dynamic> json) {
+  factory SurveyPageData.fromJson(Map<String, dynamic> json, [Map<int, String>? notesMap]) {
     final List<SurveyQuestionData> questions =
           (json['questions'] as List? ?? json['question'] as List?)
               ?.map(
-                (e) => SurveyQuestionData.fromJson(e as Map<String, dynamic>),
+                (e) => SurveyQuestionData.fromJson(e as Map<String, dynamic>, notesMap),
               )
               .toList() ??
           [];
@@ -240,6 +255,7 @@ class SurveyQuestionData {
   final List<MatrixColumnData> matrixColumns;
   final String matrixType;
   final List<Map<String, dynamic>> embeddedAnswers;
+  final String? supervisionNote;
 
   SurveyQuestionData({
     required this.id,
@@ -256,9 +272,12 @@ class SurveyQuestionData {
     this.matrixColumns = const [],
     this.matrixType = 'radio',
     this.embeddedAnswers = const [],
+    this.supervisionNote,
   });
 
-  factory SurveyQuestionData.fromJson(Map<String, dynamic> json) {
+  factory SurveyQuestionData.fromJson(Map<String, dynamic> json, [Map<int, String>? notesMap]) {
+    final qId = _toInt(json['id']) ?? 0;
+    
     List<MatrixRowData> parsedRows = [];
     final rawRows = json['matrix_rows'];
     if (rawRows != null) {
@@ -290,7 +309,7 @@ class SurveyQuestionData {
     }
 
     return SurveyQuestionData(
-      id: _toInt(json['id']) ?? 0,
+      id: qId,
       questionText: json['question_text'] ?? '',
       questionTypeId: _toInt(json['question_type_id']) ?? 1,
       order: _toInt(json['order']) ?? 0,
@@ -308,6 +327,7 @@ class SurveyQuestionData {
       embeddedAnswers: (json['answer'] as List? ?? json['answers'] as List?)
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ?? [],
+      supervisionNote: notesMap?[qId],
     );
   }
 
