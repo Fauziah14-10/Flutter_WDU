@@ -193,21 +193,33 @@ class ViewSurveyCard extends StatelessWidget {
                     label: 'Isi Kuesioner',
                     color: AppTheme.primary,
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CameraCapturePage(
-                            surveySlug: survey.slug,
-                            clientSlug: clientSlug,
-                            projectSlug: projectSlug,
-                            surveyTitle: survey.title,
+                      if (survey.isCameraEnabled) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CameraCapturePage(
+                              surveySlug: survey.slug,
+                              clientSlug: clientSlug,
+                              projectSlug: projectSlug,
+                              surveyTitle: survey.title,
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      } else {
+                        Navigator.pushNamed(
+                          context,
+                          '/submission',
+                          arguments: {
+                            'surveySlug': survey.slug,
+                            'clientSlug': clientSlug,
+                            'projectSlug': projectSlug,
+                            'surveyTitle': survey.title,
+                          },
+                        );
+                      }
                     },
                   ),
-                ),
-                const SizedBox(width: 8), // 🔥 dari 24 → 8
+                ), // 🔥 dari 24 → 8
                 Expanded(
                   child: _ActionBtn(
                     label: 'Monitor',
