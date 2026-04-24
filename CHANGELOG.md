@@ -5,6 +5,20 @@ All notable changes to this Flutter project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+## [1.4.3] - 2026-04-24 *By Fadel
+### Added
+- **Real-time Notifications (WebSockets)**: Integrated `laravel_echo` and `pusher_client` to support instant "bell" notifications via Laravel Reverb.
+- **WebSocket Service**: New dedicated service for managing persistent socket connections with auto-host detection and authentication handling.
+- **In-App Alerts**: Added "Kring-Kring" audio alerts and reactive unread badges that update instantly when a survey is audited (status change/flagging).
+- **Fallback Listeners**: Implemented raw event listeners for `BroadcastNotificationCreated` to ensure maximum reliability across platform versions.
+
+### Fixed
+- **Exporting & Overlap UI**: Resolved UI overlap issues in the monitoring summary and fixed data exporting inconsistencies in the submission flow.
+- **Dependency Conflicts**: Resolved version mismatches between `pusher_channels_flutter`, `flutter_secure_storage`, and the `js` package.
+- **Model Robustness**: Updated `AppNotification` to gracefully handle varying Laravel database notification payloads.
+
+---
+
 ## [1.4.2] - 2026-04-23 *By Fadel
 ### Added
 - **Activity Logging**: Implemented background logging to Laravel for login, logout, 2FA changes, and active session detection with [SIS-APP] prefix and user email.
