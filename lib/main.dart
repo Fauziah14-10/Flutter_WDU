@@ -95,7 +95,11 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..checkSessionAndLog()),
         ChangeNotifierProvider(create: (_) => SurveyProvider()),
-        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) {
+          final provider = NotificationProvider();
+          debugPrint('[Main] NotificationProvider created');
+          return provider;
+        }),
         ChangeNotifierProvider(create: (_) => FontSizeProvider()),
       ],
       child: Consumer<FontSizeProvider>(
