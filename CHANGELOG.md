@@ -5,6 +5,20 @@ All notable changes to this Flutter project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+## [1.4.4] - 2026-04-24 *By Fadel
+### Changed
+- **Direct Survey Flow**: Completely removed the biodata form requirement. Respondents now go directly to the questionnaire.
+- **Conditional Camera Flow**: Implemented logic to skip or show the camera capture page based on the `is_camera_enabled` setting from the Laravel dashboard.
+
+### Improved
+- **Metadata Handling**: Updated camera capture to only collect necessary metadata (GPS/Time) without personal biodata dependencies.
+- **Service Resilience**: Enhanced model parsing to handle both `setting` and `survey_settings` keys from the API.
+
+### Removed
+- **Biodata UI & Logic**: Deleted `BiodataPage` and stripped all biodata-related draft saving and submission logic.
+
+---
+
 ## [1.4.3] - 2026-04-24 *By Fadel
 ### Added
 - **Real-time Notifications (WebSockets)**: Integrated `laravel_echo` and `pusher_client` to support instant "bell" notifications via Laravel Reverb.
