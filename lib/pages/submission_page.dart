@@ -99,19 +99,23 @@ class _SubmissionPageState extends State<SubmissionPage> {
     return _data!.pages.where(_isPageVisible).toList();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(initialPage: _currentPageIndex);
-    _loadData().then((_) => _loadDraftIfExists());
-    _audioPlayer.onPlayerStateChanged.listen((state) {
-      if (mounted) {
-        setState(() {
-          _isPlayingVoice = state == PlayerState.playing;
-        });
-      }
-    });
-  }
+ @override
+void initState() {
+  super.initState();
+
+  _pageController = PageController(initialPage: _currentPageIndex);
+
+  _loadData().then((_) => _loadDraftIfExists());
+
+  _audioPlayer.onPlayerStateChanged.listen((state) {
+    if (mounted) {
+      setState(() {
+        _isPlayingVoice = state == PlayerState.playing;
+      });
+    }
+  });
+}
+   
 
   @override
   void dispose() {
