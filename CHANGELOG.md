@@ -5,6 +5,36 @@ All notable changes to this Flutter project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+## [1.4.4] - 2026-04-24 *By Fadel
+### Changed
+- **Direct Survey Flow**: Completely removed the biodata form requirement. Respondents now go directly to the questionnaire.
+- **Conditional Camera Flow**: Implemented logic to skip or show the camera capture page based on the `is_camera_enabled` setting from the Laravel dashboard.
+
+### Improved
+- **Monitoring UI**: Redesigned "Capaian Status" breakdown to be centered and full-width for better visibility.
+- **List Survey UI**: Removed text truncation from survey titles and descriptions to show complete information.
+- **Metadata Handling**: Updated camera capture to only collect necessary metadata (GPS/Time) without personal biodata dependencies.
+- **Service Resilience**: Enhanced model parsing to handle both `setting` and `survey_settings` keys from the API.
+
+### Removed
+- **Biodata UI & Logic**: Deleted `BiodataPage` and stripped all biodata-related draft saving and submission logic.
+
+---
+
+## [1.4.3] - 2026-04-24 *By Fadel
+### Added
+- **Real-time Notifications (WebSockets)**: Integrated `laravel_echo` and `pusher_client` to support instant "bell" notifications via Laravel Reverb.
+- **WebSocket Service**: New dedicated service for managing persistent socket connections with auto-host detection and authentication handling.
+- **In-App Alerts**: Added "Kring-Kring" audio alerts and reactive unread badges that update instantly when a survey is audited (status change/flagging).
+- **Fallback Listeners**: Implemented raw event listeners for `BroadcastNotificationCreated` to ensure maximum reliability across platform versions.
+
+### Fixed
+- **Exporting & Overlap UI**: Resolved UI overlap issues in the monitoring summary and fixed data exporting inconsistencies in the submission flow.
+- **Dependency Conflicts**: Resolved version mismatches between `pusher_channels_flutter`, `flutter_secure_storage`, and the `js` package.
+- **Model Robustness**: Updated `AppNotification` to gracefully handle varying Laravel database notification payloads.
+
+---
+
 ## [1.4.2] - 2026-04-23 *By Fadel
 ### Added
 - **Activity Logging**: Implemented background logging to Laravel for login, logout, 2FA changes, and active session detection with [SIS-APP] prefix and user email.
