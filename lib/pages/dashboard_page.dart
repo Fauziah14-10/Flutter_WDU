@@ -183,60 +183,98 @@ class _DashboardViewState extends State<_DashboardView>
   }
 
   void _showFontSizeDialog(BuildContext context) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return Consumer<FontSizeProvider>(
           builder: (context, provider, _) {
-            return AlertDialog(
-              backgroundColor: AppTheme.surfaceContainerLowest,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppTheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
-              title: Row(
-                children: [
-                  Icon(
-                    Icons.format_size_rounded,
-                    color: AppTheme.primary,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Ukuran Font',
-                    style: GoogleFonts.manrope(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-              content: Column(
+              padding: const EdgeInsets.only(bottom: 24),
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildFontSizeOption(context, provider, 'Kecil', 0.85),
-                  _buildFontSizeOption(
-                    context,
-                    provider,
-                    'Sedang (Normal)',
-                    1.0,
-                  ),
-                  _buildFontSizeOption(context, provider, 'Besar', 1.2),
-                  _buildFontSizeOption(context, provider, 'Sangat Besar', 1.4),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Tutup',
-                    style: GoogleFonts.manrope(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.w700,
+                  // Drag Handle
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 20),
+                      width: 40,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: AppTheme.outlineVariant.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.format_size_rounded,
+                            color: AppTheme.primary,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ukuran Teks',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Sesuaikan kenyamanan membaca Anda',
+                                style: GoogleFonts.manrope(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppTheme.outline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Options
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      children: [
+                        _buildFontSizeOption(context, provider, 'Kecil', 0.85, 'A', 14),
+                        const SizedBox(height: 10),
+                        _buildFontSizeOption(context, provider, 'Normal', 1.0, 'A', 18),
+                        const SizedBox(height: 10),
+                        _buildFontSizeOption(context, provider, 'Besar', 1.2, 'A', 22),
+                        const SizedBox(height: 10),
+                        _buildFontSizeOption(context, provider, 'Sangat Besar', 1.4, 'A', 26),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             );
           },
         );
@@ -249,45 +287,95 @@ class _DashboardViewState extends State<_DashboardView>
     FontSizeProvider provider,
     String label,
     double scale,
+    String iconLabel,
+    double iconSize,
   ) {
     final isSelected = provider.fontSizeScale == scale;
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 3),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
       decoration: BoxDecoration(
         color: isSelected
-            ? AppTheme.primary.withValues(alpha: 0.08)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        border: isSelected
-            ? Border.all(color: AppTheme.primary.withValues(alpha: 0.3))
-            : null,
-      ),
-      child: ListTile(
-        dense: true,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        leading: Icon(
-          Icons.text_fields_rounded,
-          color: isSelected ? AppTheme.primary : AppTheme.outline,
-          size: 20,
+            ? AppTheme.primary.withValues(alpha: 0.1)
+            : AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected
+              ? AppTheme.primary
+              : AppTheme.outlineVariant.withValues(alpha: 0.3),
+          width: isSelected ? 2 : 1,
         ),
-        title: Text(
-          label,
-          style: GoogleFonts.manrope(
-            fontSize: 14 * scale,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? AppTheme.primary : AppTheme.onSurface,
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: AppTheme.primary.withValues(alpha: 0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ]
+            : [],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            provider.setFontSizeScale(scale);
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                // Text preview icon
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppTheme.primary
+                        : AppTheme.surfaceContainerHighest,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    iconLabel,
+                    style: GoogleFonts.manrope(
+                      fontSize: iconSize,
+                      fontWeight: FontWeight.w800,
+                      color: isSelected ? Colors.white : AppTheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Label
+                Expanded(
+                  child: Text(
+                    label,
+                    style: GoogleFonts.manrope(
+                      fontSize: 16,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      color: isSelected ? AppTheme.primary : AppTheme.onSurface,
+                    ),
+                  ),
+                ),
+                // Checkmark
+                if (isSelected)
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppTheme.primary,
+                    size: 26,
+                  )
+                else
+                  const Icon(
+                    Icons.circle_outlined,
+                    color: AppTheme.outline,
+                    size: 26,
+                  ),
+              ],
+            ),
           ),
         ),
-        trailing: isSelected
-            ? const Icon(
-                Icons.check_circle_rounded,
-                color: AppTheme.primary,
-                size: 22,
-              )
-            : null,
-        onTap: () {
-          provider.setFontSizeScale(scale);
-        },
       ),
     );
   }
