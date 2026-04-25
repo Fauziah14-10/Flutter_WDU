@@ -698,8 +698,6 @@ class _SubmissionPageState extends State<SubmissionPage> {
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.5,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
                     Text(
