@@ -741,7 +741,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
     return Column(
       children: [
-        _buildVoiceNoteSection(),
+        if (_data?.survey?.isVoiceEnabled == true) _buildVoiceNoteSection(),
         _buildPageIndicator(),
         Expanded(child: _buildQuestionPages()),
         _buildBottomBar(),

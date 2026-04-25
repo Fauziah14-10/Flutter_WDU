@@ -18,6 +18,7 @@ class SurveyModel {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final bool isCameraEnabled;
+  final bool isVoiceEnabled;
 
   // computed dari API (bukan fillable, tapi sering di-append)
   final int responseCount;
@@ -38,6 +39,7 @@ class SurveyModel {
     this.createdAt,
     this.updatedAt,
     this.isCameraEnabled = true,
+    this.isVoiceEnabled = false,
     this.responseCount = 0,
   });
 
@@ -60,6 +62,7 @@ class SurveyModel {
         .toList();
 
     bool cameraEnabled = true;
+    bool voiceEnabled = false;
     final settingsMap = json['setting'] ?? json['survey_settings'];
     
     // DEBUG: print camera setting info
@@ -68,6 +71,7 @@ class SurveyModel {
       print('SurveyModel DEBUG [${json['title']}]: settingsMap type = ${settingsMap.runtimeType}, keys = $keys');
       if (settingsMap is Map) {
         print('SurveyModel DEBUG [${json['title']}]: is_camera_enabled raw = ${settingsMap['is_camera_enabled']}');
+        print('SurveyModel DEBUG [${json['title']}]: voice_submission raw = ${settingsMap['voice_submission']}');
       }
     }
 
@@ -77,14 +81,26 @@ class SurveyModel {
                         settingsMap['is_camera_enabled'] == true || 
                         settingsMap['is_camera_enabled'] == '1';
       }
-    } else if (json.containsKey('is_camera_enabled')) {
-      cameraEnabled = json['is_camera_enabled'] == 1 || 
-                      json['is_camera_enabled'] == true || 
-                      json['is_camera_enabled'] == '1';
+      if (settingsMap.containsKey('voice_submission')) {
+        voiceEnabled = settingsMap['voice_submission'] == 1 || 
+                       settingsMap['voice_submission'] == true || 
+                       settingsMap['voice_submission'] == '1';
+      }
+    } else {
+      if (json.containsKey('is_camera_enabled')) {
+        cameraEnabled = json['is_camera_enabled'] == 1 || 
+                        json['is_camera_enabled'] == true || 
+                        json['is_camera_enabled'] == '1';
+      }
+      if (json.containsKey('voice_submission')) {
+        voiceEnabled = json['voice_submission'] == 1 || 
+                       json['voice_submission'] == true || 
+                       json['voice_submission'] == '1';
+      }
     }
 
     if (kDebugMode) {
-      print('SurveyModel DEBUG [${json['title']}]: cameraEnabled final = $cameraEnabled');
+      print('SurveyModel DEBUG [${json['title']}]: cameraEnabled final = $cameraEnabled, voiceEnabled final = $voiceEnabled');
     }
 
     return SurveyModel(
@@ -109,6 +125,7 @@ class SurveyModel {
           ? DateTime.tryParse(json['updated_at'].toString())
           : null,
       isCameraEnabled: cameraEnabled,
+      isVoiceEnabled: voiceEnabled,
       responseCount: json['response_count'] ?? json['responses_count'] ?? 0,
     );
   }

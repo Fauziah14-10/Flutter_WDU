@@ -200,6 +200,7 @@ class SurveyInfo {
   final bool status;
   final String? spreadsheetUrl;
   final bool isCameraEnabled;
+  final bool isVoiceEnabled;
 
   SurveyInfo({
     required this.id,
@@ -210,10 +211,12 @@ class SurveyInfo {
     required this.status,
     this.spreadsheetUrl,
     this.isCameraEnabled = true,
+    this.isVoiceEnabled = false,
   });
 
   factory SurveyInfo.fromJson(Map<String, dynamic> json) {
     bool cameraEnabled = true;
+    bool voiceEnabled = false;
     final settingsMap = json['setting'] ?? json['survey_settings'];
 
     if (kDebugMode) {
@@ -223,18 +226,30 @@ class SurveyInfo {
 
     if (settingsMap != null && settingsMap is Map<String, dynamic>) {
       if (settingsMap.containsKey('is_camera_enabled')) {
-         cameraEnabled = settingsMap['is_camera_enabled'] == 1 || 
-                         settingsMap['is_camera_enabled'] == true || 
+         cameraEnabled = settingsMap['is_camera_enabled'] == 1 ||
+                         settingsMap['is_camera_enabled'] == true ||
                          settingsMap['is_camera_enabled'] == '1';
       }
-    } else if (json.containsKey('is_camera_enabled')) {
-      cameraEnabled = json['is_camera_enabled'] == 1 || 
-                      json['is_camera_enabled'] == true || 
-                      json['is_camera_enabled'] == '1';
+      if (settingsMap.containsKey('voice_submission')) {
+         voiceEnabled = settingsMap['voice_submission'] == 1 ||
+                        settingsMap['voice_submission'] == true ||
+                        settingsMap['voice_submission'] == '1';
+      }
+    } else {
+      if (json.containsKey('is_camera_enabled')) {
+        cameraEnabled = json['is_camera_enabled'] == 1 ||
+                        json['is_camera_enabled'] == true ||
+                        json['is_camera_enabled'] == '1';
+      }
+      if (json.containsKey('voice_submission')) {
+        voiceEnabled = json['voice_submission'] == 1 ||
+                       json['voice_submission'] == true ||
+                       json['voice_submission'] == '1';
+      }
     }
 
     if (kDebugMode) {
-      print('SurveyInfo DEBUG [${json['title']}]: cameraEnabled final = $cameraEnabled');
+      print('SurveyInfo DEBUG [${json['title']}]: cameraEnabled final = $cameraEnabled, voiceEnabled final = $voiceEnabled');
     }
 
     return SurveyInfo(
@@ -246,9 +261,9 @@ class SurveyInfo {
       status: json['status'] ?? false,
       spreadsheetUrl: json['spreadsheet_url']?.toString(),
       isCameraEnabled: cameraEnabled,
+      isVoiceEnabled: voiceEnabled,
     );
-  }
-}
+  }}
 
 class ProjectInfo {
   final int id;
