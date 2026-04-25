@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
@@ -893,6 +894,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
       return _buildProvinceDropdown(q);
     }
     switch (q.typeString) {
+      case 'phone':
+        return _buildPhoneInput(q);
       case 'radio':
         return _buildRadioInput(q);
       case 'checkbox':
@@ -915,6 +918,47 @@ class _SubmissionPageState extends State<SubmissionPage> {
   bool _isProvinceQuestion(SurveyQuestionData q) {
     final text = q.questionText.toLowerCase();
     return text.contains('provinsi') || text.contains('province');
+  }
+
+  bool _isPhoneQuestion(SurveyQuestionData q) {
+    final text = q.questionText.toLowerCase();
+    return text.contains('nomor hp') ||
+        text.contains('no hp') ||
+        text.contains('telepon') ||
+        text.contains('whatsapp') ||
+        text.contains('phone');
+  }
+
+  Widget _buildPhoneInput(SurveyQuestionData q) {
+    return TextFormField(
+      initialValue: _answers[q.id]?.toString() ?? '',
+      onChanged: (val) => _answers[q.id] = val,
+      keyboardType: TextInputType.phone,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      decoration: InputDecoration(
+        hintText: "Contoh: 08123456789",
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppTheme.monGreenMid, width: 2),
+        ),
+      ),
+      validator: (val) {
+        if (q.required && (val == null || val.isEmpty)) {
+          return 'Nomor telepon wajib diisi';
+        }
+        return null;
+      },
+    );
   }
 
   Widget _buildProvinceDropdown(SurveyQuestionData q) {
@@ -1104,6 +1148,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
     return TextFormField(
       initialValue: _answers[q.id]?.toString() ?? '',
       keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       onChanged: (val) => _answers[q.id] = val,
       decoration: InputDecoration(
         hintText: "Masukkan angka...",

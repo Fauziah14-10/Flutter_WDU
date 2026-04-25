@@ -445,7 +445,7 @@ class SurveyQuestionData {
       case 7:
         return 'dropdown';
       case 8:
-        return 'paragraph';
+        return 'phone';
       case 9:
         return 'matrix';
       default:
