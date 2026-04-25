@@ -8,6 +8,7 @@ import '../../core/utils/storage.dart';
 import '../../models/submission_model.dart';
 import '../../service/submission_service.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -810,6 +811,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
   Widget _buildQuestionItem(SurveyQuestionData q) {
     if (q.typeString == 'info') {
       return Container(
+        width: double.infinity,
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -820,9 +822,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              q.plainText,
-              style: const TextStyle(
+            HtmlWidget(
+              q.questionText,
+              textStyle: const TextStyle(
                 fontSize: 12,
                 color: AppTheme.monTextDark,
                 height: 1.5,
@@ -833,13 +835,22 @@ class _SubmissionPageState extends State<SubmissionPage> {
       );
     }
 
+    final isParagraph = q.typeString == 'paragraph';
+
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isParagraph ? const Color(0xFFF0FDF4) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: isParagraph ? AppTheme.monGreenMid.withOpacity(0.3) : Colors.grey.shade200,
+          width: isParagraph ? 1.5 : 1,
+        ),
+        boxShadow: isParagraph 
+          ? [BoxShadow(color: Colors.green.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]
+          : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -848,21 +859,24 @@ class _SubmissionPageState extends State<SubmissionPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  q.plainText,
-                  style: const TextStyle(
+                child: HtmlWidget(
+                  q.questionText,
+                  textStyle: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: isParagraph ? FontWeight.w700 : FontWeight.w600,
                     color: AppTheme.monTextDark,
                   ),
                 ),
               ),
               if (q.required == 1)
-                const Text(
-                  '*',
-                  style: TextStyle(
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.bold,
+                const Padding(
+                  padding: EdgeInsets.only(left: 4),
+                  child: Text(
+                    '*',
+                    style: TextStyle(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
             ],
