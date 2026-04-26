@@ -5,6 +5,16 @@ All notable changes to this Flutter project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+## [1.4.5] - 2026-04-26 *By Fadel
+### Added
+- **Show/Hide Logic (Logic Type 2 & 3)**: Implemented full support for conditional question visibility. Questions can now be set to "Show if triggered" (Type 2) or "Hide if triggered" (Type 3) based on specific choice selections.
+- **Hierarchical Visibility**: Added recursive logic evaluation. Child questions are now automatically hidden if their parent trigger question is also hidden, ensuring complex nested logic works correctly.
+
+### Improved
+- **Payload Cleansing**: Updated submission logic to automatically clear answers from hidden questions. This prevents stale data from being sent to the backend and ensures data integrity.
+- **Dynamic UI Rendering**: Integrated real-time visibility checks directly into the question builder to ensure immediate UI updates when a trigger (like selecting "Lainnya") is toggled.
+
+---
 ## [1.4.4] - 2026-04-24 *By Fadel
 ### Changed
 - **Direct Survey Flow**: Completely removed the biodata form requirement. Respondents now go directly to the questionnaire.

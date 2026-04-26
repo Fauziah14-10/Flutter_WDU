@@ -73,18 +73,44 @@ class _SubmissionPageState extends State<SubmissionPage> {
     // 1 = Always Display
     if (q.logicType == '1' || q.logicType.isEmpty) return true;
 
-    if (q.questionChoiceId == null) return true;
+    // Check if the trigger (parent question) is also visible
+    // This handles nested logic where a child should be hidden if its parent is hidden
+    if (q.questionChoiceId != null) {
+      SurveyQuestionData? parentQuestion;
+      try {
+        parentQuestion = _data?.pages
+            .expand((p) => p.questions)
+            .firstWhere((element) => element.choice.any((c) => c.id == q.questionChoiceId));
+      } catch (_) {
+        // Parent not found in this survey's pages
+      }
+      
+      if (parentQuestion != null && !_isQuestionVisible(parentQuestion)) {
+        return false;
+      }
+    }
 
     final triggerId = q.questionChoiceId;
+    if (triggerId == null) return true;
 
-    // Cek apakah triggerId ada di antara semua jawaban saat ini
-    return _answers.values.any((ans) {
+    // Check if triggerId exists in current answers
+    bool isTriggered = _answers.values.any((ans) {
       if (ans == null) return false;
       if (ans is List) {
         return ans.contains(triggerId.toString()) || ans.contains(triggerId);
       }
       return ans.toString() == triggerId.toString();
     });
+
+    if (q.logicType == '2') {
+      // 2 = Show if triggered
+      return isTriggered;
+    } else if (q.logicType == '3') {
+      // 3 = Hide if triggered
+      return !isTriggered;
+    }
+
+    return true;
   }
 
   bool _isPageVisible(SurveyPageData page) {
@@ -800,7 +826,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
                     ),
                   ),
                 ),
-              ...page.questions.map((q) => _buildQuestionItem(q)),
+              ...page.questions.map((q) {
+                if (!_isQuestionVisible(q)) return const SizedBox.shrink();
+                return _buildQuestionItem(q);
+              }),
               const SizedBox(height: 80), // Space for bottom bar
             ],
           ),
@@ -1541,6 +1570,21 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   Map<String, dynamic> _buildAnswerValue(SurveyQuestionData q, dynamic answer) {
+    // Payload cleansing: If question is hidden by logic, return empty answer
+    if (!_isQuestionVisible(q)) {
+      switch (q.questionTypeId) {
+        case 3: // Checkbox
+          return {'checkboxes': []};
+        case 9: // Matrix
+          return {'matrix': null};
+        case 2: // Radio
+        case 7: // Dropdown
+          return {q.questionTypeId == 2 ? 'radios' : 'dropdowns': ''};
+        default:
+          return {'texts': ''};
+      }
+    }
+
     if (answer == null) return {'texts': ''};
 
     switch (q.questionTypeId) {
