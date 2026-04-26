@@ -966,6 +966,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       decoration: InputDecoration(
         hintText: "Contoh: 08123456789",
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
         filled: true,
         fillColor: Colors.grey.shade50,
         border: OutlineInputBorder(
@@ -1155,6 +1156,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
       onChanged: (val) => _answers[q.id] = val,
       decoration: InputDecoration(
         hintText: "Masukkan jawaban...",
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
         filled: true,
         fillColor: Colors.grey.shade50,
         border: OutlineInputBorder(
@@ -1181,6 +1183,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
       onChanged: (val) => _answers[q.id] = val,
       decoration: InputDecoration(
         hintText: "Masukkan angka...",
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
         filled: true,
         fillColor: Colors.grey.shade50,
         border: OutlineInputBorder(
@@ -1206,6 +1209,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
       onChanged: (val) => _answers[q.id] = val,
       decoration: InputDecoration(
         hintText: "Masukkan jawaban...",
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
         filled: true,
         fillColor: Colors.grey.shade50,
         border: OutlineInputBorder(
