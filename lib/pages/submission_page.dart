@@ -44,6 +44,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
   final _formKey = GlobalKey<FormState>();
   final Map<int, dynamic> _answers = {};
   final Map<int, int> _pageJumpHistory = {}; // Maps: targetPageIndex -> sourcePageIndex
+  final Map<int, String?> _errors = {}; // Maps: questionId -> error message
 
   int _currentPageIndex = 0;
   late PageController _pageController;
@@ -69,6 +70,75 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   // ── SKIP LOGIC HELPERS ──
+
+  bool _validateCurrentPage() {
+    final currentPage = _visiblePages[_currentPageIndex];
+    bool hasAnyError = false;
+    
+    // Create a temporary map to hold new errors for this page
+    final Map<int, String?> newErrors = {};
+
+    debugPrint('── VALIDATING PAGE ${_currentPageIndex + 1} ──');
+
+    for (var q in currentPage.questions) {
+      if (!_isQuestionVisible(q)) continue;
+
+      if (q.required) {
+        // Skip validation for 'info' type as it has no input field
+        if (q.typeString == 'info') {
+          _errors.remove(q.id);
+          continue;
+        }
+
+        // Fallback check: try int key then string key
+        final answer = _answers[q.id] ?? _answers[q.id.toString()];
+        bool isValid = false;
+
+        debugPrint('Question ID: ${q.id} (${q.typeString}), Required: ${q.required}');
+        debugPrint('Current Answer: $answer (Type: ${answer?.runtimeType})');
+
+        if (answer != null) {
+          if (answer is String) {
+            isValid = answer.trim().isNotEmpty;
+          } else if (answer is List) {
+            isValid = answer.isNotEmpty;
+          } else if (answer is Map) {
+            if (q.typeString == 'matrix') {
+              if (q.matrixRows.isNotEmpty) {
+                isValid = answer.keys.length == q.matrixRows.length;
+              } else {
+                isValid = true;
+              }
+            } else {
+              isValid = answer.isNotEmpty;
+            }
+          } else {
+            isValid = answer.toString().trim().isNotEmpty;
+          }
+        }
+
+        debugPrint('Is Valid: $isValid');
+
+        if (!isValid) {
+          newErrors[q.id] = 'Pertanyaan ini wajib diisi';
+          hasAnyError = true;
+        }
+      }
+    }
+
+    debugPrint('Has Any Error: $hasAnyError');
+    debugPrint('──────────────────────────────');
+
+    setState(() {
+      // Clear old errors for this page and apply new ones
+      for (var q in currentPage.questions) {
+        _errors.remove(q.id);
+      }
+      _errors.addAll(newErrors);
+    });
+
+    return !hasAnyError;
+  }
 
   bool _isQuestionVisible(SurveyQuestionData q) {
     // 1 = Always Display
@@ -876,8 +946,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
         color: isParagraph ? const Color(0xFFF0FDF4) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isParagraph ? AppTheme.monGreenMid.withOpacity(0.3) : Colors.grey.shade200,
-          width: isParagraph ? 1.5 : 1,
+          color: _errors[q.id] != null 
+              ? Colors.red 
+              : (isParagraph ? AppTheme.monGreenMid.withOpacity(0.3) : Colors.grey.shade200),
+          width: _errors[q.id] != null || isParagraph ? 1.5 : 1,
         ),
         boxShadow: isParagraph 
           ? [BoxShadow(color: Colors.green.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]
@@ -899,7 +971,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
                   ),
                 ),
               ),
-              if (q.required == 1)
+              if (q.required)
                 const Padding(
                   padding: EdgeInsets.only(left: 4),
                   child: Text(
@@ -912,6 +984,14 @@ class _SubmissionPageState extends State<SubmissionPage> {
                 ),
             ],
           ),
+          if (_errors[q.id] != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                _errors[q.id]!,
+                style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.w500),
+              ),
+            ),
           const SizedBox(height: 12),
           _buildAnswerInput(q),
         ],
@@ -1020,6 +1100,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
       onChanged: (val) {
         setState(() {
           _answers[q.id] = val;
+          if (val != null) _errors.remove(q.id);
         });
       },
       icon: const Icon(
@@ -1079,7 +1160,12 @@ class _SubmissionPageState extends State<SubmissionPage> {
           child: RadioListTile<String>(
             value: opt.id.toString(),
             groupValue: _answers[q.id]?.toString(),
-            onChanged: (val) => setState(() => _answers[q.id] = val),
+            onChanged: (val) {
+              setState(() {
+                _answers[q.id] = val;
+                _errors.remove(q.id);
+              });
+            },
             title: Text(
               opt.value,
               style: TextStyle(
@@ -1130,6 +1216,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
                   updated.remove(opt.id.toString());
                 }
                 _answers[q.id] = updated;
+                if (updated.isNotEmpty) {
+                  _errors.remove(q.id);
+                }
               });
             },
             title: Text(
@@ -1154,7 +1243,12 @@ class _SubmissionPageState extends State<SubmissionPage> {
   Widget _buildTextInput(SurveyQuestionData q) {
     return TextFormField(
       initialValue: _answers[q.id]?.toString() ?? '',
-      onChanged: (val) => _answers[q.id] = val,
+      onChanged: (val) {
+        setState(() {
+          _answers[q.id] = val;
+          if (val.trim().isNotEmpty) _errors.remove(q.id);
+        });
+      },
       decoration: InputDecoration(
         hintText: "Masukkan jawaban...",
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
@@ -1181,7 +1275,12 @@ class _SubmissionPageState extends State<SubmissionPage> {
       initialValue: _answers[q.id]?.toString() ?? '',
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      onChanged: (val) => _answers[q.id] = val,
+      onChanged: (val) {
+        setState(() {
+          _answers[q.id] = val;
+          if (val.trim().isNotEmpty) _errors.remove(q.id);
+        });
+      },
       decoration: InputDecoration(
         hintText: "Masukkan angka...",
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
@@ -1207,7 +1306,12 @@ class _SubmissionPageState extends State<SubmissionPage> {
     return TextFormField(
       initialValue: _answers[q.id]?.toString() ?? '',
       maxLines: 4,
-      onChanged: (val) => _answers[q.id] = val,
+      onChanged: (val) {
+        setState(() {
+          _answers[q.id] = val;
+          if (val.trim().isNotEmpty) _errors.remove(q.id);
+        });
+      },
       decoration: InputDecoration(
         hintText: "Masukkan jawaban...",
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
@@ -1248,6 +1352,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
       onChanged: (val) {
         setState(() {
           _answers[q.id] = val;
+          if (val != null) _errors.remove(q.id);
         });
       },
       icon: const Icon(
@@ -1279,12 +1384,6 @@ class _SubmissionPageState extends State<SubmissionPage> {
           borderSide: BorderSide(color: AppTheme.primary),
         ),
       ),
-      validator: (val) {
-        if (q.required && (val == null || val.isEmpty)) {
-          return 'Pilihan ini wajib diisi';
-        }
-        return null;
-      },
     );
   }
 
@@ -1363,6 +1462,9 @@ class _SubmissionPageState extends State<SubmissionPage> {
                           setState(() {
                             currentMap[rowIndex] = val;
                             _answers[q.id] = Map<int, dynamic>.from(currentMap);
+                            if (currentMap.keys.length == q.matrixRows.length) {
+                              _errors.remove(q.id);
+                            }
                           });
                         },
                       ),
@@ -1379,13 +1481,17 @@ class _SubmissionPageState extends State<SubmissionPage> {
                         onChanged: (checked) {
                           setState(() {
                             if (checked == true) {
-                              if (!rowCols.contains(colIndex))
+                              if (!rowCols.contains(colIndex)) {
                                 rowCols.add(colIndex);
+                              }
                             } else {
                               rowCols.remove(colIndex);
                             }
                             currentMap[rowIndex] = rowCols;
                             _answers[q.id] = Map<int, dynamic>.from(currentMap);
+                            if (currentMap.keys.length == q.matrixRows.length) {
+                              _errors.remove(q.id);
+                            }
                           });
                         },
                       ),
@@ -1498,21 +1604,43 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   void _nextPage() {
-    if (_currentPageIndex >= _visiblePages.length - 1) return;
+    debugPrint('── NEXT BUTTON ACTION ──');
+    debugPrint('Current Index: $_currentPageIndex');
+    debugPrint('Visible Pages Count: ${_visiblePages.length}');
+    
+    if (!_validateCurrentPage()) {
+      debugPrint('Result: Validation Failed');
+      return;
+    }
+
+    if (_currentPageIndex >= _visiblePages.length - 1) {
+      debugPrint('Result: Already on last page, cannot go next');
+      return;
+    }
 
     final currentPage = _visiblePages[_currentPageIndex];
     int nextIndx = _currentPageIndex + 1;
     bool flowMatched = false;
 
+    debugPrint('Evaluating Flow Logic for Page: ${currentPage.pageName}');
+
     // Evaluate Flow Logic
     if (currentPage.flow.isNotEmpty) {
+      debugPrint('Flow rules found: ${currentPage.flow.length}');
       for (var flowData in currentPage.flow) {
         final targetPage = _visiblePages.indexWhere((p) => p.id == flowData.nextPageId);
-        if (targetPage == -1) continue;
+        debugPrint('Checking Flow Rule: If Question ${flowData.questionId} == Choice ${flowData.questionChoiceId}');
+        
+        if (targetPage == -1) {
+          debugPrint('Warning: Target Page ID ${flowData.nextPageId} not found in visible pages');
+          continue;
+        }
 
         bool match = false;
         if (flowData.questionId != null) {
-          final answer = _answers[flowData.questionId];
+          final answer = _answers[flowData.questionId] ?? _answers[flowData.questionId.toString()];
+          debugPrint('User Answer for ${flowData.questionId}: $answer');
+          
           if (answer != null) {
             if (answer is List) {
               match = answer.contains(flowData.questionChoiceId.toString()) || 
@@ -1522,11 +1650,11 @@ class _SubmissionPageState extends State<SubmissionPage> {
             }
           }
         } else {
-          // Unconditional flow (direct jump)
-          match = true;
+          match = true; // Unconditional jump
         }
 
         if (match) {
+          debugPrint('MATCH FOUND! Jumping to visible page index: $targetPage');
           nextIndx = targetPage;
           flowMatched = true;
           break;
@@ -1534,8 +1662,11 @@ class _SubmissionPageState extends State<SubmissionPage> {
       }
     }
 
+    debugPrint('Target Next Index determined: $nextIndx');
+
     if (flowMatched || nextIndx != _currentPageIndex + 1) {
       // Clear answers for skipped pages
+      debugPrint('Cleaning answers for skipped pages between ${_currentPageIndex + 1} and $nextIndx');
       for (int i = _currentPageIndex + 1; i < nextIndx; i++) {
         final skippedPage = _visiblePages[i];
         for (var q in skippedPage.questions) {
@@ -1551,8 +1682,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
     });
 
     if (flowMatched) {
+      debugPrint('Executing jumpToPage($nextIndx)');
       _pageController.jumpToPage(nextIndx);
     } else {
+      debugPrint('Executing animateToPage($nextIndx)');
       _pageController.animateToPage(
         nextIndx,
         duration: const Duration(milliseconds: 300),
@@ -1588,6 +1721,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   Future<void> _submitSurvey() async {
+    if (!_validateCurrentPage()) return;
     try {
       final payload = _buildPayload();
 
