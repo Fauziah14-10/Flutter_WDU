@@ -5,6 +5,17 @@ All notable changes to this Flutter project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+## [1.4.6] - 2026-04-26 *By Fadel
+### Added
+- **Multi-File Attachment System**: Implemented the `attachment` question type with support for Images, Videos, and Audio files. *By Fadel
+- **Audio Integration**: Added a built-in audio player for `.mp3`, `.wav`, and `.m4a` attachments within the submission form. *By Fadel
+- **Web-Ready File Picking**: Integrated specialized HTML5 file input fallback for Flutter Web to ensure `.mp3` and non-media formats are selectable. *By Fadel
+
+### Fixed
+- **Cross-Platform Uploads**: Resolved `Unsupported operation: _Namespace` and `MultipartFile` errors on Web by implementing byte-based uploading via `http.MultipartFile.fromBytes`. *By Fadel
+- **Payload Optimization**: Fixed "stuck" submissions by separating large file bytes from the JSON payload, reducing memory overhead and preventing backend rejection. *By Fadel
+- **API Robustness**: Added 2-minute timeouts and enhanced multipart logging to the `ApiClient` for more reliable file transfers. *By Fadel
+
 ## [1.4.5] - 2026-04-26 *By Fadel
 ### Added
 - **Show/Hide Logic (Logic Type 2 & 3)**: Implemented full support for conditional question visibility. Questions can now be set to "Show if triggered" (Type 2) or "Hide if triggered" (Type 3) based on specific choice selections.

@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/storage.dart';
-import '../../models/submission_model.dart';
 import '../../service/submission_service.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
+import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart' hide ImageSource;
+import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:html' as html;
+import 'dart:typed_data';
 
 class SubmissionPage extends StatefulWidget {
   final String surveySlug;
@@ -43,6 +46,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
   final _formKey = GlobalKey<FormState>();
   final Map<int, dynamic> _answers = {};
+  final Map<int, Uint8List> _attachmentBytes = {}; // Store bytes for web upload
+  final Map<int, String> _attachmentBlobUrls = {}; // Store blob URLs for web preview
   final Map<int, int> _pageJumpHistory = {}; // Maps: targetPageIndex -> sourcePageIndex
   final Map<int, String?> _errors = {}; // Maps: questionId -> error message
 
@@ -1038,8 +1043,178 @@ class _SubmissionPageState extends State<SubmissionPage> {
         return _buildMatrixInput(q);
       case 'dropdown':
         return _buildDropdownInput(q);
+      case 'attachment':
+        return _buildAttachmentInput(q);
       default:
         return const SizedBox();
+    }
+  }
+
+  Widget _buildAttachmentInput(SurveyQuestionData q) {
+    final filePath = _answers[q.id]?.toString();
+    final fileName = filePath != null ? filePath.split('/').last : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (filePath != null) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.monGreenPale,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppTheme.monGreenMid.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _isAudioFile(filePath) ? Icons.audiotrack : Icons.insert_drive_file, 
+                  color: AppTheme.monGreenMid
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    fileName!,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => setState(() {
+                    _answers.remove(q.id);
+                    _attachmentBytes.remove(q.id);
+                    _attachmentBlobUrls.remove(q.id);
+                  }),
+                  icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                ),
+              ],
+            ),
+          ),
+          
+          // Image Preview
+          if (_isImageFile(filePath))
+            Container(
+              height: 150,
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: kIsWeb && _attachmentBytes[q.id] != null
+                    ? Image.memory(_attachmentBytes[q.id]!, fit: BoxFit.cover)
+                    : Image.file(File(filePath), fit: BoxFit.cover),
+              ),
+            ),
+
+          // Audio Player for attachment
+          if (_isAudioFile(filePath))
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => _playAttachmentAudio(q.id, filePath),
+                    icon: Icon(
+                      _isPlayingVoice ? Icons.pause_circle : Icons.play_circle,
+                      color: AppTheme.monGreenMid,
+                      size: 32,
+                    ),
+                  ),
+                  const Text("Putar Rekaman", style: TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+        ],
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => _pickAttachment(q.id),
+            icon: const Icon(Icons.upload_file),
+            label: Text(filePath == null ? "Pilih File" : "Ganti File"),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.monGreenMid,
+              side: const BorderSide(color: AppTheme.monGreenMid),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  bool _isImageFile(String path) {
+    final p = path.toLowerCase();
+    return p.endsWith('.jpg') || p.endsWith('.jpeg') || p.endsWith('.png') || p.endsWith('.webp');
+  }
+
+  bool _isAudioFile(String path) {
+    final p = path.toLowerCase();
+    return p.endsWith('.mp3') || p.endsWith('.wav') || p.endsWith('.m4a') || p.endsWith('.aac') || p.endsWith('.ogg');
+  }
+
+  Future<void> _playAttachmentAudio(int qId, String path) async {
+    try {
+      if (_isPlayingVoice) {
+        await _audioPlayer.stop();
+      } else {
+        if (kIsWeb && _attachmentBlobUrls[qId] != null) {
+          await _audioPlayer.play(UrlSource(_attachmentBlobUrls[qId]!));
+        } else {
+          await _audioPlayer.play(DeviceFileSource(path));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memutar audio: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickAttachment(int questionId) async {
+    if (kIsWeb) {
+      final input = html.FileUploadInputElement();
+      input.accept = 'image/*,audio/*,video/*,.pdf,.doc,.docx';
+      input.click();
+
+      input.onChange.listen((event) {
+        final file = input.files!.first;
+        final reader = html.FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onLoadEnd.listen((event) {
+          final bytes = reader.result as Uint8List;
+          final blobUrl = html.Url.createObjectUrlFromBlob(file);
+          setState(() {
+            _answers[questionId] = file.name;
+            _attachmentBytes[questionId] = bytes;
+            _attachmentBlobUrls[questionId] = blobUrl;
+            _errors.remove(questionId);
+          });
+        });
+      });
+    } else {
+      final ImagePicker picker = ImagePicker();
+      final XFile? media = await picker.pickMedia();
+      if (media != null) {
+        setState(() {
+          _answers[questionId] = media.path;
+          _errors.remove(questionId);
+        });
+      }
     }
   }
 
@@ -1748,6 +1923,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
         projectSlug: widget.projectSlug,
         surveySlug: widget.surveySlug,
         answers: payload,
+        attachmentBytes: _attachmentBytes,
       );
 
       if (mounted) {
@@ -1841,6 +2017,14 @@ class _SubmissionPageState extends State<SubmissionPage> {
         return {'checkboxes': []};
       case 9: // Matrix
         return {'matrix': _buildMatrixValue(q, answer)};
+      case 10: // Attachment
+        return {
+          'hasFile': true,
+          'fileKey': 'file_question_${q.id}',
+          'filePath': answer.toString(),
+          'fileName': kIsWeb ? answer.toString() : null,
+          // Do NOT include fileBytes here as it's for JSON encoding
+        };
       default:
         return {'texts': answer.toString()};
     }

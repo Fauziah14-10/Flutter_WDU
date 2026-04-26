@@ -471,6 +471,95 @@ class ApiClient {
     }
   }
 
+  // ── POST WITH MULTIPLE FILES UPLOAD ─────────────────────────────────
+  Future<ApiResponse<Map<String, dynamic>>> postWithMultipleFiles(
+    String endpoint, {
+    required List<Map<String, dynamic>> files,
+    Map<String, String>? additionalFields,
+    bool requireAuth = true,
+  }) async {
+    if (requireAuth) {
+      await _validateToken();
+    }
+
+    try {
+      final uri = Uri.parse('${Endpoints.baseUrl}$endpoint');
+      final request = http.MultipartRequest('POST', uri);
+
+      final headers = await _buildHeaders(requireAuth: requireAuth);
+      headers.remove('Content-Type');
+      request.headers.addAll(headers);
+
+      for (var fileInfo in files) {
+        final fieldName = fileInfo['fieldName'];
+        final filePath = fileInfo['filePath'];
+        final fileName = fileInfo['fileName'];
+        final fileBytes = fileInfo['bytes'] as Uint8List?;
+
+        if (fieldName != null) {
+          if (kIsWeb && fileBytes != null) {
+            request.files.add(http.MultipartFile.fromBytes(
+              fieldName,
+              fileBytes,
+              filename: fileName ?? 'upload.file',
+            ));
+          } else if (!kIsWeb && filePath != null && filePath.isNotEmpty) {
+            final file = File(filePath);
+            if (await file.exists()) {
+              request.files.add(await http.MultipartFile.fromPath(
+                fieldName,
+                filePath,
+              ));
+            }
+          }
+        }
+      }
+
+      if (additionalFields != null) {
+        request.fields.addAll(additionalFields);
+      }
+
+      debugPrint('📤 [API] Sending multipart request to: ${uri.toString()}');
+      final streamedResponse = await request.send().timeout(const Duration(minutes: 2));
+      debugPrint('📥 [API] Streamed response received: ${streamedResponse.statusCode}');
+      
+      final response = await http.Response.fromStream(streamedResponse);
+      debugPrint('📄 [API] Full response body received (${response.body.length} bytes)');
+
+      return _handleResponse(response);
+    } on SocketException catch (e, st) {
+      AppLogger.error(
+        'SocketException pada POST with files $endpoint',
+        error: e,
+        stackTrace: st,
+        category: 'API',
+      );
+      throw ApiException(
+        'Tidak dapat terhubung ke server. Pastikan backend menyala dan IP/Firewall benar.',
+        statusCode: 0,
+      );
+    } on TimeoutException catch (e, st) {
+      AppLogger.error(
+        'TimeoutException pada POST with files $endpoint',
+        error: e,
+        stackTrace: st,
+        category: 'API',
+      );
+      throw ApiException(
+        'Koneksi ke server timeout (30s). Periksa koneksi internet atau Firewall Anda.',
+        statusCode: 408,
+      );
+    } catch (e, st) {
+      AppLogger.error(
+        'Unexpected error pada POST with files $endpoint',
+        error: e,
+        stackTrace: st,
+        category: 'API',
+      );
+      rethrow;
+    }
+  }
+
   // ── POST WITH FILE UPLOAD ────────────────────────────────────────
   Future<ApiResponse<Map<String, dynamic>>> postWithFile(
     String endpoint, {
@@ -508,8 +597,12 @@ class ApiClient {
         request.fields.addAll(additionalFields);
       }
 
-      final streamedResponse = await request.send();
+      debugPrint('📤 [API] Sending multipart request to: ${uri.toString()}');
+      final streamedResponse = await request.send().timeout(const Duration(minutes: 2));
+      debugPrint('📥 [API] Streamed response received: ${streamedResponse.statusCode}');
+      
       final response = await http.Response.fromStream(streamedResponse);
+      debugPrint('📄 [API] Full response body received (${response.body.length} bytes)');
 
       return _handleResponse(response);
     } on SocketException catch (e, st) {

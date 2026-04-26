@@ -59,51 +59,86 @@ class SubmissionService {
     required String projectSlug,
     required String surveySlug,
     required Map<String, dynamic> answers,
+    Map<int, Uint8List>? attachmentBytes,
   }) async {
     try {
       debugPrint('🚀 [SUBMIT] Starting submission for surveySlug: $surveySlug');
-      debugPrint('DEBUG submitSurvey: payload keys = ${answers.keys.toList()}');
+      
+      List<Map<String, dynamic>> filesToUpload = [];
 
-      final wrappedPayload = {'data': jsonEncode(answers)};
-
+      // 1. Extract voice note
       final voiceNotePath = answers['voice_note'] as String?;
-      if (voiceNotePath != null) {
-        wrappedPayload['voice_note'] = voiceNotePath;
+      if (voiceNotePath != null && voiceNotePath.isNotEmpty) {
+        filesToUpload.add({
+          'fieldName': 'voice_note',
+          'filePath': voiceNotePath,
+        });
       }
+
+      // 2. Extract attachments from answers
+      if (answers['page'] is List) {
+        for (var page in answers['page']) {
+          if (page['answer'] is List) {
+            for (var ans in page['answer']) {
+              if (ans is Map && ans['hasFile'] == true) {
+                final String? fPath = ans['filePath']?.toString();
+                final String? fKey = ans['fileKey']?.toString();
+                final String? fName = ans['fileName']?.toString();
+                
+                // Get ID from fileKey if possible (file_question_ID)
+                int? qId;
+                if (fKey != null) {
+                   final parts = fKey.split('_');
+                   if (parts.length >= 3) qId = int.tryParse(parts[2]);
+                }
+
+                Uint8List? fBytes;
+                if (qId != null && attachmentBytes != null) {
+                  fBytes = attachmentBytes[qId];
+                }
+
+                if (fKey != null) {
+                  filesToUpload.add({
+                    'fieldName': fKey,
+                    'filePath': fPath ?? '',
+                    'fileName': fName ?? '',
+                    'bytes': fBytes,
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      final additionalFields = {
+        'data': jsonEncode(answers),
+      };
 
       debugPrint(
         '🔗 [SUBMIT] ENDPOINT: ${Endpoints.submitAnswer(clientSlug, projectSlug, surveySlug)}',
       );
+      debugPrint('📂 [SUBMIT] Files to upload: ${filesToUpload.length}');
 
-      if (voiceNotePath != null) {
-        final additionalFields = {
-          'data': jsonEncode(answers),
-        };
-
-        final response = await _api.postWithFile(
+      ApiResponse<Map<String, dynamic>> response;
+      if (filesToUpload.isNotEmpty) {
+        response = await _api.postWithMultipleFiles(
           Endpoints.submitAnswer(clientSlug, projectSlug, surveySlug),
-          filePath: voiceNotePath,
-          fieldName: 'voice_note',
+          files: filesToUpload,
           additionalFields: additionalFields,
         );
-
-        if (response.success) {
-          debugPrint('✅ [SUBMIT] SUCCESS with voice note: ${response.message}');
-          return true;
-        }
-        return false;
       } else {
-        final response = await _api.post(
+        response = await _api.post(
           Endpoints.submitAnswer(clientSlug, projectSlug, surveySlug),
-          body: wrappedPayload,
+          body: {'data': jsonEncode(answers)},
         );
-
-        if (response.success) {
-          debugPrint('✅ [SUBMIT] SUCCESS: ${response.message}');
-          return true;
-        }
-        return false;
       }
+
+      if (response.success) {
+        debugPrint('✅ [SUBMIT] SUCCESS: ${response.message}');
+        return true;
+      }
+      return false;
     } catch (e, st) {
       debugPrint('🚨 [SUBMIT] FATAL ERROR: $e');
       debugPrint('StackTrace: $st');
@@ -509,6 +544,8 @@ class SurveyQuestionData {
         return 'phone';
       case 9:
         return 'matrix';
+      case 10:
+        return 'attachment';
       default:
         return 'unknown';
     }
