@@ -323,6 +323,7 @@ class SurveyPageData {
   final int surveyId;
   final int order;
   final List<SurveyQuestionData> questions;
+  final List<FlowData> flow;
 
   SurveyPageData({
     required this.id,
@@ -330,6 +331,7 @@ class SurveyPageData {
     required this.surveyId,
     required this.order,
     this.questions = const [],
+    this.flow = const [],
   });
 
   factory SurveyPageData.fromJson(Map<String, dynamic> json) {
@@ -340,12 +342,57 @@ class SurveyPageData {
           .toList();
     }
 
+    List<FlowData> flow = [];
+    if (json.containsKey('flow') && json['flow'] is List) {
+      flow = (json['flow'] as List).map((e) {
+        // Handle nested { "flow": { ... } } structure from API
+        final data = e['flow'] ?? e;
+        return FlowData.fromJson(data as Map<String, dynamic>);
+      }).toList();
+    }
+
     return SurveyPageData(
       id: _parseInt(json['id']),
       pageName: json['page_name']?.toString() ?? '',
       surveyId: _parseInt(json['survey_id']),
       order: _parseInt(json['order']),
       questions: questions,
+      flow: flow,
+    );
+  }
+}
+
+class FlowData {
+  final int id;
+  final int currentPageId;
+  final int nextPageId;
+  final int? questionId;
+  final int? questionChoiceId;
+  final String? customFieldName;
+  final String? customFieldOperator;
+  final String? customFieldValue;
+
+  FlowData({
+    required this.id,
+    required this.currentPageId,
+    required this.nextPageId,
+    this.questionId,
+    this.questionChoiceId,
+    this.customFieldName,
+    this.customFieldOperator,
+    this.customFieldValue,
+  });
+
+  factory FlowData.fromJson(Map<String, dynamic> json) {
+    return FlowData(
+      id: _parseInt(json['id']),
+      currentPageId: _parseInt(json['current_page_id']),
+      nextPageId: _parseInt(json['next_page_id']),
+      questionId: json['question_id'] != null ? _parseInt(json['question_id']) : null,
+      questionChoiceId: json['question_choice_id'] != null ? _parseInt(json['question_choice_id']) : null,
+      customFieldName: json['custom_field_name']?.toString(),
+      customFieldOperator: json['custom_field_operator']?.toString(),
+      customFieldValue: json['custom_field_value']?.toString(),
     );
   }
 }

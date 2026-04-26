@@ -43,6 +43,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
   final _formKey = GlobalKey<FormState>();
   final Map<int, dynamic> _answers = {};
+  final Map<int, int> _pageJumpHistory = {}; // Maps: targetPageIndex -> sourcePageIndex
 
   int _currentPageIndex = 0;
   late PageController _pageController;
@@ -1497,8 +1498,63 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   void _nextPage() {
-    if (_currentPageIndex < _visiblePages.length - 1) {
-      _pageController.nextPage(
+    if (_currentPageIndex >= _visiblePages.length - 1) return;
+
+    final currentPage = _visiblePages[_currentPageIndex];
+    int nextIndx = _currentPageIndex + 1;
+    bool flowMatched = false;
+
+    // Evaluate Flow Logic
+    if (currentPage.flow.isNotEmpty) {
+      for (var flowData in currentPage.flow) {
+        final targetPage = _visiblePages.indexWhere((p) => p.id == flowData.nextPageId);
+        if (targetPage == -1) continue;
+
+        bool match = false;
+        if (flowData.questionId != null) {
+          final answer = _answers[flowData.questionId];
+          if (answer != null) {
+            if (answer is List) {
+              match = answer.contains(flowData.questionChoiceId.toString()) || 
+                      answer.contains(flowData.questionChoiceId);
+            } else {
+              match = answer.toString() == flowData.questionChoiceId.toString();
+            }
+          }
+        } else {
+          // Unconditional flow (direct jump)
+          match = true;
+        }
+
+        if (match) {
+          nextIndx = targetPage;
+          flowMatched = true;
+          break;
+        }
+      }
+    }
+
+    if (flowMatched || nextIndx != _currentPageIndex + 1) {
+      // Clear answers for skipped pages
+      for (int i = _currentPageIndex + 1; i < nextIndx; i++) {
+        final skippedPage = _visiblePages[i];
+        for (var q in skippedPage.questions) {
+          _answers.remove(q.id);
+        }
+        _pageJumpHistory.remove(i);
+      }
+    }
+
+    _pageJumpHistory[nextIndx] = _currentPageIndex;
+    setState(() {
+      _currentPageIndex = nextIndx;
+    });
+
+    if (flowMatched) {
+      _pageController.jumpToPage(nextIndx);
+    } else {
+      _pageController.animateToPage(
+        nextIndx,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
@@ -1506,11 +1562,28 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   void _previousPage() {
-    if (_currentPageIndex > 0) {
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+    int prevIndx = _currentPageIndex - 1;
+    bool wasJump = false;
+    
+    if (_pageJumpHistory.containsKey(_currentPageIndex)) {
+      prevIndx = _pageJumpHistory[_currentPageIndex]!;
+      wasJump = true;
+    }
+
+    if (prevIndx >= 0) {
+      setState(() {
+        _currentPageIndex = prevIndx;
+      });
+      
+      if (wasJump) {
+        _pageController.jumpToPage(prevIndx);
+      } else {
+        _pageController.animateToPage(
+          prevIndx,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
     }
   }
 
