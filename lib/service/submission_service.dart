@@ -201,6 +201,7 @@ class SurveyInfo {
   final String? spreadsheetUrl;
   final bool isCameraEnabled;
   final bool isVoiceEnabled;
+  final bool isProgressBarEnabled;
 
   SurveyInfo({
     required this.id,
@@ -212,11 +213,13 @@ class SurveyInfo {
     this.spreadsheetUrl,
     this.isCameraEnabled = true,
     this.isVoiceEnabled = false,
+    this.isProgressBarEnabled = false,
   });
 
   factory SurveyInfo.fromJson(Map<String, dynamic> json) {
     bool cameraEnabled = true;
     bool voiceEnabled = false;
+    bool progressBarEnabled = false;
     final settingsMap = json['setting'] ?? json['survey_settings'];
 
     if (kDebugMode) {
@@ -235,6 +238,11 @@ class SurveyInfo {
                         settingsMap['voice_submission'] == true ||
                         settingsMap['voice_submission'] == '1';
       }
+      if (settingsMap.containsKey('progress_bar_status')) {
+         progressBarEnabled = settingsMap['progress_bar_status'] == 1 ||
+                              settingsMap['progress_bar_status'] == true ||
+                              settingsMap['progress_bar_status'] == '1';
+      }
     } else {
       if (json.containsKey('is_camera_enabled')) {
         cameraEnabled = json['is_camera_enabled'] == 1 ||
@@ -246,10 +254,15 @@ class SurveyInfo {
                        json['voice_submission'] == true ||
                        json['voice_submission'] == '1';
       }
+      if (json.containsKey('progress_bar_status')) {
+        progressBarEnabled = json['progress_bar_status'] == 1 ||
+                             json['progress_bar_status'] == true ||
+                             json['progress_bar_status'] == '1';
+      }
     }
 
     if (kDebugMode) {
-      print('SurveyInfo DEBUG [${json['title']}]: cameraEnabled final = $cameraEnabled, voiceEnabled final = $voiceEnabled');
+      print('SurveyInfo DEBUG [${json['title']}]: cameraEnabled final = $cameraEnabled, voiceEnabled final = $voiceEnabled, progressEnabled = $progressBarEnabled');
     }
 
     return SurveyInfo(
@@ -262,6 +275,7 @@ class SurveyInfo {
       spreadsheetUrl: json['spreadsheet_url']?.toString(),
       isCameraEnabled: cameraEnabled,
       isVoiceEnabled: voiceEnabled,
+      isProgressBarEnabled: progressBarEnabled,
     );
   }}
 

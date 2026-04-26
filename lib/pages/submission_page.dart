@@ -848,20 +848,38 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
   Widget _buildPageIndicator() {
     final totalPages = _visiblePages.length;
+    final progress = totalPages > 0 ? (_currentPageIndex + 1) / totalPages : 0.0;
+    final isProgressEnabled = _data?.survey?.isProgressBarEnabled ?? false;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
         children: [
-          Text(
-            'Halaman ${_currentPageIndex + 1} dari $totalPages',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppTheme.monTextMid,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Halaman ${_currentPageIndex + 1} dari $totalPages',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.monTextMid,
+                ),
+              ),
+            ],
           ),
+          if (isProgressEnabled) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: progress,
+                backgroundColor: Colors.grey.shade200,
+                color: AppTheme.monGreenMid,
+                minHeight: 8,
+              ),
+            ),
+          ],
         ],
       ),
     );
