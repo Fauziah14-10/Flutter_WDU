@@ -588,12 +588,16 @@ class QuestionChoice {
 }
 
 class MatrixRow {
+  final String? id;
   final String label;
 
-  MatrixRow({required this.label});
+  MatrixRow({this.id, required this.label});
 
   factory MatrixRow.fromJson(Map<String, dynamic> json) {
-    return MatrixRow(label: json['label']?.toString() ?? '');
+    return MatrixRow(
+      id: json['id']?.toString(),
+      label: json['label']?.toString() ?? '',
+    );
   }
 }
 

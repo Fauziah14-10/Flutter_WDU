@@ -1593,8 +1593,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
     }
 
     final currentMap = _answers[q.id] is Map
-        ? Map<int, dynamic>.from(_answers[q.id] as Map)
-        : <int, dynamic>{};
+        ? Map<String, dynamic>.from(_answers[q.id] as Map)
+        : <String, dynamic>{};
 
     return Container(
       decoration: BoxDecoration(
@@ -1635,6 +1635,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
           ...q.matrixRows.asMap().entries.map((entry) {
             final rowIndex = entry.key;
             final row = entry.value;
+            final rowKey = row.id ?? "row-$rowIndex";
 
             return TableRow(
               children: [
@@ -1649,12 +1650,12 @@ class _SubmissionPageState extends State<SubmissionPage> {
                     return Center(
                       child: Radio<int>(
                         value: colIndex,
-                        groupValue: currentMap[rowIndex] as int?,
+                        groupValue: currentMap[rowKey] as int?,
                         activeColor: AppTheme.primary,
                         onChanged: (val) {
                           setState(() {
-                            currentMap[rowIndex] = val;
-                            _answers[q.id] = Map<int, dynamic>.from(currentMap);
+                            currentMap[rowKey] = val;
+                            _answers[q.id] = Map<String, dynamic>.from(currentMap);
                             if (currentMap.keys.length == q.matrixRows.length) {
                               _errors.remove(q.id);
                             }
@@ -1663,8 +1664,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
                       ),
                     );
                   } else {
-                    final rowCols = currentMap[rowIndex] is List
-                        ? List<int>.from(currentMap[rowIndex] as List)
+                    final rowCols = currentMap[rowKey] is List
+                        ? List<int>.from(currentMap[rowKey] as List)
                         : <int>[];
 
                     return Center(
@@ -1680,8 +1681,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
                             } else {
                               rowCols.remove(colIndex);
                             }
-                            currentMap[rowIndex] = rowCols;
-                            _answers[q.id] = Map<int, dynamic>.from(currentMap);
+                            currentMap[rowKey] = rowCols;
+                            _answers[q.id] = Map<String, dynamic>.from(currentMap);
                             if (currentMap.keys.length == q.matrixRows.length) {
                               _errors.remove(q.id);
                             }
@@ -1966,7 +1967,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
       return {
         'question': page.questions.map((q) => {'id': q.id}).toList(),
         'answer': page.questions
-            .map((q) => _buildAnswerValue(q, _answers[q.id]))
+            .map((q) {
+              final answer = _answers[q.id] ?? _answers[q.id.toString()];
+              return _buildAnswerValue(q, answer);
+            })
             .toList(),
       };
     }).toList();
@@ -2042,7 +2046,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
       }
     });
 
-    // Mengembalikan string JSON agar bisa disimpan sebagai TEXT/JSON di database
-    return jsonEncode(result);
+    // Mengembalikan raw Map agar tidak terjadi double JSON encode di backend
+    return result;
   }
 }
