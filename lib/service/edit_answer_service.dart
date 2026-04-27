@@ -137,33 +137,21 @@ class EditAnswerService {
 
           if (data.containsKey('data') &&
               data['data'] is Map<String, dynamic>) {
-            print("DEBUG getEditAnswerData - Using data['data'] as Map");
-            debugPrint("DEBUG RAW DATA: ${jsonEncode(data['data'])}");
             return SurveyResponseDetail.fromJson(
               data['data'] as Map<String, dynamic>,
             );
           } else if (data.containsKey('data') && data['data'] is List) {
             final list = data['data'] as List;
-            print(
-              "DEBUG getEditAnswerData - Using data['data'] as List, length: ${list.length}",
-            );
             if (list.isNotEmpty && list.first is Map<String, dynamic>) {
-              debugPrint(
-                "DEBUG RAW LIST FIRST ITEM: ${jsonEncode(list.first)}",
-              );
               return SurveyResponseDetail.fromJson(
                 list.first as Map<String, dynamic>,
               );
             }
           }
-          print("DEBUG getEditAnswerData - Using raw Map");
-          debugPrint("DEBUG RAW MAP: ${jsonEncode(data)}");
           return SurveyResponseDetail.fromJson(data);
         } else if (data is List && data.isNotEmpty) {
-          print("DEBUG getEditAnswerData - Raw List, length: ${data.length}");
           final firstItem = data.first;
           if (firstItem is Map<String, dynamic>) {
-            debugPrint("DEBUG RAW FIRST ITEM: ${jsonEncode(firstItem)}");
             return SurveyResponseDetail.fromJson(firstItem);
           }
         }
@@ -193,33 +181,12 @@ class EditAnswerService {
     required Map<int, dynamic> currentAnswers,
   }) async {
     try {
-      // Debug: Print pages structure
-      debugPrint(
-        '[EditAnswerService] submitChanges - pages count: ${pages.length}',
-      );
-      for (var i = 0; i < pages.length; i++) {
-        debugPrint(
-          '[EditAnswerService] Page $i - questions count: ${pages[i].questions.length}',
-        );
-        for (var j = 0; j < pages[i].questions.length; j++) {
-          final q = pages[i].questions[j];
-          debugPrint(
-            '[EditAnswerService]   Question $j - id: ${q.id}, type: ${q.questionTypeId}',
-          );
-        }
-      }
-
       final payload = _buildPayload(pages, currentAnswers);
-
-      debugPrint('[EditAnswerService] === FINAL PAYLOAD ===');
-      debugPrint('[EditAnswerService] Payload: ${jsonEncode(payload)}');
-      debugPrint('[EditAnswerService] ======================');
 
       final response = await _api.patch(
         Endpoints.changeAnswer(clientSlug, projectSlug, surveySlug, responseId),
         body: payload,
       );
-      debugPrint('[EditAnswerService] Response: ${response.data}');
       return true;
     } catch (e) {
       print("Error submitChanges: $e");
@@ -327,11 +294,6 @@ class EditAnswerService {
       }).toList(),
     };
 
-    // Debug: Print payload yang akan dikirim
-    debugPrint(
-      '[EditAnswerService] Payload yang dikirim: ${jsonEncode(payload)}',
-    );
-
     return payload;
   }
 
@@ -359,22 +321,15 @@ class EditAnswerService {
         ];
 
       case 3: // Checkbox → List<String>
-        debugPrint(
-          '[EditAnswerService] CHECKBOX questionId=${question.id}, answer=$answer (type: ${answer.runtimeType})',
-        );
         if (answer is List && answer.isNotEmpty) {
           final uniqueAnswers = answer
               .map((e) => e.toString())
               .toSet()
               .toList();
-          debugPrint(
-            '[EditAnswerService] CHECKBOX uniqueAnswers: $uniqueAnswers',
-          );
           return [
             {'answe': uniqueAnswers},
           ];
         }
-        debugPrint('[EditAnswerService] CHECKBOX empty - return []');
         return [
           {'answe': []},
         ];

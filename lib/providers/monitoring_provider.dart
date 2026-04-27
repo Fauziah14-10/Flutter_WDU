@@ -81,32 +81,14 @@ class MonitoringProvider extends ChangeNotifier {
       );
     }
 
-    // DEBUG: Print filter info
-    debugPrint(
-      '[MonitoringProvider] Filter: $dateFilter, startDate: $startDate, endDate: $endDate',
-    );
-    debugPrint(
-      '[MonitoringProvider] Total raw responses: ${_rawResponses.length}',
-    );
-
     responses = _rawResponses.where((r) {
       if (startDate == null || endDate == null) return true;
       final dateStr =
           r['updated_at']?.toString() ?? r['created_at']?.toString() ?? '';
       final dt = DateTime.tryParse(dateStr);
       if (dt == null) return false;
-      // Gunakan >= dan <= (inklusif kedua sisi)
       return !dt.isBefore(startDate) && !dt.isAfter(endDate);
     }).toList();
-
-    debugPrint(
-      '[MonitoringProvider] Setelah filter: ${responses.length} responses',
-    );
-    for (var i = 0; i < responses.length && i < 3; i++) {
-      debugPrint(
-        '  Response[$i]: ${responses[i]['updated_at'] ?? responses[i]['created_at']}',
-      );
-    }
 
     responses.sort((a, b) {
       final dateA =
@@ -187,10 +169,6 @@ class MonitoringProvider extends ChangeNotifier {
       final detail = results[0]; // /detail
       final allReport = results[1]; // /all-report
 
-      debugPrint('detail keys:    ${detail.keys.toList()}');
-      debugPrint('allReport keys: ${allReport.keys.toList()}');
-
-      // ── surveys dari /detail → Array, cari by slug ────────
       final rawSurveys = detail['surveys'];
       Map<String, dynamic>? surveyData;
 
@@ -260,21 +238,12 @@ class MonitoringProvider extends ChangeNotifier {
       // ── responses dari /all-report ─────────────────────────
       final rawResponsesList = allReport['responses'];
       if (rawResponsesList is List && rawResponsesList.isNotEmpty) {
-        debugPrint('SAMPLE RESPONSE FULL: ${rawResponsesList.first}');
-        debugPrint(
-          'SAMPLE RESPONSE KEYS: ${rawResponsesList.first.keys.toList()}',
-        );
         _rawResponses = rawResponsesList
             .whereType<Map>()
             .map((e) => Map<String, dynamic>.from(e))
             .toList();
 
         _applyFiltersAndSort();
-
-        if (responses.isNotEmpty) {
-          debugPrint('DEBUG: Response keys: ${responses.first.keys.toList()}');
-          debugPrint('DEBUG: Full first response: ${responses.first}');
-        }
       }
 
       // ── pages dari /all-report ────────────────────────────
@@ -301,14 +270,6 @@ class MonitoringProvider extends ChangeNotifier {
       } else {
         questionSummaries = {};
       }
-
-      debugPrint(
-        'MonitoringProvider loaded: '
-        'survey="$_resolvedName", '
-        'responses=${responses.length}, '
-        'targetRespon=$targetRespon, '
-        'isOpen=$isOpen',
-      );
     } catch (e, st) {
       debugPrint('MonitoringProvider.loadSurvey ERROR: $e');
       debugPrint('$st');

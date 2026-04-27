@@ -108,39 +108,10 @@ class ApiClient {
     String url, {
     dynamic body,
     Map<String, String>? headers,
-  }) {
-    assert(() {
-      print('── API REQUEST ──────────────────────');
-      print('$method $url');
-      if (headers != null) {
-        final auth = headers['Authorization'];
-        if (auth != null) {
-          final prefix = auth.length > 15 ? auth.substring(0, 15) : auth;
-          print('Auth: $prefix...');
-        } else {
-          print('Auth: MISSING');
-        }
-      }
-      if (body != null) print('Body: $body');
-      print('─────────────────────────────────────');
-      return true;
-    }());
-  }
-
-  void _logResponse(http.Response response) {
-    assert(() {
-      print('── API RESPONSE ─────────────────────');
-      print('Status: ${response.statusCode}');
-      print('Body: ${response.body}');
-      print('─────────────────────────────────────');
-      return true;
-    }());
-  }
+  }) {}
 
   // ── HANDLE RESPONSE ────────────────────────────────────────
   ApiResponse<Map<String, dynamic>> _handleResponse(http.Response response) {
-    _logResponse(response);
-
     Map<String, dynamic> body = {};
     try {
       final String trimmedBody = response.body.trim();
@@ -235,7 +206,6 @@ class ApiClient {
       }
 
       final headers = await _buildHeaders(requireAuth: requireAuth);
-      _logRequest('GET', uri.toString(), headers: headers);
       final response = await _client
           .get(uri, headers: headers)
           .timeout(_timeout);
@@ -298,7 +268,6 @@ class ApiClient {
       final encodedBody = jsonEncode(body);
 
       final headers = await _buildHeaders(requireAuth: requireAuth);
-      _logRequest('POST', uri.toString(), body: encodedBody, headers: headers);
       final response = await _client
           .post(uri, headers: headers, body: encodedBody)
           .timeout(_timeout);
@@ -361,7 +330,6 @@ class ApiClient {
       final encodedBody = jsonEncode(body);
 
       final headers = await _buildHeaders(requireAuth: requireAuth);
-      _logRequest('PUT', uri.toString(), body: encodedBody, headers: headers);
       final response = await _client
           .put(uri, headers: headers, body: encodedBody)
           .timeout(_timeout);
@@ -424,7 +392,6 @@ class ApiClient {
       final encodedBody = jsonEncode(body);
 
       final headers = await _buildHeaders(requireAuth: requireAuth);
-      _logRequest('PATCH', uri.toString(), body: encodedBody, headers: headers);
       final response = await _client
           .patch(uri, headers: headers, body: encodedBody)
           .timeout(_timeout);
@@ -471,8 +438,8 @@ class ApiClient {
     }
   }
 
-  // ── POST WITH MULTIPLE FILES UPLOAD ─────────────────────────────────
-  Future<ApiResponse<Map<String, dynamic>>> postWithMultipleFiles(
+  // ── POST WITH FILE UPLOAD ────────────────────────────────────────
+  Future<ApiResponse<Map<String, dynamic>>> postWithFile(
     String endpoint, {
     required List<Map<String, dynamic>> files,
     Map<String, String>? additionalFields,
@@ -653,7 +620,6 @@ class ApiClient {
       final uri = Uri.parse('${Endpoints.baseUrl}$endpoint');
 
       final headers = await _buildHeaders(requireAuth: requireAuth);
-      _logRequest('DELETE', uri.toString(), headers: headers);
       final response = await _client
           .delete(uri, headers: headers)
           .timeout(_timeout);

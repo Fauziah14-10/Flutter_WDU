@@ -64,16 +64,6 @@ class SurveyModel {
     bool cameraEnabled = true;
     bool voiceEnabled = false;
     final settingsMap = json['setting'] ?? json['survey_settings'];
-    
-    // DEBUG: print camera setting info
-    if (kDebugMode) {
-      final keys = (settingsMap is Map) ? settingsMap.keys.toList() : 'not a map';
-      print('SurveyModel DEBUG [${json['title']}]: settingsMap type = ${settingsMap.runtimeType}, keys = $keys');
-      if (settingsMap is Map) {
-        print('SurveyModel DEBUG [${json['title']}]: is_camera_enabled raw = ${settingsMap['is_camera_enabled']}');
-        print('SurveyModel DEBUG [${json['title']}]: voice_submission raw = ${settingsMap['voice_submission']}');
-      }
-    }
 
     if (settingsMap != null && settingsMap is Map<String, dynamic>) {
       if (settingsMap.containsKey('is_camera_enabled')) {
@@ -97,10 +87,6 @@ class SurveyModel {
                        json['voice_submission'] == true || 
                        json['voice_submission'] == '1';
       }
-    }
-
-    if (kDebugMode) {
-      print('SurveyModel DEBUG [${json['title']}]: cameraEnabled final = $cameraEnabled, voiceEnabled final = $voiceEnabled');
     }
 
     return SurveyModel(

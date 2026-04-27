@@ -83,24 +83,17 @@ class _SubmissionPageState extends State<SubmissionPage> {
     // Create a temporary map to hold new errors for this page
     final Map<int, String?> newErrors = {};
 
-    debugPrint('── VALIDATING PAGE ${_currentPageIndex + 1} ──');
-
     for (var q in currentPage.questions) {
       if (!_isQuestionVisible(q)) continue;
 
       if (q.required) {
-        // Skip validation for 'info' type as it has no input field
         if (q.typeString == 'info') {
           _errors.remove(q.id);
           continue;
         }
 
-        // Fallback check: try int key then string key
         final answer = _answers[q.id] ?? _answers[q.id.toString()];
         bool isValid = false;
-
-        debugPrint('Question ID: ${q.id} (${q.typeString}), Required: ${q.required}');
-        debugPrint('Current Answer: $answer (Type: ${answer?.runtimeType})');
 
         if (answer != null) {
           if (answer is String) {
@@ -120,9 +113,6 @@ class _SubmissionPageState extends State<SubmissionPage> {
           } else {
             isValid = answer.toString().trim().isNotEmpty;
           }
-        }
-
-        debugPrint('Is Valid: $isValid');
 
         if (!isValid) {
           newErrors[q.id] = 'Pertanyaan ini wajib diisi';
@@ -130,9 +120,6 @@ class _SubmissionPageState extends State<SubmissionPage> {
         }
       }
     }
-
-    debugPrint('Has Any Error: $hasAnyError');
-    debugPrint('──────────────────────────────');
 
     setState(() {
       // Clear old errors for this page and apply new ones
@@ -1798,17 +1785,11 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   void _nextPage() {
-    debugPrint('── NEXT BUTTON ACTION ──');
-    debugPrint('Current Index: $_currentPageIndex');
-    debugPrint('Visible Pages Count: ${_visiblePages.length}');
-    
     if (!_validateCurrentPage()) {
-      debugPrint('Result: Validation Failed');
       return;
     }
 
     if (_currentPageIndex >= _visiblePages.length - 1) {
-      debugPrint('Result: Already on last page, cannot go next');
       return;
     }
 
@@ -1816,24 +1797,17 @@ class _SubmissionPageState extends State<SubmissionPage> {
     int nextIndx = _currentPageIndex + 1;
     bool flowMatched = false;
 
-    debugPrint('Evaluating Flow Logic for Page: ${currentPage.pageName}');
-
-    // Evaluate Flow Logic
     if (currentPage.flow.isNotEmpty) {
-      debugPrint('Flow rules found: ${currentPage.flow.length}');
       for (var flowData in currentPage.flow) {
         final targetPage = _visiblePages.indexWhere((p) => p.id == flowData.nextPageId);
-        debugPrint('Checking Flow Rule: If Question ${flowData.questionId} == Choice ${flowData.questionChoiceId}');
         
         if (targetPage == -1) {
-          debugPrint('Warning: Target Page ID ${flowData.nextPageId} not found in visible pages');
           continue;
         }
 
         bool match = false;
         if (flowData.questionId != null) {
           final answer = _answers[flowData.questionId] ?? _answers[flowData.questionId.toString()];
-          debugPrint('User Answer for ${flowData.questionId}: $answer');
           
           if (answer != null) {
             if (answer is List) {
@@ -1844,11 +1818,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
             }
           }
         } else {
-          match = true; // Unconditional jump
+          match = true;
         }
 
         if (match) {
-          debugPrint('MATCH FOUND! Jumping to visible page index: $targetPage');
           nextIndx = targetPage;
           flowMatched = true;
           break;
@@ -1856,11 +1829,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
       }
     }
 
-    debugPrint('Target Next Index determined: $nextIndx');
-
     if (flowMatched || nextIndx != _currentPageIndex + 1) {
-      // Clear answers for skipped pages
-      debugPrint('Cleaning answers for skipped pages between ${_currentPageIndex + 1} and $nextIndx');
       for (int i = _currentPageIndex + 1; i < nextIndx; i++) {
         final skippedPage = _visiblePages[i];
         for (var q in skippedPage.questions) {
@@ -1876,10 +1845,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
     });
 
     if (flowMatched) {
-      debugPrint('Executing jumpToPage($nextIndx)');
       _pageController.jumpToPage(nextIndx);
     } else {
-      debugPrint('Executing animateToPage($nextIndx)');
       _pageController.animateToPage(
         nextIndx,
         duration: const Duration(milliseconds: 300),

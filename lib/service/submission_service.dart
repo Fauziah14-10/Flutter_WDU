@@ -31,18 +31,8 @@ class SubmissionService {
         Endpoints.surveySubmission(clientSlug, projectSlug, surveySlug),
       );
 
-      print(
-        "DEBUG getSubmission: response.data keys: ${response.data?.keys.toList()}",
-      );
-      print(
-        "DEBUG getSubmission: survey key exists: ${response.data?.containsKey('survey')}",
-      );
-
       if (response.data != null) {
         final result = SurveySubmissionData.fromJson(response.data!);
-        print(
-          "DEBUG: provinceTargets count in service: ${result.provinceTargets.length}",
-        );
         return result;
       }
       return null;
@@ -62,8 +52,6 @@ class SubmissionService {
     Map<int, Uint8List>? attachmentBytes,
   }) async {
     try {
-      debugPrint('🚀 [SUBMIT] Starting submission for surveySlug: $surveySlug');
-      
       List<Map<String, dynamic>> filesToUpload = [];
 
       // 1. Extract voice note
@@ -115,11 +103,6 @@ class SubmissionService {
         'data': jsonEncode(answers),
       };
 
-      debugPrint(
-        '🔗 [SUBMIT] ENDPOINT: ${Endpoints.submitAnswer(clientSlug, projectSlug, surveySlug)}',
-      );
-      debugPrint('📂 [SUBMIT] Files to upload: ${filesToUpload.length}');
-
       ApiResponse<Map<String, dynamic>> response;
       if (filesToUpload.isNotEmpty) {
         response = await _api.postWithMultipleFiles(
@@ -135,7 +118,6 @@ class SubmissionService {
       }
 
       if (response.success) {
-        debugPrint('✅ [SUBMIT] SUCCESS: ${response.message}');
         return true;
       }
       return false;
@@ -187,7 +169,7 @@ class SurveySubmissionData {
               .toList();
         }
       } catch (e) {
-        debugPrint('Error parsing province targets: $e');
+        // Silent fail for parse errors
       }
       return [];
     }
@@ -209,7 +191,6 @@ class SurveySubmissionData {
       }
     }
 
-    debugPrint('DEBUG: Final provinceTargets count: ${provinceTargets.length}');
     return SurveySubmissionData(
       survey: json.containsKey('survey') && json['survey'] != null
           ? SurveyInfo.fromJson(json['survey'] as Map<String, dynamic>)
@@ -257,11 +238,6 @@ class SurveyInfo {
     bool progressBarEnabled = false;
     final settingsMap = json['setting'] ?? json['survey_settings'];
 
-    if (kDebugMode) {
-      final keys = (settingsMap is Map) ? settingsMap.keys.toList() : 'not a map';
-      print('SurveyInfo DEBUG [${json['title']}]: settingsMap type = ${settingsMap.runtimeType}, keys = $keys');
-    }
-
     if (settingsMap != null && settingsMap is Map<String, dynamic>) {
       if (settingsMap.containsKey('is_camera_enabled')) {
          cameraEnabled = settingsMap['is_camera_enabled'] == 1 ||
@@ -294,10 +270,6 @@ class SurveyInfo {
                              json['progress_bar_status'] == true ||
                              json['progress_bar_status'] == '1';
       }
-    }
-
-    if (kDebugMode) {
-      print('SurveyInfo DEBUG [${json['title']}]: cameraEnabled final = $cameraEnabled, voiceEnabled final = $voiceEnabled, progressEnabled = $progressBarEnabled');
     }
 
     return SurveyInfo(

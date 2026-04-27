@@ -29,8 +29,6 @@ class WebSocketService {
         }
       }
 
-      debugPrint('[WebSocket] Connecting to $host:${WebSocketConstants.port}');
-
       PusherOptions options = PusherOptions(
         host: host,
         wsPort: WebSocketConstants.port,
@@ -58,16 +56,10 @@ class WebSocketService {
         broadcaster: EchoBroadcasterType.Pusher,
       );
 
-      _pusherClient!.onConnectionStateChange((state) {
-        debugPrint('[WebSocket] State: ${state?.currentState}');
-      });
-
-      _pusherClient!.onConnectionError((error) {
-        debugPrint('[WebSocket] Error: ${error?.message}');
-      });
+      _pusherClient!.onConnectionStateChange((state) {});
+      _pusherClient!.onConnectionError((error) {});
 
       _pusherClient!.connect();
-      debugPrint('[WebSocket] Connected initiated');
     } catch (e) {
       debugPrint('[WebSocket] Init Error: $e');
     }
