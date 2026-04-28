@@ -113,6 +113,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
           } else {
             isValid = answer.toString().trim().isNotEmpty;
           }
+        }
 
         if (!isValid) {
           newErrors[q.id] = 'Pertanyaan ini wajib diisi';
