@@ -187,6 +187,16 @@ class ViewSurveyCard extends StatelessWidget {
                     label: 'Isi Kuesioner',
                     color: AppTheme.primary,
                     onTap: () {
+                      if (!survey.isOpen) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Survey telah ditutup, Anda tidak dapat mengisi kuesioner.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
                       if (survey.isCameraEnabled) {
                         Navigator.push(
                           context,
