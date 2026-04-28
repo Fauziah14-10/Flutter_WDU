@@ -40,6 +40,7 @@ jobs:
 
     - name: Build iOS
       run: |
+        FLUTTER_ROOT=$(dirname $(dirname $(which flutter)))
         set -o pipefail
         xcodebuild \
           -workspace ios/Runner.xcworkspace \
@@ -47,18 +48,15 @@ jobs:
           -configuration Release \
           -sdk iphoneos \
           -derivedDataPath build/ios/output \
+          FLUTTER_ROOT="$FLUTTER_ROOT" \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO \
           CODE_SIGN_IDENTITY="" \
           DEVELOPMENT_TEAM="" \
           PROVISIONING_PROFILE="" \
           PROVISIONING_PROFILE_SPECIFIER="" \
-          SKIP_INSTALL=NO \
           COMPILER_INDEX_STORE_ENABLE=NO \
-          2>&1 | tee /tmp/xcode_build.log
-        echo "--- ERRORS ---"
-        grep -E "error:|BUILD FAILED" /tmp/xcode_build.log || true
-
+          2>&1 | grep -E "error:|warning:|BUILD"
     - name: Create Payload directory
       run: mkdir -p build/ios/iphoneos/Payload
 
