@@ -26,6 +26,15 @@ jobs:
       run: |
         export LANG=en_US.UTF-8
         export LC_ALL=en_US.UTF-8
+        # Force deployment target to 13.0 in project file
+        sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 13.0/g' ios/Runner.xcodeproj/project.pbxproj
+        # Create/Update Podfile with 13.0 target
+        if [ ! -f ios/Podfile ]; then
+          cd ios && flutter pub get && cd ..
+        fi
+        echo "platform :ios, '13.0'" > ios/Podfile.tmp
+        cat ios/Podfile >> ios/Podfile.tmp || true
+        mv ios/Podfile.tmp ios/Podfile
         cd ios && pod install --repo-update
 
     - name: Build iOS
