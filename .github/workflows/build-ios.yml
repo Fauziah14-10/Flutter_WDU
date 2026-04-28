@@ -16,7 +16,7 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.27.0' # Menggunakan versi yang lebih stabil sesuai pubspec
+        flutter-version: 'any' # Akan mengambil versi stabil terbaru
         channel: 'stable'
         cache: true
     
