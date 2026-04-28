@@ -1,0 +1,41 @@
+name: Build iOS
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.29.0'
+        channel: 'stable'
+    
+    - name: Install dependencies
+      run: flutter pub get
+    
+    - name: Build iOS
+      run: flutter build ios --release --no-codesign
+    
+    - name: Create Payload directory
+      run: mkdir -p build/ios/iphoneos/Payload
+    
+    - name: Move app to Payload
+      run: mv build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+    
+    - name: Create IPA
+      run: cd build/ios/iphoneos && zip -r SIS-WDU-App.ipa Payload
+    
+    - name: Upload IPA artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SIS-WDU-App-${{ github.sha }}
+        path: build/ios/iphoneos/SIS-WDU-App.ipa

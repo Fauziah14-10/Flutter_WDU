@@ -11,6 +11,8 @@ import '../../service/submission_service.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart' hide ImageSource;
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'survey_summary_page.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:html' as html;
@@ -22,12 +24,12 @@ class SubmissionPage extends StatefulWidget {
   final String projectSlug;
   final String surveyTitle;
 
-  const SubmissionPage({    
+  const SubmissionPage({
     super.key,
     required this.surveySlug,
     required this.clientSlug,
     required this.projectSlug,
-    this.surveyTitle = '',
+    required this.surveyTitle,
   });
 
   @override
@@ -41,6 +43,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool _isLoading = true;
+  bool _isSubmitting = false; // Untuk loading overlay saat submit
+  DateTime _startTime = DateTime.now(); // Untuk menghitung lama pengerjaan
   String? _errorMessage;
   SurveySubmissionData? _data;
 
@@ -757,24 +761,57 @@ class _SubmissionPageState extends State<SubmissionPage> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: _onWillPop,
-      child: Scaffold(
-        backgroundColor: AppTheme.monBgColor,
-        body: Column(
-          children: [
-            _buildHeader(context),
-            Expanded(
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: AppTheme.monGreenMid,
-                      ),
-                    )
-                  : _errorMessage != null
-                  ? _buildErrorUI()
-                  : _buildContent(),
+      child: Stack(
+        children: [
+          Scaffold(
+            backgroundColor: AppTheme.monBgColor,
+            body: Column(
+              children: [
+                _buildHeader(context),
+                Expanded(
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: AppTheme.monGreenMid,
+                          ),
+                        )
+                      : _errorMessage != null
+                      ? _buildErrorUI()
+                      : _buildContent(),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          if (_isSubmitting)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(color: AppTheme.monGreenMid),
+                      SizedBox(height: 16),
+                      Text(
+                        "Sedang Mengirim...",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.monTextDark,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -2117,8 +2154,35 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
   Future<void> _submitSurvey() async {
     if (!_validateCurrentPage()) return;
+
+    setState(() => _isSubmitting = true);
+
     try {
+      // 1. Ambil GPS Location (Optional, timeout 5s)
+      double? lat;
+      double? lng;
+      try {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+
+        if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+          Position position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+            timeLimit: const Duration(seconds: 5),
+          );
+          lat = position.latitude;
+          lng = position.longitude;
+        }
+      } catch (e) {
+        debugPrint("Gagal mengambil GPS: $e");
+      }
+
       final payload = _buildPayload();
+
+      // Hitung durasi pengerjaan
+      final duration = DateTime.now().difference(_startTime);
 
       final success = await _service.submitSurvey(
         clientSlug: widget.clientSlug,
@@ -2129,20 +2193,29 @@ class _SubmissionPageState extends State<SubmissionPage> {
       );
 
       if (mounted) {
+        setState(() => _isSubmitting = false);
+
         if (success) {
           await _clearDraft();
           await StorageHelper.deleteDraftPhoto(widget.surveySlug);
-          
+
           if (!mounted) return;
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Kuisioner berhasil dikirim!"),
-              backgroundColor: Colors.green,
+
+          // Pindah ke Halaman Summary
+          final now = DateTime.now();
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SurveySummaryPage(
+                surveyTitle: _data?.survey?.title ?? widget.surveyTitle,
+                projectName: _data?.project?.projectName ?? '',
+                duration: duration,
+                completionTime: now,
+                latitude: lat,
+                longitude: lng,
+              ),
             ),
           );
-          // Pop with result true so previous pages can refresh status
-          Navigator.pop(context, true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -2154,13 +2227,13 @@ class _SubmissionPageState extends State<SubmissionPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
       }
     }
   }
-
   Map<String, dynamic> _buildPayload() {
     final Map<String, dynamic> payload = {};
 
