@@ -63,20 +63,37 @@ jobs:
 
     - name: Build iOS
       run: |
-        flutter build ios --release --simulator --no-codesign
+        # We use xcodebuild directly because 'flutter build ios' is too strict about code signing
+        # even with --no-codesign when targeting a physical device SDK.
+        set -o pipefail
+        xcodebuild \
+          -workspace ios/Runner.xcworkspace \
+          -scheme Runner \
+          -configuration Release \
+          -sdk iphoneos \
+          -derivedDataPath build/ios/output \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGN_IDENTITY="" \
+          DEVELOPMENT_TEAM="" \
+          PROVISIONING_PROFILE="" \
+          PROVISIONING_PROFILE_SPECIFIER="" \
+          COMPILER_INDEX_STORE_ENABLE=NO
 
     - name: Create Payload directory
-      run: mkdir -p build/ios/iphonesimulator/Payload
+      run: mkdir -p build/ios/iphoneos/Payload
 
     - name: Move app to Payload
       run: |
-        cp -r build/ios/iphonesimulator/Runner.app build/ios/iphonesimulator/Payload/
+        # Find the .app in the derived data output
+        APP_PATH=$(find build/ios/output -name "Runner.app" -type d | head -1)
+        cp -r "$APP_PATH" build/ios/iphoneos/Payload/
 
     - name: Create IPA
-      run: cd build/ios/iphonesimulator && zip -r SIS-WDU-App.ipa Payload
+      run: cd build/ios/iphoneos && zip -r SIS-WDU-App.ipa Payload
 
     - name: Upload IPA artifact
       uses: actions/upload-artifact@v4
       with:
         name: SIS-WDU-App-${{ github.sha }}
-        path: build/ios/iphonesimulator/SIS-WDU-App.ipa
+        path: build/ios/iphoneos/SIS-WDU-App.ipa
