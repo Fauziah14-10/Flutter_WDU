@@ -68,6 +68,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
+  remove_alpha_ios: true
   image_path: "assets/icon/SIS-WDU-logo.png"
   adaptive_icon_background: "#ffffff"
   adaptive_icon_foreground: "assets/icon/SIS-WDU-logo.png"
