@@ -5,6 +5,16 @@ All notable changes to this Flutter project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
+## [1.4.7] - 2026-04-28 *By Fadel
+### Added
+- **Location Dropdown System**: Implemented multi-level location selection (Province -> City -> District -> Village) with support for "Include City/Regency" and "Include District/Village" settings. *By Fadel
+- **Direct Location API**: Integrated direct fetching from the emsifa Indonesian region API for faster performance, bypassing the backend proxy. *By Fadel
+- **Smart ID Mapping**: Added name-based normalization and mapping to synchronize project-specific internal province IDs with the emsifa API's IDs. *By Fadel
+
+### Fixed
+- **Dropdown Logic**: Resolved an issue where location dropdowns only appeared as text labels; implemented real-time fetching triggers and state management for nested selections. *By Fadel
+
+---
 ## [1.4.6] - 2026-04-26 *By Fadel
 ### Added
 - **Multi-File Attachment System**: Implemented the `attachment` question type with support for Images, Videos, and Audio files. *By Fadel
