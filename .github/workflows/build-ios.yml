@@ -2,9 +2,9 @@ name: Build iOS
 
 on:
   push:
-    branches: [ main, fadel/update ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, fadel/update ]
+    branches: [ main ]
 
 jobs:
   build-ios:
@@ -16,11 +16,10 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.x'
+        flutter-version: '3.29.0'
         channel: 'stable'
-        cache: true
 
-    - name: Install Flutter dependencies
+    - name: Install dependencies
       run: flutter pub get
 
     - name: Disable code signing
@@ -28,27 +27,26 @@ jobs:
         sed -i '' 's/DEVELOPMENT_TEAM = [A-Z0-9]*;/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
         sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
 
-    - name: Setup Cocoapods
+    - name: Fix Podfile
       run: |
-        cd ios
-        rm -f Podfile.lock
-        python3 - <<'EOF'
-          import re, pathlib
-          podfile = pathlib.Path("Podfile").read_text()
-          podfile = re.sub(r'post_install do \|installer\|.*?^end\n', '', podfile, flags=re.DOTALL | re.MULTILINE)
-          podfile += """
-          post_install do |installer|
-            installer.pods_project.targets.each do |target|
-              flutter_additional_ios_build_settings(target)
+        cat > /tmp/fix_podfile.py << 'EOF'
+        import re, pathlib
+        podfile = pathlib.Path("ios/Podfile").read_text()
+        podfile = re.sub(r'post_install do \|installer\|.*?^end\n', '', podfile, flags=re.DOTALL | re.MULTILINE)
+        podfile += """
+        post_install do |installer|
+          installer.pods_project.targets.each do |target|
+            flutter_additional_ios_build_settings(target)
               target.build_configurations.each do |config|
                 config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
               end
-            end
           end
-          """
-          pathlib.Path("Podfile").write_text(podfile)
-          EOF
-        pod install --repo-update
+        end
+        """
+        pathlib.Path("ios/Podfile").write_text(podfile)
+        EOF
+        python3 /tmp/fix_podfile.py
+        cd ios && rm -f Podfile.lock && pod install --repo-update
 
     - name: Build iOS
       env:
@@ -57,15 +55,17 @@ jobs:
         CODE_SIGN_IDENTITY: ""
       run: flutter build ios --release --no-codesign
 
-    - name: Package IPA
-      run: |
-        mkdir -p build/ios/iphoneos/Payload
-        cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
-        cd build/ios/iphoneos && zip -r SIS-WDU-App.ipa Payload/
+    - name: Create Payload directory
+      run: mkdir -p build/ios/iphoneos/Payload
 
-    - name: Upload IPA
+    - name: Move app to Payload
+      run: mv build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+
+    - name: Create IPA
+      run: cd build/ios/iphoneos && zip -r SIS-WDU-App.ipa Payload
+
+    - name: Upload IPA artifact
       uses: actions/upload-artifact@v4
       with:
         name: SIS-WDU-App-${{ github.sha }}
         path: build/ios/iphoneos/SIS-WDU-App.ipa
-        retention-days: 7
