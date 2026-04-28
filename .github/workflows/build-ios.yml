@@ -9,31 +9,61 @@ on:
 jobs:
   build-ios:
     runs-on: macos-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.29.0'
         channel: 'stable'
-    
+
     - name: Install dependencies
       run: flutter pub get
-    
+
+    - name: Disable code signing
+      run: |
+        sed -i '' 's/DEVELOPMENT_TEAM = [A-Z0-9]*;/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
+        sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
+
+    - name: Fix Podfile
+      run: |
+        cat > /tmp/fix_podfile.py << 'EOF'
+        import re, pathlib
+        podfile = pathlib.Path("ios/Podfile").read_text()
+        podfile = re.sub(r'post_install do \|installer\|.*?^end\n', '', podfile, flags=re.DOTALL | re.MULTILINE)
+        podfile += """
+        post_install do |installer|
+          installer.pods_project.targets.each do |target|
+            flutter_additional_ios_build_settings(target)
+            target.build_configurations.each do |config|
+              config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+            end
+          end
+        end
+        """
+        pathlib.Path("ios/Podfile").write_text(podfile)
+        EOF
+        python3 /tmp/fix_podfile.py
+        cd ios && rm -f Podfile.lock && pod install --repo-update
+
     - name: Build iOS
+      env:
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGN_IDENTITY: ""
       run: flutter build ios --release --no-codesign
-    
+
     - name: Create Payload directory
       run: mkdir -p build/ios/iphoneos/Payload
-    
+
     - name: Move app to Payload
       run: mv build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
-    
+
     - name: Create IPA
       run: cd build/ios/iphoneos && zip -r SIS-WDU-App.ipa Payload
-    
+
     - name: Upload IPA artifact
       uses: actions/upload-artifact@v4
       with:
