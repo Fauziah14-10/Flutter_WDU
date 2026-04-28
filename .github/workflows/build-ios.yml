@@ -16,7 +16,7 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.29.0'
+        flutter-version: '3.41.8'
         channel: 'stable'
 
     - name: Install dependencies
@@ -29,37 +29,36 @@ jobs:
 
     - name: Fix Podfile
       run: |
-        cat > /tmp/fix_podfile.py << 'EOF'
+        python3 - << 'PYEOF'
         import re, pathlib
         podfile = pathlib.Path("ios/Podfile").read_text()
         podfile = re.sub(r'post_install do \|installer\|.*?^end\n', '', podfile, flags=re.DOTALL | re.MULTILINE)
-        podfile += """
-        post_install do |installer|
-          installer.pods_project.targets.each do |target|
-            flutter_additional_ios_build_settings(target)
-            target.build_configurations.each do |config|
-              config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
-            end
-          end
-        end
-        """
+        podfile += "\npost_install do |installer|\n  installer.pods_project.targets.each do |target|\n    flutter_additional_ios_build_settings(target)\n    target.build_configurations.each do |config|\n      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'\n    end\n  end\nend\n"
         pathlib.Path("ios/Podfile").write_text(podfile)
-        EOF
-        python3 /tmp/fix_podfile.py
+        PYEOF
         cd ios && rm -f Podfile.lock && pod install --repo-update
 
     - name: Build iOS
-      env:
-        CODE_SIGNING_REQUIRED: NO
-        CODE_SIGNING_ALLOWED: NO
-        CODE_SIGN_IDENTITY: ""
-      run: flutter build ios --release --no-codesign
+      run: |
+        xcodebuild \
+          -workspace ios/Runner.xcworkspace \
+          -scheme Runner \
+          -configuration Release \
+          -sdk iphoneos \
+          -derivedDataPath build/ios/output \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGN_IDENTITY="" \
+          DEVELOPMENT_TEAM="" \
+          COMPILER_INDEX_STORE_ENABLE=NO
 
     - name: Create Payload directory
       run: mkdir -p build/ios/iphoneos/Payload
 
     - name: Move app to Payload
-      run: mv build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+      run: |
+        APP=$(find build/ios/output -name "Runner.app" -type d | head -1)
+        cp -r "$APP" build/ios/iphoneos/Payload/
 
     - name: Create IPA
       run: cd build/ios/iphoneos && zip -r SIS-WDU-App.ipa Payload
