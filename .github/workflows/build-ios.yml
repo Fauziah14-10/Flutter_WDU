@@ -25,16 +25,27 @@ jobs:
     
     - name: Prepare Podfile
       run: |
-        flutter build ios --config-only
+        # Generate Podfile and Flutter config files without checking certificates
+        flutter build ios --no-codesign --config-only || true
+        
+        # Check if Podfile exists, if not create a basic one
+        if [ ! -f ios/Podfile ]; then
+          flutter create . --platforms ios
+        fi
+        
+        # Force iOS 12.0 in Podfile
         sed -i '' "s/platform :ios, '9.0'/platform :ios, '12.0'/g" ios/Podfile
-        echo "post_install do |installer|
-          installer.pods_project.targets.each do |target|
-            flutter_additional_ios_build_settings(target)
-            target.build_configurations.each do |config|
-              config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
-            end
-          end
-        end" >> ios/Podfile
+        
+        # Ensure every pod targets iOS 12.0
+        echo "
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
+    end
+  end
+end" >> ios/Podfile
     
     - name: Build iOS
       run: flutter build ios --release --no-codesign
