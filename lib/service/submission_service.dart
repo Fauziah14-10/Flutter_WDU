@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import '../core/api/api_client.dart';
 import '../core/constants/endpoints.dart';
 import '../models/submission_model.dart';
@@ -125,6 +126,76 @@ class SubmissionService {
       debugPrint('🚨 [SUBMIT] FATAL ERROR: $e');
       debugPrint('StackTrace: $st');
       return false;
+    }
+  }
+
+  // ── LOCATION FETCHING (DIRECT FROM API) ───────────────────
+
+  Future<List<Map<String, dynamic>>> getCitiesAndRegencies(dynamic provinceId) async {
+    try {
+      final response = await http.get(Uri.parse('https://www.emsifa.com/api-wilayah-indonesia/api/regencies/$provinceId.json'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((e) {
+          final map = e as Map<String, dynamic>;
+          final name = map['name']?.toString() ?? '';
+          return {
+            'id': map['id'],
+            'name': name,
+            'locationType': name.toLowerCase().contains('kota') ? 'city' : 'regency'
+          };
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching cities: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getWilayahProvinces() async {
+    try {
+      final response = await http.get(Uri.parse('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching provinces: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getWilayahRegencies(dynamic provinceCode) async {
+    return getCitiesAndRegencies(provinceCode);
+  }
+
+  Future<List<Map<String, dynamic>>> getWilayahDistricts(dynamic regencyCode) async {
+    try {
+      final response = await http.get(Uri.parse('https://www.emsifa.com/api-wilayah-indonesia/api/districts/$regencyCode.json'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching districts: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getWilayahVillages(dynamic districtCode) async {
+    try {
+      final response = await http.get(Uri.parse('https://www.emsifa.com/api-wilayah-indonesia/api/villages/$districtCode.json'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching villages: $e');
+      return [];
     }
   }
 }
@@ -432,6 +503,8 @@ class SurveyQuestionData {
   final List<MatrixRow> matrixRows;
   final List<MatrixColumn> matrixColumns;
   final String matrixType;
+  final bool includeCityRegency;
+  final bool includeDistrictVillage;
 
   SurveyQuestionData({
     required this.id,
@@ -447,6 +520,8 @@ class SurveyQuestionData {
     this.matrixRows = const [],
     this.matrixColumns = const [],
     this.matrixType = 'radio',
+    this.includeCityRegency = false,
+    this.includeDistrictVillage = false,
   });
 
   factory SurveyQuestionData.fromJson(Map<String, dynamic> json) {
@@ -485,6 +560,8 @@ class SurveyQuestionData {
       matrixRows: matrixRows,
       matrixColumns: matrixColumns,
       matrixType: json['matrix_type']?.toString() ?? 'radio',
+      includeCityRegency: json['include_cityregency'] == 1 || json['include_cityregency'] == true || json['include_cityregency'] == '1',
+      includeDistrictVillage: json['include_district_village'] == 1 || json['include_district_village'] == true || json['include_district_village'] == '1',
     );
   }
 
@@ -518,6 +595,8 @@ class SurveyQuestionData {
         return 'matrix';
       case 10:
         return 'attachment';
+      case 11:
+        return 'location_dropdown';
       default:
         return 'unknown';
     }

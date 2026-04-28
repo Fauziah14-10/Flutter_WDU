@@ -149,6 +149,8 @@ class SurveyQuestionDetail {
         return 'radio';
       case 9:
         return 'matrix';
+      case 11:
+        return 'location_dropdown';
       default:
         return 'unknown';
     }
@@ -173,6 +175,8 @@ class SurveyQuestionDetail {
         return 'matrix';
       case 10:
         return 'document';
+      case 11:
+        return 'location_dropdown';
       default:
         return 'text';
     }

@@ -9,7 +9,7 @@ class Endpoints {
     // Untuk HP Fisik: Gunakan IP Komputer (misal 192.168.x.x)
     // Untuk Emulator: Gunakan 10.0.2.2
     // default ke produksi jika tidak ada env
-    return 'https://sis.wahanadata.co.id/api';
+    return 'http://localhost:8000/api';
   }
 
   static String get storageUrl {
@@ -121,4 +121,12 @@ class Endpoints {
     String projectSlug,
     String slug,
   ) => '/clients/$clientSlug/projects/$projectSlug/surveys/$slug/submission';
+
+  // ── WILAYAH ───────────────────────────────────────────────
+  static String cities(dynamic provinceId) => '/cities/$provinceId';
+  static String regencies(dynamic provinceId) => '/regencies/$provinceId';
+  static const String wilayahProvinces = '/wilayah/provinces';
+  static String wilayahRegencies(dynamic provinceCode) => '/wilayah/regencies/$provinceCode';
+  static String wilayahDistricts(dynamic regencyCode) => '/wilayah/districts/$regencyCode';
+  static String wilayahVillages(dynamic districtCode) => '/wilayah/villages/$districtCode';
 }

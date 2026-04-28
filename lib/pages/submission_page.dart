@@ -61,6 +61,82 @@ class _SubmissionPageState extends State<SubmissionPage> {
   bool _isPlayingVoice = false;
   Duration _voiceDuration = Duration.zero;
 
+  // ── LOCATION DROPDOWN STATE ──
+  final Map<int, List<Map<String, dynamic>>> _citiesData = {};
+  final Map<int, List<Map<String, dynamic>>> _districtsData = {};
+  final Map<int, List<Map<String, dynamic>>> _villagesData = {};
+  final Map<int, bool> _locationLoading = {};
+  List<Map<String, dynamic>>? _wilayahProvinces;
+  final Map<String, List<Map<String, dynamic>>> _wilayahRegencies = {};
+
+  String _normalizeName(String name) {
+    if (name.isEmpty) return '';
+    return name.toLowerCase()
+        .replaceFirst(RegExp(r'^kota '), '')
+        .replaceFirst(RegExp(r'^kabupaten '), '')
+        .replaceFirst(RegExp(r'^kab\. '), '')
+        .trim();
+  }
+
+  Future<void> _fetchCitiesAndRegencies(int questionId, dynamic provinceId) async {
+    if (provinceId == null) return;
+
+    // Cari nama provinsi dari list internal kita (_provinces)
+    final province = _provinces.find((p) => p['id'].toString() == provinceId.toString());
+    if (province == null) return;
+
+    setState(() => _locationLoading[questionId] = true);
+    try {
+      // 1. Ambil list provinsi dari emsifa untuk mencocokkan nama dengan ID emsifa
+      if (_wilayahProvinces == null || _wilayahProvinces!.isEmpty) {
+        _wilayahProvinces = await _service.getWilayahProvinces();
+      }
+
+      final normalizedProvince = _normalizeName(province['name']);
+      final wProv = _wilayahProvinces?.find((p) => _normalizeName(p['name']) == normalizedProvince);
+
+      if (wProv == null) {
+        debugPrint("Provinsi tidak ditemukan di API emsifa: $normalizedProvince");
+        return;
+      }
+
+      // 2. Fetch kota menggunakan ID emsifa (wProv['id'])
+      final cities = await _service.getCitiesAndRegencies(wProv['id']);
+      setState(() {
+        _citiesData[questionId] = cities;
+      });
+    } finally {
+      setState(() => _locationLoading[questionId] = false);
+    }
+  }
+
+  Future<void> _fetchDistricts(int questionId, dynamic cityId) async {
+    if (cityId == null) return;
+
+    setState(() => _locationLoading[questionId] = true);
+    try {
+      final districts = await _service.getWilayahDistricts(cityId);
+      setState(() {
+        _districtsData[questionId] = districts;
+      });
+    } finally {
+      setState(() => _locationLoading[questionId] = false);
+    }
+  }
+
+  Future<void> _fetchVillages(int questionId, dynamic districtId) async {
+    if (districtId == null) return;
+    setState(() => _locationLoading[questionId] = true);
+    try {
+      final villages = await _service.getWilayahVillages(districtId);
+      setState(() {
+        _villagesData[questionId] = villages;
+      });
+    } finally {
+      setState(() => _locationLoading[questionId] = false);
+    }
+  }
+
   List<Map<String, dynamic>> get _provinces {
     // Use API data if available
     if (_data?.provinceTargets != null && _data!.provinceTargets.isNotEmpty) {
@@ -1011,10 +1087,17 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   Widget _buildAnswerInput(SurveyQuestionData q) {
+    // Prioritaskan tipe 11 (Location Dropdown)
+    if (q.questionTypeId == 11) {
+      return _buildLocationDropdown(q);
+    }
+
     if (_isProvinceQuestion(q)) {
       return _buildProvinceDropdown(q);
     }
     switch (q.typeString) {
+      case 'location_dropdown':
+        return _buildLocationDropdown(q);
       case 'phone':
         return _buildPhoneInput(q);
       case 'radio':
@@ -1036,6 +1119,156 @@ class _SubmissionPageState extends State<SubmissionPage> {
       default:
         return const SizedBox();
     }
+  }
+
+  Widget _buildLocationDropdown(SurveyQuestionData q) {
+    final Map<String, dynamic> currentAnswer = _answers[q.id] is Map
+        ? Map<String, dynamic>.from(_answers[q.id] as Map)
+        : {};
+
+    final locationData = currentAnswer['locationDropdown'] is Map
+        ? Map<String, dynamic>.from(currentAnswer['locationDropdown'] as Map)
+        : {'province': '', 'city': '', 'district': '', 'village': ''};
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── PROVINCE ──────────────────────────────────────────
+        _buildLocationLabel("Pilih Provinsi"),
+        DropdownButtonFormField<String>(
+          value: locationData['province']?.toString().isEmpty == true ? null : locationData['province']?.toString(),
+          items: _provinces.map((p) {
+            return DropdownMenuItem<String>(
+              value: p['id'].toString(),
+              child: Text(p['name'].toString(), style: const TextStyle(fontSize: 12)),
+            );
+          }).toList(),
+          onChanged: (val) {
+            setState(() {
+              locationData['province'] = val ?? '';
+              locationData['city'] = '';
+              locationData['district'] = '';
+              locationData['village'] = '';
+              _answers[q.id] = {'locationDropdown': locationData};
+              if (val != null && val.isNotEmpty) {
+                _fetchCitiesAndRegencies(q.id, val);
+                _errors.remove(q.id);
+              }
+            });
+          },
+          decoration: _locationInputDecoration("Pilih Provinsi"),
+        ),
+        
+        // ── CITY / REGENCY ────────────────────────────────────
+        if (q.includeCityRegency && locationData['province']?.toString().isNotEmpty == true) ...[
+          const SizedBox(height: 12),
+          _buildLocationLabel("Pilih Kota/Kabupaten"),
+          DropdownButtonFormField<String>(
+            value: locationData['city']?.toString().isEmpty == true ? null : locationData['city']?.toString(),
+            items: (_citiesData[q.id] ?? []).map((c) {
+              return DropdownMenuItem<String>(
+                value: c['id'].toString(),
+                child: Text(c['name'].toString(), style: const TextStyle(fontSize: 12)),
+              );
+            }).toList(),
+            onChanged: (val) {
+              setState(() {
+                locationData['city'] = val ?? '';
+                locationData['district'] = '';
+                locationData['village'] = '';
+                _answers[q.id] = {'locationDropdown': locationData};
+                if (val != null && val.isNotEmpty) {
+                  if (q.includeDistrictVillage) {
+                    _fetchDistricts(q.id, val);
+                  }
+                  _errors.remove(q.id);
+                }
+              });
+            },
+            decoration: _locationInputDecoration(
+              _locationLoading[q.id] == true ? "Memuat..." : "Pilih Kota/Kabupaten"
+            ),
+          ),
+        ],
+
+        // ── DISTRICT ──────────────────────────────────────────
+        if (q.includeDistrictVillage && locationData['city']?.toString().isNotEmpty == true) ...[
+          const SizedBox(height: 12),
+          _buildLocationLabel("Pilih Kecamatan"),
+          DropdownButtonFormField<String>(
+            value: locationData['district']?.toString().isEmpty == true ? null : locationData['district']?.toString(),
+            items: (_districtsData[q.id] ?? []).map((d) {
+              return DropdownMenuItem<String>(
+                value: d['id'].toString(),
+                child: Text(d['name'].toString(), style: const TextStyle(fontSize: 12)),
+              );
+            }).toList(),
+            onChanged: (val) {
+              setState(() {
+                locationData['district'] = val ?? '';
+                final dist = _districtsData[q.id]?.find((d) => d['id'].toString() == val.toString());
+                locationData['district_name'] = dist?['name'] ?? '';
+                locationData['village'] = '';
+                _answers[q.id] = {'locationDropdown': locationData};
+                if (val != null && val.isNotEmpty) {
+                  _fetchVillages(q.id, val);
+                }
+              });
+            },
+            decoration: _locationInputDecoration(
+              _locationLoading[q.id] == true ? "Memuat..." : "Pilih Kecamatan"
+            ),
+          ),
+        ],
+
+        // ── VILLAGE ───────────────────────────────────────────
+        if (q.includeDistrictVillage && locationData['district']?.toString().isNotEmpty == true) ...[
+          const SizedBox(height: 12),
+          _buildLocationLabel("Pilih Desa/Kelurahan"),
+          DropdownButtonFormField<String>(
+            value: locationData['village']?.toString().isEmpty == true ? null : locationData['village']?.toString(),
+            items: (_villagesData[q.id] ?? []).map((v) {
+              return DropdownMenuItem<String>(
+                value: v['name'].toString(),
+                child: Text(v['name'].toString(), style: const TextStyle(fontSize: 12)),
+              );
+            }).toList(),
+            onChanged: (val) {
+              setState(() {
+                locationData['village'] = val ?? '';
+                _answers[q.id] = {'locationDropdown': locationData};
+              });
+            },
+            decoration: _locationInputDecoration(
+              _locationLoading[q.id] == true ? "Memuat..." : "Pilih Desa/Kelurahan"
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildLocationLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppTheme.monTextMid),
+      ),
+    );
+  }
+
+  InputDecoration _locationInputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+      filled: true,
+      fillColor: Colors.grey.shade50,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.monGreenMid, width: 2)),
+    );
   }
 
   Widget _buildAttachmentInput(SurveyQuestionData q) {
@@ -1957,6 +2190,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
         case 2: // Radio
         case 7: // Dropdown
           return {q.questionTypeId == 2 ? 'radios' : 'dropdowns': ''};
+        case 11: // Location Dropdown
+          return {'locationDropdown': {}};
         default:
           return {'texts': ''};
       }
@@ -1997,6 +2232,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
           'fileName': kIsWeb ? answer.toString() : null,
           // Do NOT include fileBytes here as it's for JSON encoding
         };
+      case 11: // Location Dropdown
+        return {
+          'locationDropdown': answer is Map ? (answer['locationDropdown'] ?? answer) : {}
+        };
       default:
         return {'texts': answer.toString()};
     }
@@ -2016,5 +2255,15 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
     // Mengembalikan raw Map agar tidak terjadi double JSON encode di backend
     return result;
+  }
+}
+
+extension FindFirst<T> on Iterable<T> {
+  T? find(bool Function(T) test) {
+    try {
+      return firstWhere(test);
+    } catch (_) {
+      return null;
+    }
   }
 }
