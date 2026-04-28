@@ -28,13 +28,37 @@ jobs:
         export LC_ALL=en_US.UTF-8
         # Force deployment target to 13.0 in project file
         sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 13.0/g' ios/Runner.xcodeproj/project.pbxproj
-        # Create/Update Podfile with 13.0 target
+        
+        # Ensure Podfile exists
         if [ ! -f ios/Podfile ]; then
           cd ios && flutter pub get && cd ..
         fi
-        echo "platform :ios, '13.0'" > ios/Podfile.tmp
-        cat ios/Podfile >> ios/Podfile.tmp || true
-        mv ios/Podfile.tmp ios/Podfile
+        
+        # Inject platform and post_install hook into Podfile
+        python3 - << 'PYEOF'
+        import re, pathlib
+        podfile_path = pathlib.Path("ios/Podfile")
+        podfile = podfile_path.read_text() if podfile_path.exists() else ""
+        
+        # Ensure platform is set
+        if not re.search(r"^platform :ios", podfile, re.MULTILINE):
+            podfile = "platform :ios, '13.0'\n" + podfile
+            
+        # Replace or add post_install hook
+        podfile = re.sub(r'post_install do \|installer\|.*?^end\n', '', podfile, flags=re.DOTALL | re.MULTILINE)
+        podfile += """
+        post_install do |installer|
+          installer.pods_project.targets.each do |target|
+            flutter_additional_ios_build_settings(target)
+            target.build_configurations.each do |config|
+              config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+            end
+          end
+        end
+        """
+        podfile_path.write_text(podfile)
+        PYEOF
+        
         cd ios && pod install --repo-update
 
     - name: Build iOS
