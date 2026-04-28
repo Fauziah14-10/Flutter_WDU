@@ -16,54 +16,28 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.41.8'
+        flutter-version: '3.27.1'
         channel: 'stable'
 
     - name: Install dependencies
       run: flutter pub get
 
-    - name: Disable code signing
+    - name: Set up CocoaPods
       run: |
-        sed -i '' 's/DEVELOPMENT_TEAM = [A-Z0-9]*;/DEVELOPMENT_TEAM = "";/g' ios/Runner.xcodeproj/project.pbxproj
-        sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
-
-    - name: Fix Podfile
-      run: |
-        python3 - << 'PYEOF'
-        import re, pathlib
-        podfile = pathlib.Path("ios/Podfile").read_text()
-        podfile = re.sub(r'post_install do \|installer\|.*?^end\n', '', podfile, flags=re.DOTALL | re.MULTILINE)
-        podfile += "\npost_install do |installer|\n  installer.pods_project.targets.each do |target|\n    flutter_additional_ios_build_settings(target)\n    target.build_configurations.each do |config|\n      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'\n    end\n  end\nend\n"
-        pathlib.Path("ios/Podfile").write_text(podfile)
-        PYEOF
-        cd ios && rm -f Podfile.lock && pod install --repo-update
+        export LANG=en_US.UTF-8
+        export LC_ALL=en_US.UTF-8
+        cd ios && pod install --repo-update
 
     - name: Build iOS
       run: |
-        FLUTTER_ROOT=$(dirname $(dirname $(which flutter)))
-        set -o pipefail
-        xcodebuild \
-          -workspace ios/Runner.xcworkspace \
-          -scheme Runner \
-          -configuration Release \
-          -sdk iphoneos \
-          -derivedDataPath build/ios/output \
-          FLUTTER_ROOT="$FLUTTER_ROOT" \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO \
-          CODE_SIGN_IDENTITY="" \
-          DEVELOPMENT_TEAM="" \
-          PROVISIONING_PROFILE="" \
-          PROVISIONING_PROFILE_SPECIFIER="" \
-          COMPILER_INDEX_STORE_ENABLE=NO \
-          2>&1 | grep -E "error:|warning:|BUILD"
+        flutter build ios --release --no-codesign
+
     - name: Create Payload directory
       run: mkdir -p build/ios/iphoneos/Payload
 
     - name: Move app to Payload
       run: |
-        APP=$(find build/ios/output -name "Runner.app" -type d | head -1)
-        cp -r "$APP" build/ios/iphoneos/Payload/
+        cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
 
     - name: Create IPA
       run: cd build/ios/iphoneos && zip -r SIS-WDU-App.ipa Payload
