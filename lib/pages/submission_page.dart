@@ -15,7 +15,7 @@ import 'package:geolocator/geolocator.dart';
 import 'survey_summary_page.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:html' as html;
+import '../core/utils/web_picker/web_picker.dart';
 import 'dart:typed_data';
 
 class SubmissionPage extends StatefulWidget {
@@ -1445,23 +1445,12 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
   Future<void> _pickAttachment(int questionId) async {
     if (kIsWeb) {
-      final input = html.FileUploadInputElement();
-      input.accept = 'image/*,audio/*,video/*,.pdf,.doc,.docx';
-      input.click();
-
-      input.onChange.listen((event) {
-        final file = input.files!.first;
-        final reader = html.FileReader();
-        reader.readAsArrayBuffer(file);
-        reader.onLoadEnd.listen((event) {
-          final bytes = reader.result as Uint8List;
-          final blobUrl = html.Url.createObjectUrlFromBlob(file);
-          setState(() {
-            _answers[questionId] = file.name;
-            _attachmentBytes[questionId] = bytes;
-            _attachmentBlobUrls[questionId] = blobUrl;
-            _errors.remove(questionId);
-          });
+      WebFilePicker.pickFile((name, bytes, blobUrl) {
+        setState(() {
+          _answers[questionId] = name;
+          _attachmentBytes[questionId] = bytes;
+          _attachmentBlobUrls[questionId] = blobUrl;
+          _errors.remove(questionId);
         });
       });
     } else {
