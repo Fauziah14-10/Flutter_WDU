@@ -2,9 +2,9 @@ name: Build iOS
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, fadel/update ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, fadel/update ]
 
 jobs:
   build-ios:
@@ -16,11 +16,17 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.29.0'
+        flutter-version: '3.27.0' # Menggunakan versi yang lebih stabil sesuai pubspec
         channel: 'stable'
+        cache: true
     
     - name: Install dependencies
       run: flutter pub get
+    
+    - name: Install CocoaPods
+      run: |
+        cd ios
+        pod install --repo-update
     
     - name: Build iOS
       run: flutter build ios --release --no-codesign
