@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Location Dropdown System**: Implemented multi-level location selection (Province -> City -> District -> Village) with support for "Include City/Regency" and "Include District/Village" settings. *By Fadel
 - **Direct Location API**: Integrated direct fetching from the emsifa Indonesian region API for faster performance, bypassing the backend proxy. *By Fadel
 - **Smart ID Mapping**: Added name-based normalization and mapping to synchronize project-specific internal province IDs with the emsifa API's IDs. *By Fadel
+- **Survey Status Validation on ListSurvey**: If the survey is closed, users won't be able to fill survey.
 
 ### Fixed
 - **Dropdown Logic**: Resolved an issue where location dropdowns only appeared as text labels; implemented real-time fetching triggers and state management for nested selections. *By Fadel

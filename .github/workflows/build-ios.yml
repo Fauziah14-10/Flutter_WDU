@@ -40,6 +40,7 @@ jobs:
 
     - name: Build iOS
       run: |
+        set -o pipefail
         xcodebuild \
           -workspace ios/Runner.xcworkspace \
           -scheme Runner \
@@ -50,7 +51,13 @@ jobs:
           CODE_SIGNING_ALLOWED=NO \
           CODE_SIGN_IDENTITY="" \
           DEVELOPMENT_TEAM="" \
-          COMPILER_INDEX_STORE_ENABLE=NO
+          PROVISIONING_PROFILE="" \
+          PROVISIONING_PROFILE_SPECIFIER="" \
+          SKIP_INSTALL=NO \
+          COMPILER_INDEX_STORE_ENABLE=NO \
+          2>&1 | tee /tmp/xcode_build.log
+        echo "--- ERRORS ---"
+        grep -E "error:|BUILD FAILED" /tmp/xcode_build.log || true
 
     - name: Create Payload directory
       run: mkdir -p build/ios/iphoneos/Payload
