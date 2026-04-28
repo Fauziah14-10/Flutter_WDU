@@ -63,20 +63,20 @@ jobs:
 
     - name: Build iOS
       run: |
-        flutter build ios --release --no-codesign
+        flutter build ios --release --simulator --no-codesign
 
     - name: Create Payload directory
-      run: mkdir -p build/ios/iphoneos/Payload
+      run: mkdir -p build/ios/iphonesimulator/Payload
 
     - name: Move app to Payload
       run: |
-        cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+        cp -r build/ios/iphonesimulator/Runner.app build/ios/iphonesimulator/Payload/
 
     - name: Create IPA
-      run: cd build/ios/iphoneos && zip -r SIS-WDU-App.ipa Payload
+      run: cd build/ios/iphonesimulator && zip -r SIS-WDU-App.ipa Payload
 
     - name: Upload IPA artifact
       uses: actions/upload-artifact@v4
       with:
         name: SIS-WDU-App-${{ github.sha }}
-        path: build/ios/iphoneos/SIS-WDU-App.ipa
+        path: build/ios/iphonesimulator/SIS-WDU-App.ipa
