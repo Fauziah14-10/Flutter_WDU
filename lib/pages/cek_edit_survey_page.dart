@@ -12,7 +12,6 @@ class CekEditSurveyPage extends StatefulWidget {
   final String clientSlug;
   final String projectSlug;
   final int responseId;
-  // ← userId TIDAK perlu di-passing dari luar, diambil otomatis dari storage
 
   const CekEditSurveyPage({
     super.key,
@@ -66,7 +65,6 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
     try {
       final response = await _api.get(Endpoints.me);
       if (response.data != null) {
-        // Handle root 'id' or nested 'data.id'
         final id =
             response.data!['id'] ??
             (response.data!['data'] is Map
@@ -75,7 +73,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
         return id?.toString();
       }
     } catch (e) {
-      debugPrint("Error fetch current user: $e");
+      debugPrint("[CekEditSurveyPage] Error fetch current user: $e");
     }
     return null;
   }
@@ -89,16 +87,11 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
 
     int userId = 0;
     try {
-      // Ambil userId dari API /user untuksinkron dengan token Bearer yang aktif
       String? userIdStr = await _fetchCurrentUserId();
-
-      // Fallback ke storage jika API gagal
       userIdStr ??= await StorageHelper.getUserId();
       userId = int.tryParse(userIdStr ?? '') ?? 0;
-      print("DEBUG _loadData - userId: $userId");
 
       if (userId == 0) {
-        debugPrint("userId tidak ditemukan di storage");
         await _loadEmptyForm();
         return;
       }
@@ -110,16 +103,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
         userId: userId,
       );
 
-      print("DEBUG _loadData - data returned: ${data != null}");
       if (data != null) {
-        print(
-          "DEBUG _loadData - pages: ${data.pages.length}, answers: ${data.answers.length}, responseId: ${data.responseId}",
-        );
-        for (var i = 0; i < data.answers.length; i++) {
-          print(
-            "DEBUG Answer[$i]: QID=${data.answers[i].questionId}, Ans=${data.answers[i].answer}",
-          );
-        }
         surveyData = data;
 
         // Ambil responseId dari top-level atau cari dari jawaban yang ada
@@ -129,7 +113,6 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
 
         if ((_activeResponseId == null || _activeResponseId == 0) &&
             data.answers.isNotEmpty) {
-          // Cari jawaban pertama yang punya responseId > 0
           try {
             _activeResponseId = data.answers
                 .firstWhere((a) => a.responseId > 0)
@@ -147,15 +130,10 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
         answers = Map<int, dynamic>.from(parsed);
         originalAnswers = Map<int, dynamic>.from(parsed);
       } else {
-        // Data null - berarti belum pernah mengisi kuisioner
-        // Langsung coba ambil form kosong untuk dialihkan ke halaman isi kuisioner
         await _loadEmptyForm();
       }
     } on ApiException catch (e) {
-      debugPrint("API Error: ${e.message}");
-
       if (e.statusCode == 404 && mounted) {
-        // 404 = belum pernah isi kuisioner, coba ambil form kosong
         await _loadEmptyForm();
       } else if (mounted) {
         setState(() => loadError = e.message);
@@ -164,8 +142,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
         ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (e) {
-      debugPrint("Error loading survey data: $e");
-      // Kalau gagal ambil data, coba ambil form kosong untuk isi baru
+      debugPrint("[CekEditSurveyPage] Error loading survey data: $e");
       await _loadEmptyForm();
     } finally {
       if (mounted && isLoading) {
@@ -191,7 +168,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
         setState(() => loadError = "Form kuisioner tidak ditemukan");
       }
     } catch (e) {
-      debugPrint("Gagal mengambil form kosong: $e");
+      debugPrint("[CekEditSurveyPage] Gagal mengambil form kosong: $e");
       if (mounted) {
         setState(() => loadError = "Gagal memuat form kuisioner");
       }
@@ -228,7 +205,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
           );
         }
       } catch (e) {
-        debugPrint("Error submit new: $e");
+        debugPrint("[CekEditSurveyPage] Error submit new: $e");
         if (mounted) {
           ScaffoldMessenger.of(
             context,
@@ -275,7 +252,7 @@ class _CekEditSurveyPageState extends State<CekEditSurveyPage>
           );
         }
       } catch (e) {
-        debugPrint("Error submit edit: $e");
+        debugPrint("[CekEditSurveyPage] Error submit edit: $e");
         if (mounted) {
           ScaffoldMessenger.of(
             context,

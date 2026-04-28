@@ -36,33 +36,22 @@ class StorageHelper {
 
   /// Simpan JWT token secara aman
   static Future<void> saveToken(String token) async {
-    debugPrint(
-      '[Storage] Saving token: ${token.substring(0, token.length > 20 ? 20 : token.length)}...',
-    );
     await _secure.write(key: _keyToken, value: token);
   }
 
   /// Ambil JWT token
   static Future<String?> getToken() async {
-    final token = await _secure.read(key: _keyToken);
-    debugPrint(
-      '[Storage] getToken: ${token != null ? "exists (${token.length} chars)" : "NULL"}',
-    );
-    return token;
+    return await _secure.read(key: _keyToken);
   }
 
   /// Cek apakah token tersedia
   static Future<bool> hasToken() async {
     final token = await _secure.read(key: _keyToken);
-    debugPrint(
-      '[Storage] hasToken check: ${token != null && token.isNotEmpty} (token: ${token != null ? "exists" : "NULL"})',
-    );
     return token != null && token.isNotEmpty;
   }
 
   /// Hapus token (saat logout)
   static Future<void> deleteToken() async {
-    debugPrint('[Storage] deleteToken called - clearing token');
     await _secure.delete(key: _keyToken);
   }
 
@@ -233,7 +222,7 @@ class StorageHelper {
 
       return data;
     } catch (e) {
-      debugPrint('Error getDraftSurvey: $e');
+      debugPrint('[StorageHelper] Error getDraftSurvey: $e');
       return null;
     }
   }

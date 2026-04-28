@@ -59,12 +59,6 @@ class DashboardProvider extends ChangeNotifier {
       clientsLoading = true;
       notifyListeners();
 
-      // DEBUG: Check token before request
-      final token = await StorageHelper.getToken();
-      debugPrint(
-        '[DashboardProvider] loadClients - Token: ${token != null ? "exists (${token.length} chars)" : "NULL"}',
-      );
-
       final data = await _clientService.getDashboardData();
 
       final List<dynamic> rawClients =
@@ -72,14 +66,12 @@ class DashboardProvider extends ChangeNotifier {
       final List<dynamic> rawProjects =
           (data['userProjects'] as List<dynamic>?) ?? [];
 
-      // ✅ debug per item untuk cari yang error
       clients = [];
       for (final e in rawClients) {
         try {
           clients.add(Client.fromJson(e));
         } catch (err) {
-          print('Error parse Client: $err');
-          print('Data: $e');
+          debugPrint('[DashboardProvider] Error parse Client: $err');
         }
       }
 
@@ -100,17 +92,13 @@ class DashboardProvider extends ChangeNotifier {
 
           projects.add(p);
         } catch (err) {
-          print('Error parse UserProject: $err');
-          print('Data: $e');
+          debugPrint('[DashboardProvider] Error parse UserProject: $err');
         }
       }
 
-      print('Clients parsed: ${clients.length}');
-      print('Projects parsed: ${projects.length}');
-
       error = null;
     } catch (e) {
-      print('Error loadClients: $e');
+      debugPrint('[DashboardProvider] Error loadClients: $e');
       error = e.toString();
     } finally {
       clientsLoading = false;

@@ -90,11 +90,6 @@ class ApiClient {
     if (requireAuth) {
       final token = await StorageHelper.getToken();
 
-      // DEBUG: Log token presence
-      debugPrint(
-        '[API] Token check: ${token != null ? "exists (${token.length} chars)" : "NULL/EMPTY"}',
-      );
-
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
@@ -104,12 +99,11 @@ class ApiClient {
   }
 
   // ── LOG REQUEST (hanya di debug mode) ──────────────────────
-  void _logRequest(
-    String method,
-    String url, {
-    dynamic body,
-    Map<String, String>? headers,
-  }) {}
+  void _logRequest(String method, String url) {
+    if (kDebugMode) {
+      debugPrint('🚀 [API] $method $url');
+    }
+  }
 
   // ── HANDLE RESPONSE ────────────────────────────────────────
   ApiResponse<Map<String, dynamic>> _handleResponse(http.Response response) {
@@ -131,12 +125,8 @@ class ApiClient {
         stackTrace: st,
         category: 'API',
       );
-      AppLogger.warning(
-        'Response Body Snippet: ${response.body.length > 500 ? response.body.substring(0, 500) + "..." : response.body}',
-        category: 'API',
-      );
       throw ServerException(
-        'Gagal memproses data server (Error ${response.statusCode}). Pastikan endpoint API sudah benar.',
+        'Gagal memproses data server (Error ${response.statusCode}).',
       );
     }
 
@@ -184,7 +174,6 @@ class ApiClient {
   Future<void> _validateToken() async {
     final token = await StorageHelper.getToken();
     if (token == null || token.isEmpty) {
-      debugPrint('[API] Token is NULL or EMPTY - triggering logout');
       throw UnauthorizedException();
     }
   }
@@ -206,6 +195,7 @@ class ApiClient {
         uri = uri.replace(queryParameters: queryParams);
       }
 
+      _logRequest('GET', uri.toString());
       final headers = await _buildHeaders(requireAuth: requireAuth);
       final response = await _client
           .get(uri, headers: headers)
@@ -220,7 +210,7 @@ class ApiClient {
         category: 'API',
       );
       throw ApiException(
-        'Tidak dapat terhubung ke server. Pastikan backend menyala dan IP/Firewall benar.',
+        'Tidak dapat terhubung ke server.',
         statusCode: 0,
       );
     } on TimeoutException catch (e, st) {
@@ -231,7 +221,7 @@ class ApiClient {
         category: 'API',
       );
       throw ApiException(
-        'Koneksi ke server timeout (30s). Periksa koneksi internet atau Firewall Anda.',
+        'Koneksi ke server timeout.',
         statusCode: 408,
       );
     } on HttpException catch (e, st) {
@@ -266,6 +256,7 @@ class ApiClient {
 
     try {
       final uri = Uri.parse('${Endpoints.baseUrl}$endpoint');
+      _logRequest('POST', uri.toString());
       final encodedBody = jsonEncode(body);
 
       final headers = await _buildHeaders(requireAuth: requireAuth);
@@ -282,7 +273,7 @@ class ApiClient {
         category: 'API',
       );
       throw ApiException(
-        'Tidak dapat terhubung ke server. Pastikan backend menyala dan IP/Firewall benar.',
+        'Tidak dapat terhubung ke server.',
         statusCode: 0,
       );
     } on TimeoutException catch (e, st) {
@@ -293,17 +284,9 @@ class ApiClient {
         category: 'API',
       );
       throw ApiException(
-        'Koneksi ke server timeout (30s). Periksa koneksi internet atau Firewall Anda.',
+        'Koneksi ke server timeout.',
         statusCode: 408,
       );
-    } on HttpException catch (e, st) {
-      AppLogger.error(
-        'HttpException pada POST $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw NetworkException();
     } catch (e, st) {
       AppLogger.error(
         'Unexpected error pada POST $endpoint',
@@ -328,6 +311,7 @@ class ApiClient {
 
     try {
       final uri = Uri.parse('${Endpoints.baseUrl}$endpoint');
+      _logRequest('PUT', uri.toString());
       final encodedBody = jsonEncode(body);
 
       final headers = await _buildHeaders(requireAuth: requireAuth);
@@ -336,39 +320,9 @@ class ApiClient {
           .timeout(_timeout);
 
       return _handleResponse(response);
-    } on SocketException catch (e, st) {
-      AppLogger.error(
-        'SocketException pada PUT $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw ApiException(
-        'Tidak dapat terhubung ke server. Pastikan backend menyala dan IP/Firewall benar.',
-        statusCode: 0,
-      );
-    } on TimeoutException catch (e, st) {
-      AppLogger.error(
-        'TimeoutException pada PUT $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw ApiException(
-        'Koneksi ke server timeout (30s). Periksa koneksi internet atau Firewall Anda.',
-        statusCode: 408,
-      );
-    } on HttpException catch (e, st) {
-      AppLogger.error(
-        'HttpException pada PUT $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw NetworkException();
     } catch (e, st) {
       AppLogger.error(
-        'Unexpected error pada PUT $endpoint',
+        'Error pada PUT $endpoint',
         error: e,
         stackTrace: st,
         category: 'API',
@@ -390,6 +344,7 @@ class ApiClient {
 
     try {
       final uri = Uri.parse('${Endpoints.baseUrl}$endpoint');
+      _logRequest('PATCH', uri.toString());
       final encodedBody = jsonEncode(body);
 
       final headers = await _buildHeaders(requireAuth: requireAuth);
@@ -398,39 +353,9 @@ class ApiClient {
           .timeout(_timeout);
 
       return _handleResponse(response);
-    } on SocketException catch (e, st) {
-      AppLogger.error(
-        'SocketException pada PATCH $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw ApiException(
-        'Tidak dapat terhubung ke server. Pastikan backend menyala dan IP/Firewall benar.',
-        statusCode: 0,
-      );
-    } on TimeoutException catch (e, st) {
-      AppLogger.error(
-        'TimeoutException pada PATCH $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw ApiException(
-        'Koneksi ke server timeout (30s). Periksa koneksi internet atau Firewall Anda.',
-        statusCode: 408,
-      );
-    } on HttpException catch (e, st) {
-      AppLogger.error(
-        'HttpException pada PATCH $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw NetworkException();
     } catch (e, st) {
       AppLogger.error(
-        'Unexpected error pada PATCH $endpoint',
+        'Error pada PATCH $endpoint',
         error: e,
         stackTrace: st,
         category: 'API',
@@ -452,6 +377,7 @@ class ApiClient {
 
     try {
       final uri = Uri.parse('${Endpoints.baseUrl}$endpoint');
+      _logRequest('POST (Multipart)', uri.toString());
       final request = http.MultipartRequest('POST', uri);
 
       final headers = await _buildHeaders(requireAuth: requireAuth);
@@ -487,39 +413,13 @@ class ApiClient {
         request.fields.addAll(additionalFields);
       }
 
-      debugPrint('📤 [API] Sending multipart request to: ${uri.toString()}');
       final streamedResponse = await request.send().timeout(const Duration(minutes: 2));
-      debugPrint('📥 [API] Streamed response received: ${streamedResponse.statusCode}');
-      
       final response = await http.Response.fromStream(streamedResponse);
-      debugPrint('📄 [API] Full response body received (${response.body.length} bytes)');
 
       return _handleResponse(response);
-    } on SocketException catch (e, st) {
-      AppLogger.error(
-        'SocketException pada POST with files $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw ApiException(
-        'Tidak dapat terhubung ke server. Pastikan backend menyala dan IP/Firewall benar.',
-        statusCode: 0,
-      );
-    } on TimeoutException catch (e, st) {
-      AppLogger.error(
-        'TimeoutException pada POST with files $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw ApiException(
-        'Koneksi ke server timeout (30s). Periksa koneksi internet atau Firewall Anda.',
-        statusCode: 408,
-      );
     } catch (e, st) {
       AppLogger.error(
-        'Unexpected error pada POST with files $endpoint',
+        'Error pada POST with files $endpoint',
         error: e,
         stackTrace: st,
         category: 'API',
@@ -543,6 +443,7 @@ class ApiClient {
 
     try {
       final uri = Uri.parse('${Endpoints.baseUrl}$endpoint');
+      _logRequest('POST (Multipart-Single)', uri.toString());
       final request = http.MultipartRequest('POST', uri);
 
       final headers = await _buildHeaders(requireAuth: requireAuth);
@@ -565,39 +466,13 @@ class ApiClient {
         request.fields.addAll(additionalFields);
       }
 
-      debugPrint('📤 [API] Sending multipart request to: ${uri.toString()}');
       final streamedResponse = await request.send().timeout(const Duration(minutes: 2));
-      debugPrint('📥 [API] Streamed response received: ${streamedResponse.statusCode}');
-      
       final response = await http.Response.fromStream(streamedResponse);
-      debugPrint('📄 [API] Full response body received (${response.body.length} bytes)');
 
       return _handleResponse(response);
-    } on SocketException catch (e, st) {
-      AppLogger.error(
-        'SocketException pada POST with file $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw ApiException(
-        'Tidak dapat terhubung ke server. Pastikan backend menyala dan IP/Firewall benar.',
-        statusCode: 0,
-      );
-    } on TimeoutException catch (e, st) {
-      AppLogger.error(
-        'TimeoutException pada POST with file $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw ApiException(
-        'Koneksi ke server timeout (30s). Periksa koneksi internet atau Firewall Anda.',
-        statusCode: 408,
-      );
     } catch (e, st) {
       AppLogger.error(
-        'Unexpected error pada POST with file $endpoint',
+        'Error pada POST with file $endpoint',
         error: e,
         stackTrace: st,
         category: 'API',
@@ -619,6 +494,7 @@ class ApiClient {
 
     try {
       final uri = Uri.parse('${Endpoints.baseUrl}$endpoint');
+      _logRequest('DELETE', uri.toString());
 
       final headers = await _buildHeaders(requireAuth: requireAuth);
       final response = await _client
@@ -626,39 +502,9 @@ class ApiClient {
           .timeout(_timeout);
 
       return _handleResponse(response);
-    } on SocketException catch (e, st) {
-      AppLogger.error(
-        'SocketException pada DELETE $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw ApiException(
-        'Tidak dapat terhubung ke server. Pastikan backend menyala dan IP/Firewall benar.',
-        statusCode: 0,
-      );
-    } on TimeoutException catch (e, st) {
-      AppLogger.error(
-        'TimeoutException pada DELETE $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw ApiException(
-        'Koneksi ke server timeout (30s). Periksa koneksi internet atau Firewall Anda.',
-        statusCode: 408,
-      );
-    } on HttpException catch (e, st) {
-      AppLogger.error(
-        'HttpException pada DELETE $endpoint',
-        error: e,
-        stackTrace: st,
-        category: 'API',
-      );
-      throw NetworkException();
     } catch (e, st) {
       AppLogger.error(
-        'Unexpected error pada DELETE $endpoint',
+        'Error pada DELETE $endpoint',
         error: e,
         stackTrace: st,
         category: 'API',

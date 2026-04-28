@@ -7,19 +7,15 @@ class ClientService {
   final _api = ApiClient();
 
   // client_service.dart
-Future<Map<String, dynamic>> getDashboardData() async {
-  final response = await _api.get(Endpoints.clients);
+  Future<Map<String, dynamic>> getDashboardData() async {
+    final response = await _api.get(Endpoints.clients);
 
-  print('── GET DASHBOARD ────────────────────');
-  print('response.data: ${response.data}');
-  print('────────────────────────────────────');
+    if (response.data == null) {
+      throw Exception('Response data is null');
+    }
 
-  if (response.data == null) {
-    throw Exception('Response data is null');
+    return response.data!;
   }
-
-  return response.data!;
-}
 
   Future<List<Client>> getClients() async {
     final response = await _api.get(Endpoints.clients);

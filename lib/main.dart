@@ -50,19 +50,6 @@ void main() async {
 
   AppLogger.info('App started', category: 'App');
 
-  // DEBUG: Check token status at app start
-  final hasToken = await StorageHelper.hasToken();
-  final token = await StorageHelper.getToken();
-  debugPrint(
-    '[Main] App start - hasToken: $hasToken, token exists: ${token != null}',
-  );
-  if (token != null) {
-    debugPrint('[Main] Token length: ${token.length}');
-    debugPrint(
-      '[Main] Token preview: ${token.substring(0, token.length > 30 ? 30 : token.length)}...',
-    );
-  }
-
   final isLoggedIn = await StorageHelper.hasToken();
   final lastRoute = await StorageHelper.getLastRouteName();
   final lastArgs = await StorageHelper.getLastRouteArgs();
@@ -94,11 +81,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..checkSessionAndLog()),
         ChangeNotifierProvider(create: (_) => SurveyProvider()),
-        ChangeNotifierProvider(create: (_) {
-          final provider = NotificationProvider();
-          debugPrint('[Main] NotificationProvider created');
-          return provider;
-        }),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => FontSizeProvider()),
       ],
       child: Consumer<FontSizeProvider>(

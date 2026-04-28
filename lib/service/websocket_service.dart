@@ -13,6 +13,12 @@ class WebSocketService {
   PusherClient? _pusherClient;
 
   Future<void> initEcho(String token) async {
+    // pusher_client tidak mendukung Flutter Web, lewati inisialisasi untuk mencegah error di console
+    if (kIsWeb) {
+      debugPrint('[WebSocket] Skipping init on Web (Not supported)');
+      return;
+    }
+
     if (_echo != null) await disconnect();
 
     try {

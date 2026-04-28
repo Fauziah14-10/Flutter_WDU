@@ -28,11 +28,8 @@ class NotificationProvider extends ChangeNotifier {
   Future<void> init() async {
     final hasToken = await StorageHelper.hasToken();
     if (hasToken) {
-      debugPrint('[NotificationProvider] User token found, initializing...');
       await fetchNotifications();
       await setupWebSocket();
-    } else {
-      debugPrint('[NotificationProvider] No user token found, skipping WS init');
     }
   }
 
@@ -48,7 +45,6 @@ class NotificationProvider extends ChangeNotifier {
         for (var item in data) {
           _notifications.add(AppNotification.fromMap(item));
         }
-        debugPrint('[NotificationProvider] Fetched ${_notifications.length} notifications');
       }
     } catch (e) {
       debugPrint('[NotificationProvider] Fetch error: $e');
@@ -63,14 +59,12 @@ class NotificationProvider extends ChangeNotifier {
     final userId = await StorageHelper.getUserId();
 
     if (token != null && userId != null) {
-      debugPrint('[NotificationProvider] Setting up WS for User ID: $userId');
       await _ws.initEcho(token);
       
       final channelName = 'App.Models.User.$userId';
       
       // Method 1: Use the standard .notification() helper
       _ws.echo?.private(channelName).notification((notification) {
-        debugPrint('[NotificationProvider] Notification received via .notification(): $notification');
         _handleIncomingNotification(notification);
       });
 
@@ -78,7 +72,6 @@ class NotificationProvider extends ChangeNotifier {
       _ws.echo?.private(channelName).listen(
         '.Illuminate\\Notifications\\Events\\BroadcastNotificationCreated', 
         (data) {
-          debugPrint('[NotificationProvider] Notification received via .listen(): $data');
           _handleIncomingNotification(data);
         }
       );
@@ -91,7 +84,6 @@ class NotificationProvider extends ChangeNotifier {
     if (_notifications.any((n) => n.id == id)) return;
 
     // Laravel wraps data differently depending on how it's broadcasted
-    // If it comes from BroadcastNotificationCreated, it's usually inside the root or 'data'
     String title = data['title'] ?? data['data']?['title'] ?? 'Notifikasi Baru';
     String message = data['message'] ?? data['data']?['message'] ?? 'Ada pembaruan status survey.';
 
@@ -168,7 +160,7 @@ class NotificationProvider extends ChangeNotifier {
     try {
       await _audioPlayer.play(UrlSource(ringingSoundUrl));
     } catch (e) {
-      debugPrint('Error playing sound: $e');
+      debugPrint('[NotificationProvider] Error playing sound: $e');
     }
   }
 

@@ -41,47 +41,11 @@ class EditAnswerService {
         Endpoints.editAnswer(clientSlug, projectSlug, surveySlug, userId),
       );
 
-      print("DEBUG getEditAnswerData - Response: ${response.data}");
-      print("DEBUG getEditAnswerData - Status: ${response.statusCode}");
-
       if (response.data != null) {
         final dynamic data = response.data;
 
         // Handle common wrapper keys 'data', 'responses', 'survey'
         if (data is Map<String, dynamic>) {
-          print("DEBUG getEditAnswerData - Map keys: ${data.keys.toList()}");
-          print(
-            "DEBUG getEditAnswerData - Has 'answer' key: ${data.containsKey('answer')}",
-          );
-          print(
-            "DEBUG getEditAnswerData - Has 'answers' key: ${data.containsKey('answers')}",
-          );
-          print(
-            "DEBUG getEditAnswerData - Has 'response' key: ${data.containsKey('response')}",
-          );
-          print(
-            "DEBUG getEditAnswerData - Has 'responses' key: ${data.containsKey('responses')}",
-          );
-
-          // Debug answers content
-          final answerKey = data.containsKey('answer')
-              ? 'answer'
-              : (data.containsKey('answers') ? 'answers' : null);
-          if (answerKey != null) {
-            print(
-              "DEBUG getEditAnswerData - Answer content: ${data[answerKey]}",
-            );
-          }
-
-          final responseKey = data.containsKey('response')
-              ? 'response'
-              : (data.containsKey('responses') ? 'responses' : null);
-          if (responseKey != null) {
-            print(
-              "DEBUG getEditAnswerData - Response content: ${data[responseKey]}",
-            );
-          }
-
           // Check if answer is empty - try fallback to report endpoint
           final answerList =
               data['answer'] as List? ?? data['answers'] as List? ?? [];
@@ -91,9 +55,6 @@ class EditAnswerService {
           if (isAnswerEmpty &&
               responseIdFromApi != null &&
               responseIdFromApi > 0) {
-            print(
-              "DEBUG getEditAnswerData - Answer is empty, trying fallback report endpoint",
-            );
             try {
               final fallbackResponse = await _api.get(
                 Endpoints.surveyReport(
@@ -104,9 +65,6 @@ class EditAnswerService {
                 ),
               );
               if (fallbackResponse.data != null) {
-                print(
-                  "DEBUG getEditAnswerData - Fallback report response keys: ${(fallbackResponse.data as Map).keys.toList()}",
-                );
                 final fallbackData =
                     fallbackResponse.data as Map<String, dynamic>;
                 // Merge answer from fallback
@@ -114,25 +72,16 @@ class EditAnswerService {
                 if (fallbackData.containsKey('answer') &&
                     (fallbackData['answer'] as List?)?.isNotEmpty == true) {
                   mergedData['answer'] = fallbackData['answer'];
-                  print(
-                    "DEBUG getEditAnswerData - Using answers from fallback",
-                  );
                   return SurveyResponseDetail.fromJson(mergedData);
                 } else if (fallbackData.containsKey('answers') &&
                     (fallbackData['answers'] as List?)?.isNotEmpty == true) {
                   mergedData['answers'] = fallbackData['answers'];
-                  print(
-                    "DEBUG getEditAnswerData - Using answers from fallback (answers key)",
-                  );
                   return SurveyResponseDetail.fromJson(mergedData);
                 }
               }
             } catch (e) {
-              print("DEBUG getEditAnswerData - Fallback error: $e");
+              debugPrint("[EditAnswerService] Fallback error: $e");
             }
-
-            // Note: /responses/{responseId} endpoint tidak tersedia di backend
-            // Commented out until backend fix
           }
 
           if (data.containsKey('data') &&
@@ -160,7 +109,7 @@ class EditAnswerService {
     } on ApiException {
       rethrow;
     } catch (e, st) {
-      print("getEditAnswerData ERROR: $e\n$st");
+      debugPrint("[EditAnswerService] getEditAnswerData ERROR: $e\n$st");
       // Jika error, coba fallback ke form kosong agar tidak stuck blank
       return await getSurveyFormKosong(
         clientSlug: clientSlug,
@@ -183,13 +132,13 @@ class EditAnswerService {
     try {
       final payload = _buildPayload(pages, currentAnswers);
 
-      final response = await _api.patch(
+      await _api.patch(
         Endpoints.changeAnswer(clientSlug, projectSlug, surveySlug, responseId),
         body: payload,
       );
       return true;
     } catch (e) {
-      print("Error submitChanges: $e");
+      debugPrint("[EditAnswerService] Error submitChanges: $e");
       return false;
     }
   }
@@ -221,7 +170,7 @@ class EditAnswerService {
     } on ApiException {
       rethrow;
     } catch (e, st) {
-      print("getSurveyFormKosong ERROR: $e\n$st");
+      debugPrint("[EditAnswerService] getSurveyFormKosong ERROR: $e\n$st");
       throw Exception("Format JSON form kosong tidak valid: $e");
     }
   }
@@ -247,7 +196,7 @@ class EditAnswerService {
       );
       return true;
     } catch (e) {
-      print("Error submitNewAnswer: $e");
+      debugPrint("[EditAnswerService] Error submitNewAnswer: $e");
       return false;
     }
   }

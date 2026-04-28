@@ -82,14 +82,6 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
       if (data != null) {
         surveyData = data;
 
-        debugPrint('DEBUG _loadData - responseId: ${data.responseId}');
-        debugPrint('DEBUG _loadData - answers count: ${data.answers.length}');
-        for (var i = 0; i < data.answers.length; i++) {
-          debugPrint(
-            'DEBUG Answer[$i]: QID=${data.answers[i].questionId}, Ans=${data.answers[i].answer}',
-          );
-        }
-
         final parsed = _editService.parseExistingAnswers(
           answers: data.answers,
           pages: data.pages,
@@ -97,11 +89,9 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
         );
         answers = Map<int, dynamic>.from(parsed);
         originalAnswers = Map<int, dynamic>.from(parsed);
-
-        debugPrint('DEBUG _loadData - parsed answers: $parsed');
       }
     } catch (e) {
-      debugPrint("Error loading monitor data: $e");
+      debugPrint("[CekEditMonitorPage] Error loading monitor data: $e");
     } finally {
       setState(() => isLoading = false);
     }
@@ -354,9 +344,6 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
       case 'document':
         return _buildDocument(q);
       default:
-        debugPrint(
-          '[CekEditMonitor] Unknown typeString: ${q.typeString}, questionTypeId: ${q.questionTypeId}',
-        );
         return const SizedBox();
     }
   }
@@ -852,7 +839,7 @@ class _CekEditMonitorPageState extends State<CekEditMonitorPage>
         _showSnackbar("Gagal menyimpan jawaban", isSuccess: false);
       }
     } catch (e) {
-      debugPrint("Error submit: $e");
+      debugPrint("[CekEditMonitorPage] Error submit: $e");
       if (mounted) _showSnackbar("Terjadi kesalahan: $e", isSuccess: false);
     } finally {
       setState(() => isSaving = false);
