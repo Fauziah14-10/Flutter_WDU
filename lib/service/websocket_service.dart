@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:laravel_echo/laravel_echo.dart';
-import 'package:pusher_client/pusher_client.dart';
+import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 import '../core/constants/websocket_constants.dart';
 import '../core/constants/endpoints.dart';
 
@@ -10,10 +10,9 @@ class WebSocketService {
   WebSocketService._internal();
 
   Echo? _echo;
-  PusherClient? _pusherClient;
+  PusherChannelsFlutter? _pusherClient;
 
   Future<void> initEcho(String token) async {
-    // pusher_client tidak mendukung Flutter Web, lewati inisialisasi untuk mencegah error di console
     if (kIsWeb) {
       debugPrint('[WebSocket] Skipping init on Web (Not supported)');
       return;
@@ -22,39 +21,24 @@ class WebSocketService {
     if (_echo != null) await disconnect();
 
     try {
-      final authUrl = '${Endpoints.baseUrl}/broadcasting/auth';
-      String host = WebSocketConstants.host;
-      
-      // Handle Chrome/Web and Emulator mapping
-      if (host == 'localhost' || host == '127.0.0.1') {
-        if (!kIsWeb) {
-          final baseUrl = Endpoints.baseUrl;
-          if (baseUrl.contains('10.0.2.2')) {
-            host = '10.0.2.2';
-          }
-        }
-      }
+      _pusherClient = PusherChannelsFlutter.getInstance();
 
-      PusherOptions options = PusherOptions(
-        host: host,
-        wsPort: WebSocketConstants.port,
-        wssPort: WebSocketConstants.port,
-        encrypted: false,
+      await _pusherClient!.init(
+        apiKey: WebSocketConstants.key,
         cluster: 'mt1',
-        auth: PusherAuth(
-          authUrl,
-          headers: {
+        authEndpoint: '${Endpoints.baseUrl}/broadcasting/auth',
+        authParams: {
+          'headers': {
             'Authorization': 'Bearer $token',
             'Accept': 'application/json',
           },
-        ),
-      );
-
-      _pusherClient = PusherClient(
-        WebSocketConstants.key,
-        options,
-        autoConnect: false,
-        enableLogging: true,
+        },
+        onConnectionStateChange: (currentState, previousState) {
+          debugPrint('[WebSocket] State: $previousState -> $currentState');
+        },
+        onError: (message, code, error) {
+          debugPrint('[WebSocket] Error: $message');
+        },
       );
 
       _echo = Echo(
@@ -62,10 +46,7 @@ class WebSocketService {
         broadcaster: EchoBroadcasterType.Pusher,
       );
 
-      _pusherClient!.onConnectionStateChange((state) {});
-      _pusherClient!.onConnectionError((error) {});
-
-      _pusherClient!.connect();
+      await _pusherClient!.connect();
     } catch (e) {
       debugPrint('[WebSocket] Init Error: $e');
     }
@@ -74,7 +55,7 @@ class WebSocketService {
   Echo? get echo => _echo;
 
   Future<void> disconnect() async {
-    _pusherClient?.disconnect();
+    await _pusherClient?.disconnect();
     _echo = null;
     _pusherClient = null;
     debugPrint('[WebSocket] Disconnected');

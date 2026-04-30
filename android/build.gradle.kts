@@ -8,7 +8,6 @@ allprojects {
     }
 }
 
-// Custom build directory (opsional, tetap dipakai dari kode kamu)
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")
@@ -16,25 +15,27 @@ val newBuildDir: Directory =
 
 rootProject.layout.buildDirectory.value(newBuildDir)
 
-// Atur build dir tiap subproject
 subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 
-// Task clean
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
 
 subprojects {
     afterEvaluate {
-        if (project.extensions.findByName("android") != null) {
-            val android = project.extensions.getByName("android") as com.android.build.gradle.BaseExtension
-            if (android.namespace == null) {
-                android.namespace = project.group.toString()
+        extensions.findByType<com.android.build.gradle.BaseExtension>()?.apply {
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_11
+                targetCompatibility = JavaVersion.VERSION_11
+            }
+        }
+        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+            kotlinOptions {
+                jvmTarget = "11"
             }
         }
     }
 }
-
