@@ -57,10 +57,34 @@ class OfflineDownloadService {
           data: provinces,
           cachedAt: DateTime.now(),
         ));
+      }
 
-        // Optional: Pre-fetch cities for target provinces to save time offline
-        // To keep it simple, we only fetch provinces. 
-        // A more advanced version would fetch specific cities/districts based on project target.
+      // 3. Fetch cities for project targets
+      // Since downloading the entire Indonesia database is too large, 
+      // we'll fetch cities for the provinces that are targets of this project.
+      // Note: We need to handle the case where province targets might be inside the survey data
+      // but for now let's assume we have them or skip if not.
+      // In project_model.dart, Project does not seem to have provinceTargets directly.
+      // We might need to extract them from the cached surveys.
+      
+      final cachedSurveys = _storage.getAllCachedSurveys().where((s) => s.slug.contains(project.slug ?? '')).toList();
+      
+      for (var survey in cachedSurveys) {
+        final surveyData = SurveySubmissionData.fromJson(Map<String, dynamic>.from(survey.surveyData));
+        if (surveyData.provinceTargets.isNotEmpty) {
+          for (var target in surveyData.provinceTargets) {
+            statusMessage.value = 'Mengunduh kota untuk: ${target.provinceName}...';
+            final cities = await _api.getCitiesAndRegencies(target.provinceId);
+            if (cities.isNotEmpty) {
+              await _storage.saveLocationData(LocationCache(
+                parentId: target.provinceId.toString(),
+                type: 'CITY',
+                data: cities,
+                cachedAt: DateTime.now(),
+              ));
+            }
+          }
+        }
       }
 
       downloadProgress.value = 1.0;

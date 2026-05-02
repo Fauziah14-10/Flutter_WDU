@@ -428,6 +428,9 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
       updatedAt: DateTime.now(),
       surveyTitle: _data?.survey?.title ?? widget.surveyTitle,
       draftType: isAutoSave ? 'AUTO' : 'MANUAL',
+      clientSlug: widget.clientSlug,
+      projectSlug: widget.projectSlug,
+      surveySlug: widget.surveySlug,
     );
 
     await LocalStorageService().saveAnswer(draft);

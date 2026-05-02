@@ -115,8 +115,5 @@ class SyncProvider with ChangeNotifier {
     }
     
     notifyListeners();
-    
-    // Clear success items after some time or immediately
-    await _storage.clearSyncedItems();
   }
 }

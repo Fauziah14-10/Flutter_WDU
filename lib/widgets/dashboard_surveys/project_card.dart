@@ -4,6 +4,7 @@ import '../../core/theme/app_theme.dart';
 import '../../models/user_project_model.dart';
 import '../../models/project_model.dart';
 import '../../service/offline_download_service.dart';
+import '../../service/local_storage_service.dart';
 import '../../pages/list_survey_page.dart';
 import '../common/status_badge.dart';
 import '../common/gradient_button.dart';
@@ -27,10 +28,15 @@ class _ProjectCardState extends State<ProjectCard>
   late AnimationController _ctrl;
   late Animation<Offset> _slide;
   late Animation<double> _fade;
+  final OfflineDownloadService _downloadService = OfflineDownloadService();
+  final LocalStorageService _storage = LocalStorageService();
+  bool _isDownloading = false;
+  bool _isAlreadyDownloaded = false;
 
   @override
   void initState() {
     super.initState();
+    _checkDownloadStatus();
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -43,6 +49,15 @@ class _ProjectCardState extends State<ProjectCard>
 
     Future.delayed(widget.animDelay, () {
       if (mounted) _ctrl.forward();
+    });
+  }
+
+  void _checkDownloadStatus() {
+    final cachedSurveys = _storage.getAllCachedSurveys();
+    // A project is considered downloaded if at least one survey associated with its slug is cached.
+    // This is a simplified check.
+    setState(() {
+      _isAlreadyDownloaded = cachedSurveys.any((s) => s.slug.contains(widget.project.slug));
     });
   }
 
@@ -76,15 +91,10 @@ class _ProjectCardState extends State<ProjectCard>
     );
   }
 
-  final OfflineDownloadService _downloadService = OfflineDownloadService();
-  bool _isDownloading = false;
-
   void _downloadData() async {
     setState(() => _isDownloading = true);
     
     try {
-      // Update: OfflineDownloadService needs slugs for API calls.
-      // We'll create a lightweight Project with the necessary slugs.
       final apiProject = Project(
         projectName: widget.project.projectName,
         slug: widget.project.slug,
@@ -93,12 +103,10 @@ class _ProjectCardState extends State<ProjectCard>
           : null,
       );
       
-      // Since our Project model in the app is defined as 'Project' in project_model.dart
-      // let's use it correctly.
-      
       await _downloadService.downloadSurveyData(apiProject);
       
       if (mounted) {
+        _checkDownloadStatus();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Data berhasil diunduh untuk offline'), backgroundColor: Colors.green),
         );
@@ -163,7 +171,16 @@ class _ProjectCardState extends State<ProjectCard>
                         ),
                       ),
                     ),
-                    const StatusBadge(label: 'Active', color: AppTheme.primary),
+                    Row(
+                      children: [
+                        if (_isAlreadyDownloaded)
+                          const Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: Icon(Icons.check_circle, color: Colors.green, size: 20),
+                          ),
+                        const StatusBadge(label: 'Active', color: AppTheme.primary),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),

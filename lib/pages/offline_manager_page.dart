@@ -118,102 +118,137 @@ class _OfflineManagerPageState extends State<OfflineManagerPage> with SingleTick
   }
 
   Widget _buildSyncQueueTab() {
-    final queue = _storage.getAllQueueItems();
+    final allItems = _storage.getAllQueueItems();
+    final pendingItems = allItems.where((item) => item.status != 'DONE').toList();
+    final syncedItems = allItems.where((item) => item.status == 'DONE').toList();
 
-    if (queue.isEmpty) {
+    if (allItems.isEmpty) {
       return _buildEmptyState(Icons.cloud_done_outlined, 'Antrean kirim kosong');
     }
 
-    return Column(
+    return ListView(
+      padding: const EdgeInsets.all(16),
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          color: Colors.blue.shade50,
-          child: Row(
-            children: [
-              const Icon(Icons.info_outline, color: Colors.blue, size: 20),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Data di bawah akan dikirim otomatis saat internet tersedia.',
-                  style: TextStyle(fontSize: 12, color: Colors.blue),
-                ),
-              ),
-              Consumer<SyncProvider>(
-                builder: (context, sync, _) {
-                  return TextButton.icon(
-                    onPressed: sync.isSyncing ? null : () => sync.syncData(),
-                    icon: sync.isSyncing 
-                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.sync, size: 18),
-                    label: const Text('Kirim Sekarang'),
-                  );
-                }
-              ),
-            ],
+        if (pendingItems.isNotEmpty) ...[
+          _buildSectionHeader('Antrean & Gagal', Colors.orange),
+          ...pendingItems.map((item) => _buildQueueItem(item)),
+          const SizedBox(height: 24),
+        ],
+        if (syncedItems.isNotEmpty) ...[
+          _buildSectionHeader('Selesai Terkirim', Colors.green),
+          ...syncedItems.map((item) => _buildQueueItem(item)),
+          const SizedBox(height: 16),
+          Center(
+            child: TextButton.icon(
+              onPressed: _clearSyncedHistory,
+              icon: const Icon(Icons.delete_sweep_outlined, size: 18, color: Colors.grey),
+              label: const Text('Hapus Riwayat Terkirim', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            ),
           ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: queue.length,
-            itemBuilder: (context, index) {
-              final item = queue[index];
-              final surveyTitle = 'Kuesioner #${item.surveyId}';
-              
-              Color statusColor = Colors.orange;
-              IconData statusIcon = Icons.cloud_upload_outlined;
-              
-              if (item.status == 'DONE') {
-                statusColor = Colors.green;
-                statusIcon = Icons.check_circle_outline;
-              } else if (item.status == 'FAILED') {
-                statusColor = Colors.red;
-                statusIcon = Icons.error_outline;
-              } else if (item.status == 'PROCESSING') {
-                statusColor = Colors.blue;
-                statusIcon = Icons.sync;
-              }
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: ListTile(
-                  leading: Icon(statusIcon, color: statusColor),
-                  title: Text(surveyTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Dibuat: ${DateFormat('dd MMM HH:mm').format(item.createdAt)}', style: const TextStyle(fontSize: 12)),
-                      if (item.status == 'FAILED' && item.lastError != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            'Error: ${item.lastError}',
-                            style: const TextStyle(fontSize: 10, color: Colors.red),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                    ],
-                  ),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      item.status,
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
+        ],
       ],
+    );
+  }
+
+  void _clearSyncedHistory() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Riwayat?'),
+        content: const Text('Semua data yang sudah berhasil terkirim akan dihapus dari daftar ini.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _storage.clearSyncedItems();
+      setState(() {});
+    }
+  }
+
+  Widget _buildSectionHeader(String title, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      child: Row(
+        children: [
+          Container(width: 4, height: 16, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(width: 8),
+          Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+          const Spacer(),
+          if (title == 'Antrean & Gagal')
+            Consumer<SyncProvider>(
+              builder: (context, sync, _) {
+                return TextButton.icon(
+                  onPressed: sync.isSyncing ? null : () => sync.syncData(),
+                  icon: sync.isSyncing 
+                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.sync, size: 16),
+                  label: const Text('Sync', style: TextStyle(fontSize: 12)),
+                );
+              }
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQueueItem(SyncQueueItem item) {
+    final surveyTitle = 'Kuesioner #${item.surveyId}';
+    
+    Color statusColor = Colors.orange;
+    IconData statusIcon = Icons.cloud_upload_outlined;
+    
+    if (item.status == 'DONE') {
+      statusColor = Colors.green;
+      statusIcon = Icons.check_circle_outline;
+    } else if (item.status == 'FAILED') {
+      statusColor = Colors.red;
+      statusIcon = Icons.error_outline;
+    } else if (item.status == 'PROCESSING') {
+      statusColor = Colors.blue;
+      statusIcon = Icons.sync;
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: Icon(statusIcon, color: statusColor),
+        title: Text(surveyTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Dibuat: ${DateFormat('dd MMM HH:mm').format(item.createdAt)}', style: const TextStyle(fontSize: 12)),
+            if (item.status == 'FAILED' && item.lastError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Error: ${item.lastError}',
+                  style: const TextStyle(fontSize: 10, color: Colors.red),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: statusColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            item.status,
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor),
+          ),
+        ),
+      ),
     );
   }
 
@@ -231,12 +266,24 @@ class _OfflineManagerPageState extends State<OfflineManagerPage> with SingleTick
   }
 
   void _resumeDraft(AnswerOffline draft) {
-    // We need the slugs to resume. Let's assume we can find them or they are in the draft
-    // For now, this is a placeholder navigation. In a real app, we'd need slug info in AnswerOffline.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Membuka draft...')),
+    if (draft.surveySlug.isEmpty || draft.clientSlug.isEmpty || draft.projectSlug.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data draft tidak lengkap untuk dipulihkan.')),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SubmissionPage(
+          surveySlug: draft.surveySlug,
+          clientSlug: draft.clientSlug,
+          projectSlug: draft.projectSlug,
+          surveyTitle: draft.surveyTitle,
+        ),
+      ),
     );
-    // Navigation logic here...
   }
 
   void _confirmDeleteDraft(AnswerOffline draft) {

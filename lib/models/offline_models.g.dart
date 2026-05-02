@@ -76,13 +76,16 @@ class AnswerOfflineAdapter extends TypeAdapter<AnswerOffline> {
       isDirty: fields[7] as bool,
       surveyTitle: fields[8] as String,
       draftType: fields[9] as String,
+      clientSlug: fields[10] as String,
+      projectSlug: fields[11] as String,
+      surveySlug: fields[12] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, AnswerOffline obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.surveyId)
       ..writeByte(1)
@@ -102,7 +105,13 @@ class AnswerOfflineAdapter extends TypeAdapter<AnswerOffline> {
       ..writeByte(8)
       ..write(obj.surveyTitle)
       ..writeByte(9)
-      ..write(obj.draftType);
+      ..write(obj.draftType)
+      ..writeByte(10)
+      ..write(obj.clientSlug)
+      ..writeByte(11)
+      ..write(obj.projectSlug)
+      ..writeByte(12)
+      ..write(obj.surveySlug);
   }
 
   @override

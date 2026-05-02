@@ -64,6 +64,15 @@ class AnswerOffline extends HiveObject {
   @HiveField(9)
   String draftType; // MANUAL, AUTO (Added for auto-save detection)
 
+  @HiveField(10)
+  final String clientSlug;
+
+  @HiveField(11)
+  final String projectSlug;
+
+  @HiveField(12)
+  final String surveySlug;
+
   AnswerOffline({
     required this.surveyId,
     required this.respondentId,
@@ -75,6 +84,9 @@ class AnswerOffline extends HiveObject {
     this.isDirty = true,
     this.surveyTitle = '',
     this.draftType = 'MANUAL',
+    this.clientSlug = '',
+    this.projectSlug = '',
+    this.surveySlug = '',
   });
 }
 
