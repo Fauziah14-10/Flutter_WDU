@@ -124,8 +124,9 @@ class _DashboardViewState extends State<_DashboardView>
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   SliverAppBar _buildAppBar() {
     return SliverAppBar(
