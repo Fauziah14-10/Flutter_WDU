@@ -140,7 +140,7 @@ class _DashboardViewState extends State<_DashboardView>
             title: Row(
               children: [
                 Image.asset(
-                  'assets/images/SIS-WDU-logo.png',
+                  'assets/icon/SIS-WDU-app-logo.png',
                   height: 32,
                   errorBuilder: (_, __, ___) => const Text('SIS-WDU'),
                 ),

@@ -8,7 +8,7 @@ class SisLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'assets/images/SIS-WDU-logo.png',
+      'assets/icon/SIS-WDU-app-logo.png',
       height: height,
       fit: BoxFit.contain,
     );
