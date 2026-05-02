@@ -7,6 +7,8 @@ import '../models/offline_models.dart';
 import '../providers/sync_provider.dart';
 import 'submission_page.dart';
 
+import 'package:hive_flutter/hive_flutter.dart';
+
 class OfflineManagerPage extends StatefulWidget {
   const OfflineManagerPage({super.key});
 
@@ -118,35 +120,40 @@ class _OfflineManagerPageState extends State<OfflineManagerPage> with SingleTick
   }
 
   Widget _buildSyncQueueTab() {
-    final allItems = _storage.getAllQueueItems();
-    final pendingItems = allItems.where((item) => item.status != 'DONE').toList();
-    final syncedItems = allItems.where((item) => item.status == 'DONE').toList();
+    return ValueListenableBuilder(
+      valueListenable: Hive.box<SyncQueueItem>(LocalStorageService.queueBoxName).listenable(),
+      builder: (context, Box<SyncQueueItem> box, _) {
+        final allItems = box.values.toList();
+        final pendingItems = allItems.where((item) => item.status != 'DONE').toList();
+        final syncedItems = allItems.where((item) => item.status == 'DONE').toList();
 
-    if (allItems.isEmpty) {
-      return _buildEmptyState(Icons.cloud_done_outlined, 'Antrean kirim kosong');
-    }
+        if (allItems.isEmpty) {
+          return _buildEmptyState(Icons.cloud_done_outlined, 'Antrean kirim kosong');
+        }
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        if (pendingItems.isNotEmpty) ...[
-          _buildSectionHeader('Antrean & Gagal', Colors.orange),
-          ...pendingItems.map((item) => _buildQueueItem(item)),
-          const SizedBox(height: 24),
-        ],
-        if (syncedItems.isNotEmpty) ...[
-          _buildSectionHeader('Selesai Terkirim', Colors.green),
-          ...syncedItems.map((item) => _buildQueueItem(item)),
-          const SizedBox(height: 16),
-          Center(
-            child: TextButton.icon(
-              onPressed: _clearSyncedHistory,
-              icon: const Icon(Icons.delete_sweep_outlined, size: 18, color: Colors.grey),
-              label: const Text('Hapus Riwayat Terkirim', style: TextStyle(color: Colors.grey, fontSize: 12)),
-            ),
-          ),
-        ],
-      ],
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (pendingItems.isNotEmpty) ...[
+              _buildSectionHeader('Antrean & Gagal', Colors.orange),
+              ...pendingItems.map((item) => _buildQueueItem(item)),
+              const SizedBox(height: 24),
+            ],
+            if (syncedItems.isNotEmpty) ...[
+              _buildSectionHeader('Selesai Terkirim', Colors.green),
+              ...syncedItems.map((item) => _buildQueueItem(item)),
+              const SizedBox(height: 16),
+              Center(
+                child: TextButton.icon(
+                  onPressed: _clearSyncedHistory,
+                  icon: const Icon(Icons.delete_sweep_outlined, size: 18, color: Colors.grey),
+                  label: const Text('Hapus Riwayat Terkirim', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                ),
+              ),
+            ],
+          ],
+        );
+      }
     );
   }
 

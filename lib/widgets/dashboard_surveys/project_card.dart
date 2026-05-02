@@ -5,6 +5,8 @@ import '../../models/user_project_model.dart';
 import '../../models/project_model.dart';
 import '../../service/offline_download_service.dart';
 import '../../service/local_storage_service.dart';
+import '../../service/survey_service.dart';
+import '../../models/client_model.dart';
 import '../../pages/list_survey_page.dart';
 import '../common/status_badge.dart';
 import '../common/gradient_button.dart';
@@ -55,9 +57,8 @@ class _ProjectCardState extends State<ProjectCard>
   void _checkDownloadStatus() {
     final cachedSurveys = _storage.getAllCachedSurveys();
     // A project is considered downloaded if at least one survey associated with its slug is cached.
-    // This is a simplified check.
     setState(() {
-      _isAlreadyDownloaded = cachedSurveys.any((s) => s.slug.contains(widget.project.slug));
+      _isAlreadyDownloaded = cachedSurveys.any((s) => s.slug.startsWith(widget.project.slug) || widget.project.slug.contains(s.slug));
     });
   }
 
@@ -95,12 +96,18 @@ class _ProjectCardState extends State<ProjectCard>
     setState(() => _isDownloading = true);
     
     try {
+      // 1. Fetch surveys first to ensure we have the list
+      final surveyService = SurveyService();
+      final surveys = await surveyService.getSurveys(widget.project.clientSlug, widget.project.slug);
+
       final apiProject = Project(
         projectName: widget.project.projectName,
         slug: widget.project.slug,
-        client: widget.project.clientSlug.isNotEmpty 
-          ? Project.fromJson({'client': {'slug': widget.project.clientSlug}}).client 
-          : null,
+        surveys: surveys,
+        client: Client(
+          clientName: widget.project.clientName,
+          slug: widget.project.clientSlug,
+        ),
       );
       
       await _downloadService.downloadSurveyData(apiProject);
@@ -112,6 +119,7 @@ class _ProjectCardState extends State<ProjectCard>
         );
       }
     } catch (e) {
+      debugPrint('❌ [ProjectCard] Download failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gagal mengunduh: $e'), backgroundColor: Colors.red),

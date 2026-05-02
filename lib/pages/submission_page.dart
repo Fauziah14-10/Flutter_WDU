@@ -94,46 +94,59 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
 
     setState(() => _locationLoading[questionId] = true);
     try {
-      // 1. Ambil list provinsi dari emsifa untuk mencocokkan nama dengan ID emsifa
+      // 1. Pastikan _wilayahProvinces terisi (emsifa master list)
       if (_wilayahProvinces == null || _wilayahProvinces!.isEmpty) {
         // Try local cache first
         final cachedProvinces = LocalStorageService().getLocationData('PROVINCE', 'root');
         if (cachedProvinces != null) {
           _wilayahProvinces = List<Map<String, dynamic>>.from(cachedProvinces.data);
+          debugPrint("✅ [SubmissionPage] Provinces loaded from cache");
         } else {
-          _wilayahProvinces = await _service.getWilayahProvinces();
-          // Save to cache for next time
-          await LocalStorageService().saveLocationData(LocationCache(
-            parentId: 'root',
-            type: 'PROVINCE',
-            data: _wilayahProvinces!,
-            cachedAt: DateTime.now(),
-          ));
+          try {
+            _wilayahProvinces = await _service.getWilayahProvinces();
+            // Cache it
+            await LocalStorageService().saveLocationData(LocationCache(
+              parentId: 'root',
+              type: 'PROVINCE',
+              data: _wilayahProvinces!,
+              cachedAt: DateTime.now(),
+            ));
+          } catch (e) {
+            debugPrint("❌ [SubmissionPage] Failed to fetch provinces: $e");
+          }
         }
       }
+
+      if (_wilayahProvinces == null) return;
 
       final normalizedProvince = _normalizeName(province['name']);
       final wProv = _wilayahProvinces?.find((p) => _normalizeName(p['name']) == normalizedProvince);
 
       if (wProv == null) {
-        debugPrint("Provinsi tidak ditemukan di API emsifa: $normalizedProvince");
+        debugPrint("⚠️ [SubmissionPage] Provinsi tidak ditemukan di API emsifa: $normalizedProvince");
         return;
       }
 
       // 2. Fetch kota menggunakan ID emsifa (wProv['id'])
       List<Map<String, dynamic>> cities = [];
-      final cachedCities = LocalStorageService().getLocationData('CITY', wProv['id'].toString());
+      final emsifaProvId = wProv['id'].toString();
+      final cachedCities = LocalStorageService().getLocationData('CITY', emsifaProvId);
       
       if (cachedCities != null) {
         cities = List<Map<String, dynamic>>.from(cachedCities.data);
+        debugPrint("✅ [SubmissionPage] Cities loaded from cache for prov $emsifaProvId");
       } else {
-        cities = await _service.getCitiesAndRegencies(wProv['id']);
-        await LocalStorageService().saveLocationData(LocationCache(
-          parentId: wProv['id'].toString(),
-          type: 'CITY',
-          data: cities,
-          cachedAt: DateTime.now(),
-        ));
+        try {
+          cities = await _service.getCitiesAndRegencies(emsifaProvId);
+          await LocalStorageService().saveLocationData(LocationCache(
+            parentId: emsifaProvId,
+            type: 'CITY',
+            data: cities,
+            cachedAt: DateTime.now(),
+          ));
+        } catch (e) {
+          debugPrint("❌ [SubmissionPage] Failed to fetch cities: $e");
+        }
       }
 
       setState(() {
@@ -150,18 +163,24 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
     setState(() => _locationLoading[questionId] = true);
     try {
       List<Map<String, dynamic>> districts = [];
-      final cachedDistricts = LocalStorageService().getLocationData('DISTRICT', cityId.toString());
+      final cityIdStr = cityId.toString();
+      final cachedDistricts = LocalStorageService().getLocationData('DISTRICT', cityIdStr);
       
       if (cachedDistricts != null) {
         districts = List<Map<String, dynamic>>.from(cachedDistricts.data);
+        debugPrint("✅ [SubmissionPage] Districts loaded from cache for city $cityIdStr");
       } else {
-        districts = await _service.getWilayahDistricts(cityId);
-        await LocalStorageService().saveLocationData(LocationCache(
-          parentId: cityId.toString(),
-          type: 'DISTRICT',
-          data: districts,
-          cachedAt: DateTime.now(),
-        ));
+        try {
+          districts = await _service.getWilayahDistricts(cityId);
+          await LocalStorageService().saveLocationData(LocationCache(
+            parentId: cityIdStr,
+            type: 'DISTRICT',
+            data: districts,
+            cachedAt: DateTime.now(),
+          ));
+        } catch (e) {
+          debugPrint("❌ [SubmissionPage] Failed to fetch districts: $e");
+        }
       }
       
       setState(() {
@@ -177,18 +196,24 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
     setState(() => _locationLoading[questionId] = true);
     try {
       List<Map<String, dynamic>> villages = [];
-      final cachedVillages = LocalStorageService().getLocationData('VILLAGE', districtId.toString());
+      final districtIdStr = districtId.toString();
+      final cachedVillages = LocalStorageService().getLocationData('VILLAGE', districtIdStr);
       
       if (cachedVillages != null) {
         villages = List<Map<String, dynamic>>.from(cachedVillages.data);
+        debugPrint("✅ [SubmissionPage] Villages loaded from cache for district $districtIdStr");
       } else {
-        villages = await _service.getWilayahVillages(districtId);
-        await LocalStorageService().saveLocationData(LocationCache(
-          parentId: districtId.toString(),
-          type: 'VILLAGE',
-          data: villages,
-          cachedAt: DateTime.now(),
-        ));
+        try {
+          villages = await _service.getWilayahVillages(districtId);
+          await LocalStorageService().saveLocationData(LocationCache(
+            parentId: districtIdStr,
+            type: 'VILLAGE',
+            data: villages,
+            cachedAt: DateTime.now(),
+          ));
+        } catch (e) {
+          debugPrint("❌ [SubmissionPage] Failed to fetch villages: $e");
+        }
       }
 
       setState(() {
