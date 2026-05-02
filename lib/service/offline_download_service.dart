@@ -59,21 +59,25 @@ class OfflineDownloadService {
             surveyData: data.toJson(),
             version: 1,
             lastUpdated: DateTime.now(),
+            projectSlug: projectSlug, // Store project slug for filtering
           );
           await _storage.saveSurvey(cache);
 
           // 2. Fetch Location Data for this survey's targets
           if (data.provinceTargets.isNotEmpty) {
             for (var target in data.provinceTargets) {
+              final String emsifaProvId = target.provinceId.toString();
               statusMessage.value = 'Mengunduh kota untuk: ${target.provinceName}...';
-              final cities = await _api.getCitiesAndRegencies(target.provinceId);
+              
+              final cities = await _api.getCitiesAndRegencies(emsifaProvId);
               if (cities.isNotEmpty) {
                 await _storage.saveLocationData(LocationCache(
-                  parentId: target.provinceId.toString(),
+                  parentId: emsifaProvId,
                   type: 'CITY',
                   data: cities,
                   cachedAt: DateTime.now(),
                 ));
+                debugPrint('✅ Cached ${cities.length} cities for province $emsifaProvId');
               }
             }
           }

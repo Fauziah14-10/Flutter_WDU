@@ -23,13 +23,14 @@ class SurveyCacheAdapter extends TypeAdapter<SurveyCache> {
       surveyData: (fields[3] as Map).cast<String, dynamic>(),
       version: fields[4] as int,
       lastUpdated: fields[5] as DateTime,
+      projectSlug: fields[6] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, SurveyCache obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.surveyId)
       ..writeByte(1)
@@ -41,7 +42,9 @@ class SurveyCacheAdapter extends TypeAdapter<SurveyCache> {
       ..writeByte(4)
       ..write(obj.version)
       ..writeByte(5)
-      ..write(obj.lastUpdated);
+      ..write(obj.lastUpdated)
+      ..writeByte(6)
+      ..write(obj.projectSlug);
   }
 
   @override

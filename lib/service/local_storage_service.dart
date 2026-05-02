@@ -11,6 +11,7 @@ class LocalStorageService {
   static const String answerBoxName = 'answer_offline';
   static const String queueBoxName = 'sync_queue';
   static const String locationBoxName = 'location_cache';
+  static const String dashboardBoxName = 'dashboard_cache';
 
   bool _isInitialized = false;
 
@@ -28,8 +29,21 @@ class LocalStorageService {
     await Hive.openBox<AnswerOffline>(answerBoxName);
     await Hive.openBox<SyncQueueItem>(queueBoxName);
     await Hive.openBox<LocationCache>(locationBoxName);
+    await Hive.openBox(dashboardBoxName);
 
     _isInitialized = true;
+  }
+
+  // --- DASHBOARD CACHE METHODS ---
+
+  Future<void> saveDashboardData(List<dynamic> projects) async {
+    final box = Hive.box(dashboardBoxName);
+    await box.put('user_projects', projects);
+  }
+
+  List<dynamic>? getDashboardData() {
+    final box = Hive.box(dashboardBoxName);
+    return box.get('user_projects');
   }
 
   // --- LOCATION CACHE METHODS ---

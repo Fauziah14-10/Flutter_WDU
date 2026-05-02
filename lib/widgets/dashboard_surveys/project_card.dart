@@ -56,9 +56,8 @@ class _ProjectCardState extends State<ProjectCard>
 
   void _checkDownloadStatus() {
     final cachedSurveys = _storage.getAllCachedSurveys();
-    // A project is considered downloaded if at least one survey associated with its slug is cached.
     setState(() {
-      _isAlreadyDownloaded = cachedSurveys.any((s) => s.slug.startsWith(widget.project.slug) || widget.project.slug.contains(s.slug));
+      _isAlreadyDownloaded = cachedSurveys.any((s) => s.projectSlug == widget.project.slug);
     });
   }
 

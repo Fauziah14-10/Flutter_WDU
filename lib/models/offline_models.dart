@@ -22,6 +22,9 @@ class SurveyCache extends HiveObject {
   @HiveField(5)
   final DateTime lastUpdated;
 
+  @HiveField(6)
+  final String? projectSlug; // Added for project-based filtering
+
   SurveyCache({
     required this.surveyId,
     required this.title,
@@ -29,6 +32,7 @@ class SurveyCache extends HiveObject {
     required this.surveyData,
     required this.version,
     required this.lastUpdated,
+    this.projectSlug,
   });
 }
 

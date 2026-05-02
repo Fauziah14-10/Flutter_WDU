@@ -3,10 +3,14 @@ import '../models/survey_model.dart';
 import '../service/survey_service.dart';
 import '../service/edit_answer_service.dart';
 import '../core/utils/storage.dart';
+import '../service/local_storage_service.dart';
+import '../core/utils/connectivity_service.dart';
 
 class SurveyProvider extends ChangeNotifier {
   final _service = SurveyService();
   final _editService = EditAnswerService();
+  final _storage = LocalStorageService();
+  final _connectivity = ConnectivityService();
 
   // ── STATE ─────────────────────────────────────────────────
   List<SurveyModel> _surveys = [];
@@ -57,8 +61,43 @@ class SurveyProvider extends ChangeNotifier {
     }
 
     try {
-      _surveys = await _service.getSurveys(clientSlug, projectSlug);
-      _errorMessage = null;
+      final isOnline = await _connectivity.isOnline;
+      List<SurveyModel>? data;
+
+      if (isOnline) {
+        try {
+          data = await _service.getSurveys(clientSlug, projectSlug);
+          debugPrint('✅ [SurveyProvider] Surveys loaded from API');
+        } catch (e) {
+          debugPrint('⚠️ [SurveyProvider] API Load failed, trying cache: $e');
+        }
+      }
+
+      if (data == null) {
+        final cached = _storage.getAllCachedSurveys()
+            .where((s) => s.projectSlug == projectSlug || s.slug.startsWith(projectSlug))
+            .map((s) => SurveyModel(
+                  id: s.surveyId,
+                  title: s.title,
+                  slug: s.slug,
+                  projectId: 0, // Simplified for listing
+                  status: '1',
+                  provinceTargets: [],
+                ))
+            .toList();
+        
+        if (cached.isNotEmpty) {
+          data = cached;
+          debugPrint('✅ [SurveyProvider] Loaded surveys from local cache');
+        }
+      }
+
+      if (data != null) {
+        _surveys = data;
+        _errorMessage = null;
+      } else {
+        _errorMessage = isOnline ? "Data tidak ditemukan" : "Kuesioner tidak tersedia offline. Unduh data terlebih dahulu.";
+      }
     } catch (e) {
       _errorMessage = _parseError(e);
     } finally {

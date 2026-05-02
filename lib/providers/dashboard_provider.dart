@@ -6,6 +6,7 @@ import '../models/user_project_model.dart';
 import '../models/project_model.dart';
 import '../core/utils/storage.dart';
 import '../service/offline_download_service.dart';
+import '../service/local_storage_service.dart';
 import '../core/utils/connectivity_service.dart';
 
 class DashboardProvider with ChangeNotifier {
@@ -13,6 +14,7 @@ class DashboardProvider with ChangeNotifier {
   final ClientService clientService = ClientService();
   final OfflineDownloadService _downloadService = OfflineDownloadService();
   final ConnectivityService _connectivity = ConnectivityService();
+  final LocalStorageService _storage = LocalStorageService();
 
 
   Map<String, dynamic>? user;
@@ -59,14 +61,13 @@ class DashboardProvider with ChangeNotifier {
         final apiProject = Project(
           projectName: project.projectName,
           slug: project.slug,
-          client: project.clientSlug.isNotEmpty 
-            ? Project.fromJson({'client': {'slug': project.clientSlug}}).client 
-            : null,
+          client: Client(
+            clientName: project.clientName,
+            slug: project.clientSlug,
+          ),
         );
-        // Only download if we have a slug
-        if (apiProject.slug != null) {
-          await _downloadService.downloadSurveyData(apiProject);
-        }
+        
+        await _downloadService.downloadSurveyData(apiProject);
       } catch (e) {
         debugPrint('⚠️ [DashboardProvider] Auto-download failed for project ${project.projectName}: $e');
       }
@@ -91,44 +92,70 @@ class DashboardProvider with ChangeNotifier {
       clientsLoading = true;
       notifyListeners();
 
-      final data = await clientService.getDashboardData();
+      final isOnline = await _connectivity.isOnline;
+      Map<String, dynamic>? data;
 
-      final List<dynamic> rawClients =
-          (data['clients'] as List<dynamic>?) ?? [];
-      final List<dynamic> rawProjects =
-          (data['userProjects'] as List<dynamic>?) ?? [];
-
-      clients = [];
-      for (final e in rawClients) {
+      if (isOnline) {
         try {
-          clients.add(Client.fromJson(e));
-        } catch (err) {
-          debugPrint('[DashboardProvider] Error parse Client: $err');
+          data = await clientService.getDashboardData();
+          // Cache it
+          await _storage.saveDashboardData([data['clients'], data['userProjects']]);
+          debugPrint('✅ [DashboardProvider] Dashboard data cached');
+        } catch (e) {
+          debugPrint('⚠️ [DashboardProvider] API Load failed, trying cache: $e');
         }
       }
 
-      projects = [];
-      for (final e in rawProjects) {
-        try {
-          UserProject p = UserProject.fromJson(e);
+      if (data == null) {
+        final cached = _storage.getDashboardData();
+        if (cached != null && cached.length == 2) {
+          data = {
+            'clients': cached[0],
+            'userProjects': cached[1],
+          };
+          debugPrint('✅ [DashboardProvider] Loaded dashboard from local cache');
+        }
+      }
 
-          // ✅ SINKRONISASI LOGO: Jika project tidak punya logo, cari dari list clients
-          if (p.clientImage == null || p.clientImage!.isEmpty) {
-            final clientMatch = clients
-                .where((c) => c.slug == p.clientSlug)
-                .firstOrNull;
-            if (clientMatch != null && clientMatch.image != null) {
-              p = p.copyWith(clientImage: clientMatch.image);
-            }
+      if (data != null) {
+        final List<dynamic> rawClients =
+            (data['clients'] as List<dynamic>?) ?? [];
+        final List<dynamic> rawProjects =
+            (data['userProjects'] as List<dynamic>?) ?? [];
+
+        clients = [];
+        for (final e in rawClients) {
+          try {
+            clients.add(Client.fromJson(e));
+          } catch (err) {
+            debugPrint('[DashboardProvider] Error parse Client: $err');
           }
-
-          projects.add(p);
-        } catch (err) {
-          debugPrint('[DashboardProvider] Error parse UserProject: $err');
         }
-      }
 
-      error = null;
+        projects = [];
+        for (final e in rawProjects) {
+          try {
+            UserProject p = UserProject.fromJson(e);
+
+            // ✅ SINKRONISASI LOGO: Jika project tidak punya logo, cari dari list clients
+            if (p.clientImage == null || p.clientImage!.isEmpty) {
+              final clientMatch = clients
+                  .where((c) => c.slug == p.clientSlug)
+                  .firstOrNull;
+              if (clientMatch != null && clientMatch.image != null) {
+                p = p.copyWith(clientImage: clientMatch.image);
+              }
+            }
+
+            projects.add(p);
+          } catch (err) {
+            debugPrint('[DashboardProvider] Error parse UserProject: $err');
+          }
+        }
+        error = null;
+      } else {
+        error = isOnline ? "Data tidak ditemukan" : "Dashboard tidak tersedia offline. Hubungkan ke internet terlebih dahulu.";
+      }
     } catch (e) {
       debugPrint('[DashboardProvider] Error loadClients: $e');
       error = e.toString();
