@@ -13,6 +13,7 @@ import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../widgets/ringing_bell_icon.dart';
 import '../providers/sync_provider.dart';
+import 'offline_manager_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -156,11 +157,25 @@ class _DashboardViewState extends State<_DashboardView>
         ),
       ),
       actions: [
+        _buildOfflineDataButton(context),
         _buildSyncButton(context),
         _buildFontSizeButton(context),
         const RingingBellIcon(),
         _buildSettingsButton(context),
       ],
+    );
+  }
+
+  Widget _buildOfflineDataButton(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.inventory_2_rounded, color: AppTheme.primary),
+      tooltip: 'Data Lokal (Draft & Antrean)',
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const OfflineManagerPage()),
+        );
+      },
     );
   }
 

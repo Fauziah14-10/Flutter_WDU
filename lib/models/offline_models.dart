@@ -58,6 +58,12 @@ class AnswerOffline extends HiveObject {
   @HiveField(7)
   bool isDirty;
 
+  @HiveField(8)
+  final String surveyTitle; // Added for easier list display
+
+  @HiveField(9)
+  String draftType; // MANUAL, AUTO (Added for auto-save detection)
+
   AnswerOffline({
     required this.surveyId,
     required this.respondentId,
@@ -67,6 +73,30 @@ class AnswerOffline extends HiveObject {
     required this.createdAt,
     required this.updatedAt,
     this.isDirty = true,
+    this.surveyTitle = '',
+    this.draftType = 'MANUAL',
+  });
+}
+
+@HiveType(typeId: 3)
+class LocationCache extends HiveObject {
+  @HiveField(0)
+  final String parentId; // e.g. provinceId for cities, cityId for districts
+
+  @HiveField(1)
+  final String type; // PROVINCE, CITY, DISTRICT, VILLAGE
+
+  @HiveField(2)
+  final List<Map<dynamic, dynamic>> data; // List of location objects
+
+  @HiveField(3)
+  final DateTime cachedAt;
+
+  LocationCache({
+    required this.parentId,
+    required this.type,
+    required this.data,
+    required this.cachedAt,
   });
 }
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/user_project_model.dart';
+import '../../models/project_model.dart';
+import '../../service/offline_download_service.dart';
 import '../../pages/list_survey_page.dart';
 import '../common/status_badge.dart';
 import '../common/gradient_button.dart';
@@ -72,6 +74,44 @@ class _ProjectCardState extends State<ProjectCard>
         ),
       ),
     );
+  }
+
+  final OfflineDownloadService _downloadService = OfflineDownloadService();
+  bool _isDownloading = false;
+
+  void _downloadData() async {
+    setState(() => _isDownloading = true);
+    
+    try {
+      // Update: OfflineDownloadService needs slugs for API calls.
+      // We'll create a lightweight Project with the necessary slugs.
+      final apiProject = Project(
+        projectName: widget.project.projectName,
+        slug: widget.project.slug,
+        client: widget.project.clientSlug.isNotEmpty 
+          ? Project.fromJson({'client': {'slug': widget.project.clientSlug}}).client 
+          : null,
+      );
+      
+      // Since our Project model in the app is defined as 'Project' in project_model.dart
+      // let's use it correctly.
+      
+      await _downloadService.downloadSurveyData(apiProject);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data berhasil diunduh untuk offline'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengunduh: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
+    }
   }
 
   @override
@@ -207,6 +247,21 @@ class _ProjectCardState extends State<ProjectCard>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
+                    _isDownloading 
+                      ? const Padding(
+                          padding: EdgeInsets.only(right: 12),
+                          child: SizedBox(
+                            width: 24, 
+                            height: 24, 
+                            child: CircularProgressIndicator(strokeWidth: 2)
+                          ),
+                        )
+                      : IconButton(
+                          onPressed: _downloadData,
+                          icon: const Icon(Icons.download_for_offline_rounded, color: AppTheme.primary),
+                          tooltip: 'Download for Offline',
+                        ),
+                    const SizedBox(width: 8),
                     GradientButton(
                       label: 'View Surveys',
                       onPressed: () => _viewSurveys(context),

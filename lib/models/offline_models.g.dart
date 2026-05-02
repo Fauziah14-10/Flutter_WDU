@@ -74,13 +74,15 @@ class AnswerOfflineAdapter extends TypeAdapter<AnswerOffline> {
       createdAt: fields[5] as DateTime,
       updatedAt: fields[6] as DateTime,
       isDirty: fields[7] as bool,
+      surveyTitle: fields[8] as String,
+      draftType: fields[9] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, AnswerOffline obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.surveyId)
       ..writeByte(1)
@@ -96,7 +98,11 @@ class AnswerOfflineAdapter extends TypeAdapter<AnswerOffline> {
       ..writeByte(6)
       ..write(obj.updatedAt)
       ..writeByte(7)
-      ..write(obj.isDirty);
+      ..write(obj.isDirty)
+      ..writeByte(8)
+      ..write(obj.surveyTitle)
+      ..writeByte(9)
+      ..write(obj.draftType);
   }
 
   @override
@@ -106,6 +112,51 @@ class AnswerOfflineAdapter extends TypeAdapter<AnswerOffline> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is AnswerOfflineAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class LocationCacheAdapter extends TypeAdapter<LocationCache> {
+  @override
+  final int typeId = 3;
+
+  @override
+  LocationCache read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return LocationCache(
+      parentId: fields[0] as String,
+      type: fields[1] as String,
+      data: (fields[2] as List)
+          .map((dynamic e) => (e as Map).cast<dynamic, dynamic>())
+          .toList(),
+      cachedAt: fields[3] as DateTime,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, LocationCache obj) {
+    writer
+      ..writeByte(4)
+      ..writeByte(0)
+      ..write(obj.parentId)
+      ..writeByte(1)
+      ..write(obj.type)
+      ..writeByte(2)
+      ..write(obj.data)
+      ..writeByte(3)
+      ..write(obj.cachedAt);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LocationCacheAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

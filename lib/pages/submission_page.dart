@@ -38,7 +38,7 @@ class SubmissionPage extends StatefulWidget {
   State<SubmissionPage> createState() => _SubmissionPageState();
 }
 
-class _SubmissionPageState extends State<SubmissionPage> {
+class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObserver {
   final SubmissionService _service = SubmissionService();
   final SpeechToText _speech = SpeechToText();
   final AudioRecorder _recorder = AudioRecorder();
@@ -95,7 +95,20 @@ class _SubmissionPageState extends State<SubmissionPage> {
     try {
       // 1. Ambil list provinsi dari emsifa untuk mencocokkan nama dengan ID emsifa
       if (_wilayahProvinces == null || _wilayahProvinces!.isEmpty) {
-        _wilayahProvinces = await _service.getWilayahProvinces();
+        // Try local cache first
+        final cachedProvinces = LocalStorageService().getLocationData('PROVINCE', 'root');
+        if (cachedProvinces != null) {
+          _wilayahProvinces = List<Map<String, dynamic>>.from(cachedProvinces.data);
+        } else {
+          _wilayahProvinces = await _service.getWilayahProvinces();
+          // Save to cache for next time
+          await LocalStorageService().saveLocationData(LocationCache(
+            parentId: 'root',
+            type: 'PROVINCE',
+            data: _wilayahProvinces!,
+            cachedAt: DateTime.now(),
+          ));
+        }
       }
 
       final normalizedProvince = _normalizeName(province['name']);
@@ -107,7 +120,21 @@ class _SubmissionPageState extends State<SubmissionPage> {
       }
 
       // 2. Fetch kota menggunakan ID emsifa (wProv['id'])
-      final cities = await _service.getCitiesAndRegencies(wProv['id']);
+      List<Map<String, dynamic>> cities = [];
+      final cachedCities = LocalStorageService().getLocationData('CITY', wProv['id'].toString());
+      
+      if (cachedCities != null) {
+        cities = List<Map<String, dynamic>>.from(cachedCities.data);
+      } else {
+        cities = await _service.getCitiesAndRegencies(wProv['id']);
+        await LocalStorageService().saveLocationData(LocationCache(
+          parentId: wProv['id'].toString(),
+          type: 'CITY',
+          data: cities,
+          cachedAt: DateTime.now(),
+        ));
+      }
+
       setState(() {
         _citiesData[questionId] = cities;
       });
@@ -121,7 +148,21 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
     setState(() => _locationLoading[questionId] = true);
     try {
-      final districts = await _service.getWilayahDistricts(cityId);
+      List<Map<String, dynamic>> districts = [];
+      final cachedDistricts = LocalStorageService().getLocationData('DISTRICT', cityId.toString());
+      
+      if (cachedDistricts != null) {
+        districts = List<Map<String, dynamic>>.from(cachedDistricts.data);
+      } else {
+        districts = await _service.getWilayahDistricts(cityId);
+        await LocalStorageService().saveLocationData(LocationCache(
+          parentId: cityId.toString(),
+          type: 'DISTRICT',
+          data: districts,
+          cachedAt: DateTime.now(),
+        ));
+      }
+      
       setState(() {
         _districtsData[questionId] = districts;
       });
@@ -134,7 +175,21 @@ class _SubmissionPageState extends State<SubmissionPage> {
     if (districtId == null) return;
     setState(() => _locationLoading[questionId] = true);
     try {
-      final villages = await _service.getWilayahVillages(districtId);
+      List<Map<String, dynamic>> villages = [];
+      final cachedVillages = LocalStorageService().getLocationData('VILLAGE', districtId.toString());
+      
+      if (cachedVillages != null) {
+        villages = List<Map<String, dynamic>>.from(cachedVillages.data);
+      } else {
+        villages = await _service.getWilayahVillages(districtId);
+        await LocalStorageService().saveLocationData(LocationCache(
+          parentId: districtId.toString(),
+          type: 'VILLAGE',
+          data: villages,
+          cachedAt: DateTime.now(),
+        ));
+      }
+
       setState(() {
         _villagesData[questionId] = villages;
       });
@@ -274,6 +329,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pageController = PageController(initialPage: _currentPageIndex);
     _loadData().then((_) => _loadDraftIfExists());
     _audioPlayer.onPlayerStateChanged.listen((state) {
@@ -287,6 +343,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     _recorder.dispose();
     _audioPlayer.dispose();
@@ -294,6 +351,16 @@ class _SubmissionPageState extends State<SubmissionPage> {
       _speech.stop();
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // Auto-save draft silently when app goes to background
+      if (_data != null && _answers.isNotEmpty) {
+        _saveDraft(isAutoSave: true);
+      }
+    }
   }
 
   Future<void> _loadDraftIfExists() async {
@@ -312,7 +379,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
         _answers.addAll(Map<int, dynamic>.from(draft.answers));
         _hasDraft = true;
       });
-      _showDraftSnackBar();
+      _showDraftSnackBar(isAutoSaved: draft.draftType == 'AUTO');
       return;
     }
 
@@ -332,17 +399,21 @@ class _SubmissionPageState extends State<SubmissionPage> {
     }
   }
 
-  void _showDraftSnackBar() {
+  void _showDraftSnackBar({bool isAutoSaved = false}) {
+    final message = isAutoSaved 
+      ? 'Progress Anda sebelumnya tersimpan otomatis dan telah dipulihkan.'
+      : 'Ditemukan draft sebelumnya. Jawaban Anda telah dipulihkan.';
+      
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Ditemukan draft sebelumnya. Jawaban Anda telah dipulihkan.'),
-        backgroundColor: Colors.orange,
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isAutoSaved ? Colors.blue : Colors.orange,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
 
-  Future<void> _saveDraft() async {
+  Future<void> _saveDraft({bool isAutoSave = false}) async {
     final userIdStr = await StorageHelper.getUserId();
     final enumeratorId = int.tryParse(userIdStr ?? '') ?? 0;
     
@@ -354,11 +425,13 @@ class _SubmissionPageState extends State<SubmissionPage> {
       status: 'DRAFT',
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
+      surveyTitle: _data?.survey?.title ?? widget.surveyTitle,
+      draftType: isAutoSave ? 'AUTO' : 'MANUAL',
     );
 
     await LocalStorageService().saveAnswer(draft);
     
-    if (mounted) {
+    if (mounted && !isAutoSave) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Draft berhasil disimpan"), backgroundColor: Colors.green),
       );

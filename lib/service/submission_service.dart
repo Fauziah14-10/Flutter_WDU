@@ -276,6 +276,16 @@ class SurveySubmissionData {
       provinceTargets: provinceTargets,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'survey': survey?.toJson(),
+      'project': project?.toJson(),
+      'client': client?.toJson(),
+      'pages': pages.map((e) => e.toJson()).toList(),
+      'province_targets': provinceTargets.map((e) => e.toJson()).toList(),
+    };
+  }
 }
 
 class SurveyInfo {
@@ -355,7 +365,23 @@ class SurveyInfo {
       isVoiceEnabled: voiceEnabled,
       isProgressBarEnabled: progressBarEnabled,
     );
-  }}
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'desc': desc,
+      'slug': slug,
+      'project_id': projectId,
+      'status': status,
+      'spreadsheet_url': spreadsheetUrl,
+      'is_camera_enabled': isCameraEnabled,
+      'voice_submission': isVoiceEnabled,
+      'progress_bar_status': isProgressBarEnabled,
+    };
+  }
+}
 
 class ProjectInfo {
   final int id;
@@ -377,6 +403,15 @@ class ProjectInfo {
       slug: json['slug']?.toString() ?? '',
       clientId: _parseInt(json['client_id']),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'project_name': projectName,
+      'slug': slug,
+      'client_id': clientId,
+    };
   }
 }
 
@@ -406,6 +441,17 @@ class ClientInfo {
       phone: json['phone']?.toString(),
       slug: json['slug']?.toString() ?? '',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'client_name': clientName,
+      'image': image,
+      'alamat': alamat,
+      'phone': phone,
+      'slug': slug,
+    };
   }
 }
 
@@ -452,6 +498,17 @@ class SurveyPageData {
       flow: flow,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'page_name': pageName,
+      'survey_id': surveyId,
+      'order': order,
+      'question': questions.map((e) => e.toJson()).toList(),
+      'flow': flow.map((e) => e.toJson()).toList(),
+    };
+  }
 }
 
 class FlowData {
@@ -486,6 +543,19 @@ class FlowData {
       customFieldOperator: json['custom_field_operator']?.toString(),
       customFieldValue: json['custom_field_value']?.toString(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'current_page_id': currentPageId,
+      'next_page_id': nextPageId,
+      'question_id': questionId,
+      'question_choice_id': questionChoiceId,
+      'custom_field_name': customFieldName,
+      'custom_field_operator': customFieldOperator,
+      'custom_field_value': customFieldValue,
+    };
   }
 }
 
@@ -565,6 +635,27 @@ class SurveyQuestionData {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'question_text': questionText,
+      'question_type_id': questionTypeId,
+      'survey_id': surveyId,
+      'order': order,
+      'required': required,
+      'question_choice_id': questionChoiceId,
+      'logic_type': logicType,
+      'logic_name': logicName,
+      'choice': choice.map((e) => e.toJson()).toList(),
+      'matrix_rows': matrixRows.map((e) => e.toJson()).toList(),
+      'matrix_columns': matrixColumns.map((e) => e.toJson()).toList(),
+      'matrix_type': matrixType,
+      'include_cityregency': includeCityRegency,
+      'include_district_village': includeDistrictVillage,
+    };
+  }
+
+
   String get plainText {
     final temp = questionText
         .replaceAll(RegExp(r'<[^>]*>'), '')
@@ -636,6 +727,17 @@ class QuestionChoice {
           : null,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'question_id': questionId,
+      'order': order,
+      'value': value,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+    };
+  }
 }
 
 class MatrixRow {
@@ -650,6 +752,13 @@ class MatrixRow {
       label: json['label']?.toString() ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'label': label,
+    };
+  }
 }
 
 class MatrixColumn {
@@ -659,5 +768,11 @@ class MatrixColumn {
 
   factory MatrixColumn.fromJson(Map<String, dynamic> json) {
     return MatrixColumn(label: json['label']?.toString() ?? '');
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'label': label,
+    };
   }
 }
