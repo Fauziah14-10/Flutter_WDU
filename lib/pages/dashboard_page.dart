@@ -84,6 +84,49 @@ class _DashboardViewState extends State<_DashboardView>
       );
     }
 
+    if (provider.error != null && provider.projects.isEmpty) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  provider.error!.contains('offline') || provider.error!.contains('internet')
+                      ? Icons.wifi_off_rounded
+                      : Icons.error_outline_rounded,
+                  size: 64,
+                  color: AppTheme.outline.withOpacity(0.5),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  provider.error!,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: AppTheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => provider.init(),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Coba Lagi'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: FadeTransition(
@@ -102,7 +145,6 @@ class _DashboardViewState extends State<_DashboardView>
                   delegate: SliverChildListDelegate([
                     const SizedBox(height: 12),
 
-                    // 🔥 PROJECT LIST (FIX animDelay)
                     if (provider.filteredProjects.isNotEmpty)
                       ...provider.filteredProjects.asMap().entries.map((entry) {
                         final i = entry.key;
@@ -113,6 +155,33 @@ class _DashboardViewState extends State<_DashboardView>
                           animDelay: Duration(milliseconds: 100 + i * 150),
                         );
                       }),
+
+                    if (provider.error != null && provider.projects.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(top: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.info_outline_rounded, size: 18, color: AppTheme.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Mode offline - menampilkan data terakhir',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: AppTheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
                     /*
                     const SizedBox(height: 20),

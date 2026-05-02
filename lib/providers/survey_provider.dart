@@ -58,7 +58,7 @@ class SurveyProvider extends ChangeNotifier {
   void refreshDownloadedStatuses(String projectSlug) {
     final cached = _storage.getAllCachedSurveys();
     _downloadedSlugs = cached
-        .where((s) => s.projectSlug == projectSlug || s.slug.contains(projectSlug))
+        .where((s) => s.projectSlug == projectSlug)
         .map((s) => s.slug)
         .toSet();
     notifyListeners();
@@ -81,8 +81,14 @@ class SurveyProvider extends ChangeNotifier {
       notifyListeners();
     }
 
+    bool isOnline = true;
     try {
-      final isOnline = await _connectivity.isOnline;
+      isOnline = await _connectivity.isOnline;
+    } catch (e) {
+      debugPrint('⚠️ [SurveyProvider] Failed to check connectivity: $e');
+    }
+
+    try {
       List<SurveyModel>? data;
 
       if (isOnline) {
@@ -94,14 +100,14 @@ class SurveyProvider extends ChangeNotifier {
         }
       }
 
-      if (data == null) {
+      if (data == null || data.isEmpty) {
         final cached = _storage.getAllCachedSurveys()
-            .where((s) => s.projectSlug == projectSlug || s.slug.startsWith(projectSlug))
+            .where((s) => s.projectSlug == projectSlug)
             .map((s) => SurveyModel(
                   id: s.surveyId,
                   title: s.title,
                   slug: s.slug,
-                  projectId: 0, // Simplified for listing
+                  projectId: 0,
                   status: '1',
                   provinceTargets: [],
                 ))
@@ -109,7 +115,7 @@ class SurveyProvider extends ChangeNotifier {
         
         if (cached.isNotEmpty) {
           data = cached;
-          debugPrint('✅ [SurveyProvider] Loaded surveys from local cache');
+          debugPrint('✅ [SurveyProvider] Loaded ${cached.length} surveys from local cache');
         }
       }
 
@@ -118,7 +124,11 @@ class SurveyProvider extends ChangeNotifier {
         _errorMessage = null;
         refreshDownloadedStatuses(projectSlug);
       } else {
-        _errorMessage = isOnline ? "Data tidak ditemukan" : "Kuesioner tidak tersedia offline. Unduh data terlebih dahulu.";
+        if (!isOnline) {
+          _errorMessage = "Mode offline. Belum ada survey yang diunduh. Hubungkan ke internet untuk download survey.";
+        } else {
+          _errorMessage = "Data tidak ditemukan";
+        }
       }
     } catch (e) {
       _errorMessage = _parseError(e);

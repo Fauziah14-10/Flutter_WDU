@@ -46,9 +46,9 @@ class DashboardProvider with ChangeNotifier {
   }
 
   Future<void> init() async {
-    await loadUser(); // ✅ tunggu token tersimpan dulu
-    await loadClients(); // ✅ baru fetch clients
-    autoDownloadOfflineSurveys(); // ✅ background download
+    await loadUser();
+    await loadClients();
+    // autoDownloadOfflineSurveys(); // Dinonaktifkan - user download manual per survey
   }
 
   Future<void> autoDownloadOfflineSurveys() async {
@@ -154,7 +154,11 @@ class DashboardProvider with ChangeNotifier {
         }
         error = null;
       } else {
-        error = isOnline ? "Data tidak ditemukan" : "Dashboard tidak tersedia offline. Hubungkan ke internet terlebih dahulu.";
+        if (!isOnline) {
+          error = "Tidak ada koneksi internet dan data offline belum tersedia. Hubungkan ke internet terlebih dahulu.";
+        } else {
+          error = "Data tidak ditemukan";
+        }
       }
     } catch (e) {
       debugPrint('[DashboardProvider] Error loadClients: $e');

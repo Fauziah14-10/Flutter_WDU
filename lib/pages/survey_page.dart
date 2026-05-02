@@ -313,6 +313,37 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
       );
     }
 
+    if (provider.errorMessage != null) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  provider.errorMessage!.contains('offline') || provider.errorMessage!.contains('internet')
+                      ? Icons.wifi_off_rounded
+                      : Icons.inbox_outlined,
+                  size: 64,
+                  color: AppTheme.outline.withOpacity(0.3),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  provider.errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: AppTheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     if (filtered.isEmpty) {
       return SliverFillRemaining(
         child: Center(

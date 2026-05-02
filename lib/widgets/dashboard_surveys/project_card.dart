@@ -3,11 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/connectivity_service.dart';
 import '../../models/user_project_model.dart';
-import '../../models/project_model.dart';
-import '../../service/offline_download_service.dart';
 import '../../service/local_storage_service.dart';
-import '../../service/survey_service.dart';
-import '../../models/client_model.dart';
 import '../../pages/list_survey_page.dart';
 import '../common/status_badge.dart';
 import '../common/gradient_button.dart';
@@ -31,10 +27,8 @@ class _ProjectCardState extends State<ProjectCard>
   late AnimationController _ctrl;
   late Animation<Offset> _slide;
   late Animation<double> _fade;
-  final OfflineDownloadService _downloadService = OfflineDownloadService();
   final LocalStorageService _storage = LocalStorageService();
-  bool _isDownloading = false;
-  bool _isAlreadyDownloaded = false;
+  bool _hasDownloadedSurveys = false;
 
   @override
   void initState() {
@@ -58,7 +52,7 @@ class _ProjectCardState extends State<ProjectCard>
   void _checkDownloadStatus() {
     final cachedSurveys = _storage.getAllCachedSurveys();
     setState(() {
-      _isAlreadyDownloaded = cachedSurveys.any((s) => s.projectSlug == widget.project.slug);
+      _hasDownloadedSurveys = cachedSurveys.any((s) => s.projectSlug == widget.project.slug);
     });
   }
 
@@ -86,48 +80,10 @@ class _ProjectCardState extends State<ProjectCard>
           clientName: widget.project.clientName,
           projectSlug: widget.project.slug,
           projectTitle: widget.project.projectName,
-          clientLogoUrl: widget.project.clientImage, // ✅ Teruskan logo klien
+          clientLogoUrl: widget.project.clientImage,
         ),
       ),
     );
-  }
-
-  void _downloadData() async {
-    setState(() => _isDownloading = true);
-    
-    try {
-      // 1. Fetch surveys first to ensure we have the list
-      final surveyService = SurveyService();
-      final surveys = await surveyService.getSurveys(widget.project.clientSlug, widget.project.slug);
-
-      final apiProject = Project(
-        projectName: widget.project.projectName,
-        slug: widget.project.slug,
-        surveys: surveys,
-        client: Client(
-          clientName: widget.project.clientName,
-          slug: widget.project.clientSlug,
-        ),
-      );
-      
-      await _downloadService.downloadSurveyData(apiProject);
-      
-      if (mounted) {
-        _checkDownloadStatus();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data berhasil diunduh untuk offline'), backgroundColor: Colors.green),
-        );
-      }
-    } catch (e) {
-      debugPrint('❌ [ProjectCard] Download failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengunduh: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isDownloading = false);
-    }
   }
 
   @override
@@ -140,230 +96,200 @@ class _ProjectCardState extends State<ProjectCard>
         final isOffline = snapshot.data ?? false;
 
         return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: FadeTransition(
-        opacity: _fade,
-        child: SlideTransition(
-          position: _slide,
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.onSurface.withOpacity(0.08),
-                  blurRadius: 48,
-                  offset: const Offset(0, 24),
-                  spreadRadius: -12,
+          padding: const EdgeInsets.only(bottom: 16),
+          child: FadeTransition(
+            opacity: _fade,
+            child: SlideTransition(
+              position: _slide,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.onSurface.withOpacity(0.08),
+                      blurRadius: 48,
+                      offset: const Offset(0, 24),
+                      spreadRadius: -12,
+                    ),
+                  ],
+                  border: Border.all(
+                    color: AppTheme.outlineVariant.withOpacity(0.1),
+                  ),
                 ),
-              ],
-              border: Border.all(
-                color: (isOffline && !_isAlreadyDownloaded)
-                    ? AppTheme.error.withOpacity(0.2)
-                    : AppTheme.outlineVariant.withOpacity(0.1),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── ICON & STATUS ──
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryContainer.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryContainer.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.folder_open_rounded,
+                              color: AppTheme.primary,
+                              size: 30,
+                            ),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            if (_hasDownloadedSurveys)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 8),
+                                child: Icon(Icons.download_done_rounded, color: AppTheme.primary, size: 18),
+                              ),
+                            const StatusBadge(label: 'Active', color: AppTheme.primary),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    Text(
+                      p.projectName,
+                      style: GoogleFonts.manrope(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.onSurface,
+                        height: 1.1,
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.folder_open_rounded,
-                          color: AppTheme.primary,
-                          size: 30,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      p.clientName,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: AppTheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+
+                    if (isOffline && _hasDownloadedSurveys)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.wifi_off_rounded, size: 12, color: AppTheme.primary),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Mode Offline - Survey tersedia',
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                    if (isOffline && !_hasDownloadedSurveys)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.error.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppTheme.error.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.cloud_off_rounded, size: 12, color: AppTheme.error),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Belum ada survey di-download',
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.error,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    Divider(
+                      color: AppTheme.outlineVariant.withOpacity(0.1),
+                      height: 1,
                     ),
+                    const SizedBox(height: 10),
+
                     Row(
                       children: [
-                        if (_isAlreadyDownloaded)
-                          const Padding(
-                            padding: EdgeInsets.only(right: 8),
-                            child: Icon(Icons.check_circle, color: Colors.green, size: 20),
-                          ),
-                        const StatusBadge(label: 'Active', color: AppTheme.primary),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // ── TITLES ──
-                Text(
-                  p.projectName,
-                  style: GoogleFonts.manrope(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.onSurface,
-                    height: 1.1,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  p.clientName,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: AppTheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-
-                // ── OFFLINE BADGE ──
-                if (isOffline && _isAlreadyDownloaded)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.wifi_off_rounded, size: 12, color: AppTheme.primary),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Mode Offline - Survey tersedia',
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (isOffline && !_isAlreadyDownloaded)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.error.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.error.withOpacity(0.2)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.cloud_off_rounded, size: 12, color: AppTheme.error),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Belum di-download - Hubungkan internet',
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.error,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // ── DIVIDER ──
-                Divider(
-                  color: AppTheme.outlineVariant.withOpacity(0.1),
-                  height: 1,
-                ),
-                const SizedBox(height: 10),
-
-                // ── UPDATED INFO ──
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.schedule_rounded,
-                      size: 14,
-                      color: AppTheme.monTextMid,
-                    ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        'Updated ${p.updatedAt ?? 'baru saja'}',
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
+                        const Icon(
+                          Icons.schedule_rounded,
+                          size: 14,
                           color: AppTheme.monTextMid,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Text(
-                      '•',
-                      style: TextStyle(color: AppTheme.monBorderColor, fontSize: 10),
-                    ),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        '${p.surveyCount} SURVEYS TOTAL',
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.ijoGelap,
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            'Updated ${p.updatedAt ?? 'baru saja'}',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.monTextMid,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                        const SizedBox(width: 4),
+                        const Text(
+                          '•',
+                          style: TextStyle(color: AppTheme.monBorderColor, fontSize: 10),
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            '${p.surveyCount} SURVEYS TOTAL',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.ijoGelap,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
+                    const SizedBox(height: 12),
 
-                // ── ACTION BUTTON ──
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    _isDownloading
-                      ? const Padding(
-                          padding: EdgeInsets.only(right: 12),
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2)
-                          ),
-                        )
-                      : IconButton(
-                          onPressed: isOffline ? null : _downloadData,
-                          icon: Icon(
-                            Icons.download_for_offline_rounded,
-                            color: isOffline ? AppTheme.outline : AppTheme.primary,
-                          ),
-                          tooltip: isOffline
-                              ? 'Hubungkan ke internet untuk download'
-                              : 'Download for Offline',
-                        ),
-                    const SizedBox(width: 8),
-                    GradientButton(
-                      label: 'View Surveys',
-                      onPressed: () => _viewSurveys(context),
-                      icon: Icons.arrow_forward_rounded,
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: GradientButton(
+                        label: 'View Surveys',
+                        onPressed: () => _viewSurveys(context),
+                        icon: Icons.arrow_forward_rounded,
+                      ),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
-    );
+        );
       },
     );
   }
