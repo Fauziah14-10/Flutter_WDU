@@ -17,6 +17,12 @@ import 'dart:convert';
 import 'dart:io';
 import '../core/utils/web_picker/web_picker.dart';
 import 'dart:typed_data';
+import '../../service/local_storage_service.dart';
+import '../../core/utils/connectivity_service.dart';
+import '../../models/offline_models.dart';
+import '../../providers/sync_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
 class SubmissionPage extends StatefulWidget {
   final String surveySlug;
@@ -295,41 +301,88 @@ class _SubmissionPageState extends State<SubmissionPage> {
   }
 
   Future<void> _loadDraftIfExists() async {
-    final draft = await StorageHelper.getDraftSurvey(widget.surveySlug);
+    // 1. Try new Hive storage first
+    final userIdStr = await StorageHelper.getUserId();
+    final enumeratorId = int.tryParse(userIdStr ?? '') ?? 0;
+    
+    final draft = LocalStorageService().getAnswer(
+      _data?.survey?.id ?? 0, 
+      "draft_user_$enumeratorId"
+    );
+
     if (draft != null && mounted) {
-      final answers = draft['answers'];
+      setState(() {
+        _answers.clear();
+        _answers.addAll(draft.answers);
+        _hasDraft = true;
+      });
+      _showDraftSnackBar();
+      return;
+    }
+
+    // 2. Fallback to old StorageHelper for backward compatibility
+    final oldDraft = await StorageHelper.getDraftSurvey(widget.surveySlug);
+    if (oldDraft != null && mounted) {
+      final answers = oldDraft['answers'];
       if (answers is Map<int, dynamic>) {
         setState(() {
           _answers.clear();
           _answers.addAll(answers);
-          _currentPageIndex = draft['currentPageIndex'] ?? 0;
+          _currentPageIndex = oldDraft['currentPageIndex'] ?? 0;
           _hasDraft = true;
         });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Ditemukan draft sebelumnya. Jawaban Anda telah dipulihkan.',
-              ),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
+        _showDraftSnackBar();
       }
     }
   }
 
-  Future<void> _saveDraft() async {
-    await StorageHelper.saveDraftSurvey(
-      surveySlug: widget.surveySlug,
-      answers: _answers.map((key, value) => MapEntry(key.toString(), value)),
-      currentPageIndex: _currentPageIndex,
+  void _showDraftSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Ditemukan draft sebelumnya. Jawaban Anda telah dipulihkan.'),
+        backgroundColor: Colors.orange,
+        duration: Duration(seconds: 2),
+      ),
     );
   }
 
+  Future<void> _saveDraft() async {
+    final userIdStr = await StorageHelper.getUserId();
+    final enumeratorId = int.tryParse(userIdStr ?? '') ?? 0;
+    
+    final draft = AnswerOffline(
+      surveyId: _data?.survey?.id ?? 0,
+      respondentId: "draft_user_$enumeratorId",
+      enumeratorId: enumeratorId,
+      answers: _answers,
+      status: 'DRAFT',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    await LocalStorageService().saveAnswer(draft);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Draft berhasil disimpan"), backgroundColor: Colors.green),
+      );
+    }
+  }
+
   Future<void> _clearDraft() async {
+    final userIdStr = await StorageHelper.getUserId();
+    final enumeratorId = int.tryParse(userIdStr ?? '') ?? 0;
+    
+    // Clear Hive draft
+    final draft = LocalStorageService().getAnswer(
+      _data?.survey?.id ?? 0, 
+      "draft_user_$enumeratorId"
+    );
+    if (draft != null) {
+      await draft.delete();
+    }
+
+    // Clear old storage draft
     await StorageHelper.deleteDraftSurvey(widget.surveySlug);
     setState(() => _hasDraft = false);
   }
@@ -2173,58 +2226,108 @@ class _SubmissionPageState extends State<SubmissionPage> {
       }
 
       final payload = _buildPayload();
+      final isOnline = await ConnectivityService().isOnline;
+      final userIdStr = await StorageHelper.getUserId();
+      final enumeratorId = int.tryParse(userIdStr ?? '') ?? 0;
+      final respondentId = const Uuid().v4();
 
-      // Hitung durasi pengerjaan
-      final duration = DateTime.now().difference(_startTime);
-
-      final success = await _service.submitSurvey(
-        clientSlug: widget.clientSlug,
-        projectSlug: widget.projectSlug,
-        surveySlug: widget.surveySlug,
-        answers: payload,
-        attachmentBytes: _attachmentBytes,
-      );
-
-      if (mounted) {
-        setState(() => _isSubmitting = false);
+      if (isOnline) {
+        // Online: Submit directly
+        final success = await _service.submitSurvey(
+          clientSlug: widget.clientSlug,
+          projectSlug: widget.projectSlug,
+          surveySlug: widget.surveySlug,
+          answers: payload,
+          attachmentBytes: _attachmentBytes,
+        );
 
         if (success) {
-          await _clearDraft();
-          await StorageHelper.deleteDraftPhoto(widget.surveySlug);
-
-          if (!mounted) return;
-
-          // Pindah ke Halaman Summary
-          final now = DateTime.now();
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SurveySummaryPage(
-                surveyTitle: _data?.survey?.title ?? widget.surveyTitle,
-                projectName: _data?.project?.projectName ?? '',
-                duration: duration,
-                completionTime: now,
-                latitude: lat,
-                longitude: lng,
-              ),
-            ),
-          );
+          await _handleSuccessfulSubmit(lat: lat, lng: lng);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Gagal mengirim kuisioner"),
-              backgroundColor: AppTheme.primary,
-            ),
-          );
+          _handleFailedSubmit("Gagal mengirim ke server.");
         }
+      } else {
+        // Offline: Add to Sync Queue
+        final queueItem = SyncQueueItem(
+          surveyId: _data?.survey?.id ?? 0,
+          respondentId: respondentId,
+          payload: {
+            'clientSlug': widget.clientSlug,
+            'projectSlug': widget.projectSlug,
+            'surveySlug': widget.surveySlug,
+            'answers': payload,
+            'lat': lat,
+            'lng': lng,
+          },
+          createdAt: DateTime.now(),
+        );
+
+        await LocalStorageService().addToQueue(queueItem);
+
+        // Also save as AnswerOffline with PENDING status for local record
+        final offlineRecord = AnswerOffline(
+          surveyId: _data?.survey?.id ?? 0,
+          respondentId: respondentId,
+          enumeratorId: enumeratorId,
+          answers: payload,
+          status: 'PENDING',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+        await LocalStorageService().saveAnswer(offlineRecord);
+
+        await _handleSuccessfulSubmit(isOffline: true, lat: lat, lng: lng);
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
-        );
-      }
+      _handleFailedSubmit(e.toString());
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _handleSuccessfulSubmit({bool isOffline = false, double? lat, double? lng}) async {
+    await _clearDraft();
+    await StorageHelper.deleteDraftPhoto(widget.surveySlug);
+
+    if (!mounted) return;
+
+    if (isOffline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Koneksi tidak stabil. Data disimpan lokal & akan dikirim otomatis saat online."),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+
+    final duration = DateTime.now().difference(_startTime);
+    final now = DateTime.now();
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SurveySummaryPage(
+          surveyTitle: _data?.survey?.title ?? widget.surveyTitle,
+          projectName: _data?.project?.projectName ?? '',
+          duration: duration,
+          completionTime: now,
+          isOffline: isOffline,
+          latitude: lat,
+          longitude: lng,
+        ),
+      ),
+    );
+  }
+
+  void _handleFailedSubmit(String error) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Gagal mengirim: $error"),
+          backgroundColor: AppTheme.primary,
+        ),
+      );
     }
   }
   Map<String, dynamic> _buildPayload() {

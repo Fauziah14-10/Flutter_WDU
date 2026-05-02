@@ -9,6 +9,7 @@ class SurveySummaryPage extends StatelessWidget {
   final DateTime completionTime;
   final double? latitude;
   final double? longitude;
+  final bool isOffline;
 
   const SurveySummaryPage({
     super.key,
@@ -18,6 +19,7 @@ class SurveySummaryPage extends StatelessWidget {
     required this.completionTime,
     this.latitude,
     this.longitude,
+    this.isOffline = false,
   });
 
   String _formatDuration(Duration duration) {
@@ -51,19 +53,19 @@ class SurveySummaryPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: AppTheme.monGreenPale,
+                    color: isOffline ? Colors.orange.shade50 : AppTheme.monGreenPale,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.check_circle_rounded,
-                    color: AppTheme.monGreenMid,
+                  child: Icon(
+                    isOffline ? Icons.cloud_off_rounded : Icons.check_circle_rounded,
+                    color: isOffline ? Colors.orange : AppTheme.monGreenMid,
                     size: 80,
                   ),
                 ),
                 const SizedBox(height: 32),
-                const Text(
-                  "Survey Terkirim!",
-                  style: TextStyle(
+                Text(
+                  isOffline ? "Data Tersimpan Lokal" : "Survey Terkirim!",
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.monTextDark,
@@ -71,7 +73,9 @@ class SurveySummaryPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Terima kasih atas partisipasi Anda dalam pengisian kuesioner ini.",
+                  isOffline 
+                    ? "Koneksi tidak stabil. Data Anda telah aman tersimpan di perangkat dan akan dikirim otomatis saat internet tersedia."
+                    : "Terima kasih atas partisipasi Anda dalam pengisian kuesioner ini.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -103,9 +107,9 @@ class SurveySummaryPage extends StatelessWidget {
                       ),
                       const Divider(height: 32),
                       _buildInfoRow(
-                        icon: Icons.calendar_today_outlined,
-                        label: "Waktu Pengisian",
-                        value: _formatDateTime(completionTime),
+                        icon: isOffline ? Icons.cloud_upload_outlined : Icons.calendar_today_outlined,
+                        label: isOffline ? "Status" : "Waktu Pengisian",
+                        value: isOffline ? "Menunggu Sinkronisasi" : _formatDateTime(completionTime),
                       ),
                       const Divider(height: 32),
                       _buildInfoRow(
