@@ -64,10 +64,23 @@ class _MonitoringSurveyPageState extends State<MonitoringSurveyPage>
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.read<AuthProvider>();
-    final currentUserId = int.tryParse(authProvider.user?['id']?.toString() ?? '');
+    final authProvider = context.watch<AuthProvider>();
+    final user = authProvider.user;
+    
+    // If user is not loaded yet, show loading
+    if (user == null) {
+      return const Scaffold(
+        backgroundColor: AppTheme.surface,
+        body: Center(
+          child: CircularProgressIndicator(color: AppTheme.primary),
+        ),
+      );
+    }
+
+    final currentUserId = int.tryParse(user['id']?.toString() ?? '');
 
     return ChangeNotifierProvider(
+      key: ValueKey('monitoring_$currentUserId'),
       create: (_) => MonitoringProvider(
         surveyName: widget.surveyName,
         clientSlug: widget.clientSlug,

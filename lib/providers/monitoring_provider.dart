@@ -84,11 +84,16 @@ class MonitoringProvider extends ChangeNotifier {
     }
 
     responses = _rawResponses.where((r) {
-      // Filter by User ID if provided
-      if (currentUserId != null) {
-        final userId = int.tryParse((r['user_id'] ?? (r['user']?['id']) ?? '0').toString()) ?? 0;
-        if (userId != currentUserId) return false;
-      }
+      // Filter by User ID: Only show responses belonging to currentUserId
+      final rUserId = r['user_id'] ?? r['user']?['id'];
+      
+      // If there is no user ID on the response, it's a guest/public response, filter it out.
+      if (rUserId == null) return false;
+
+      final userId = int.tryParse(rUserId.toString());
+      
+      // If we don't have a current user ID (not logged in or not loaded), hide everything.
+      if (currentUserId == null || userId != currentUserId) return false;
 
       if (startDate == null || endDate == null) return true;
       final dateStr =
