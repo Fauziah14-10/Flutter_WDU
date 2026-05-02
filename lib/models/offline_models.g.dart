@@ -69,7 +69,7 @@ class AnswerOfflineAdapter extends TypeAdapter<AnswerOffline> {
       surveyId: fields[0] as int,
       respondentId: fields[1] as String,
       enumeratorId: fields[2] as int,
-      answers: (fields[3] as Map).cast<String, dynamic>(),
+      answers: (fields[3] as Map).cast<dynamic, dynamic>(),
       status: fields[4] as String,
       createdAt: fields[5] as DateTime,
       updatedAt: fields[6] as DateTime,

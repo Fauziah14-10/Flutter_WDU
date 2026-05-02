@@ -44,7 +44,7 @@ class AnswerOffline extends HiveObject {
   final int enumeratorId;
 
   @HiveField(3)
-  final Map<String, dynamic> answers;
+  final Map<dynamic, dynamic> answers;
 
   @HiveField(4)
   String status; // DRAFT, PENDING, SYNCED, FAILED

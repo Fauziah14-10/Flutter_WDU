@@ -313,7 +313,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
     if (draft != null && mounted) {
       setState(() {
         _answers.clear();
-        _answers.addAll(draft.answers);
+        _answers.addAll(Map<int, dynamic>.from(draft.answers));
         _hasDraft = true;
       });
       _showDraftSnackBar();
