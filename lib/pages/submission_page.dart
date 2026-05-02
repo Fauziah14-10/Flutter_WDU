@@ -759,11 +759,14 @@ class _SubmissionPageState extends State<SubmissionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Stack(
         children: [
           Scaffold(
+            resizeToAvoidBottomInset: true,
             backgroundColor: AppTheme.monBgColor,
             body: Column(
               children: [
@@ -777,7 +780,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
                         )
                       : _errorMessage != null
                       ? _buildErrorUI()
-                      : _buildContent(),
+                      : _buildContent(isKeyboardVisible),
                 ),
               ],
             ),
@@ -937,17 +940,18 @@ class _SubmissionPageState extends State<SubmissionPage> {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(bool isKeyboardVisible) {
     if (_data == null || _data!.pages.isEmpty) {
       return const Center(child: Text("Tidak ada pertanyaan"));
     }
 
     return Column(
       children: [
-        if (_data?.survey?.isVoiceEnabled == true) _buildVoiceNoteSection(),
+        if (_data?.survey?.isVoiceEnabled == true && !isKeyboardVisible) 
+          _buildVoiceNoteSection(),
         _buildPageIndicator(),
         Expanded(child: _buildQuestionPages()),
-        _buildBottomBar(),
+        if (!isKeyboardVisible) _buildBottomBar(),
       ],
     );
   }
