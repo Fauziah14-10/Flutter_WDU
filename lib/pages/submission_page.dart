@@ -13,15 +13,11 @@ import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'survey_summary_page.dart';
-import 'dart:convert';
 import 'dart:io';
 import '../core/utils/web_picker/web_picker.dart';
-import 'dart:typed_data';
 import '../../service/local_storage_service.dart';
 import '../../core/utils/connectivity_service.dart';
 import '../../models/offline_models.dart';
-import '../../providers/sync_provider.dart';
-import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 class SubmissionPage extends StatefulWidget {
@@ -178,7 +174,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
           continue;
         }
 
-        final answer = _answers[q.id] ?? _answers[q.id.toString()];
+        final answer = _answers[q.id];
         bool isValid = false;
 
         if (answer != null) {
@@ -2338,7 +2334,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
         'question': page.questions.map((q) => {'id': q.id}).toList(),
         'answer': page.questions
             .map((q) {
-              final answer = _answers[q.id] ?? _answers[q.id.toString()];
+              final answer = _answers[q.id];
               return _buildAnswerValue(q, answer);
             })
             .toList(),
