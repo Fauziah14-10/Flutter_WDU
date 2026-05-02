@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/survey_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/connectivity_service.dart';
+import '../../models/survey_model.dart';
+import '../../service/offline_download_service.dart';
 import '../widgets/project_list/survey_bento_card.dart';
 import '../widgets/universal_image.dart';
 
@@ -30,6 +33,9 @@ class SurveyBpkPage extends StatefulWidget {
 class _SurveyBpkPageState extends State<SurveyBpkPage> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+  final Set<String> _downloadingSlugs = {};
+  final Set<String> _failedDownloadSlugs = {};
+  final OfflineDownloadService _downloadService = OfflineDownloadService();
 
   @override
   void initState() {
@@ -66,6 +72,114 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _downloadSurvey(SurveyModel survey) async {
+    final isOnline = await ConnectivityService().isOnline;
+    if (!isOnline) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tidak ada koneksi internet. Hubungkan ke internet untuk download.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Download Survey'),
+        content: Text(
+          'Download "${survey.title}" untuk penggunaan offline? '
+          'Data survey dan wilayah yang relevan akan diunduh.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Download'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _downloadingSlugs.add(survey.slug);
+      _failedDownloadSlugs.remove(survey.slug);
+    });
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          title: const Text('Downloading...'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ValueListenableBuilder<double>(
+                valueListenable: _downloadService.downloadProgress,
+                builder: (_, progress, __) => LinearProgressIndicator(value: progress > 0 ? progress : null),
+              ),
+              const SizedBox(height: 12),
+              ValueListenableBuilder<String>(
+                valueListenable: _downloadService.statusMessage,
+                builder: (_, message, __) => Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      await _downloadService.downloadSingleSurvey(
+        clientSlug: widget.clientSlug,
+        projectSlug: widget.projectSlug,
+        surveySlug: survey.slug,
+        survey: survey,
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+        context.read<SurveyProvider>().markSurveyDownloaded(survey.slug);
+        setState(() {
+          _downloadingSlugs.remove(survey.slug);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Survey berhasil diunduh untuk offline'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        setState(() {
+          _downloadingSlugs.remove(survey.slug);
+          _failedDownloadSlugs.add(survey.slug);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengunduh: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -238,6 +352,11 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                   clientSlug: widget.clientSlug,
                   projectSlug: widget.projectSlug,
                   hasAnswered: provider.hasUserAnswered(survey.slug),
+                  isDownloaded: provider.isSurveyDownloaded(survey.slug),
+                  isDownloading: _downloadingSlugs.contains(survey.slug),
+                  downloadFailed: _failedDownloadSlugs.contains(survey.slug),
+                  onDownload: () => _downloadSurvey(survey),
+                  onRetryDownload: () => _downloadSurvey(survey),
                 );
               }, childCount: filtered.length),
             )
@@ -251,6 +370,11 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                     clientSlug: widget.clientSlug,
                     projectSlug: widget.projectSlug,
                     hasAnswered: provider.hasUserAnswered(survey.slug),
+                    isDownloaded: provider.isSurveyDownloaded(survey.slug),
+                    isDownloading: _downloadingSlugs.contains(survey.slug),
+                    downloadFailed: _failedDownloadSlugs.contains(survey.slug),
+                    onDownload: () => _downloadSurvey(survey),
+                    onRetryDownload: () => _downloadSurvey(survey),
                   ),
                 );
               }, childCount: filtered.length),

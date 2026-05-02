@@ -11,6 +11,11 @@ class SurveyBentoCard extends StatelessWidget {
   final String clientSlug;
   final String projectSlug;
   final bool? hasAnswered;
+  final bool isDownloaded;
+  final VoidCallback? onDownload;
+  final bool isDownloading;
+  final bool downloadFailed;
+  final VoidCallback? onRetryDownload;
 
   const SurveyBentoCard({
     super.key,
@@ -18,6 +23,11 @@ class SurveyBentoCard extends StatelessWidget {
     required this.clientSlug,
     required this.projectSlug,
     this.hasAnswered,
+    this.isDownloaded = false,
+    this.onDownload,
+    this.isDownloading = false,
+    this.downloadFailed = false,
+    this.onRetryDownload,
   });
 
   void _showAllProvinces(BuildContext context) {
@@ -206,6 +216,46 @@ class SurveyBentoCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
+                if (isDownloaded)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.wifi_off_rounded, size: 11, color: AppTheme.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Offline ready',
+                          style: GoogleFonts.inter(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (downloadFailed)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline_rounded, size: 11, color: AppTheme.error),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Download gagal',
+                          style: GoogleFonts.inter(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                _downloadButtonRow(),
+                const SizedBox(height: 8),
                 LayoutBuilder(
                   builder: (context, constraints) {
                     // Jika lebar tidak cukup untuk 2 button (asumsi min 100 per button)
@@ -475,6 +525,131 @@ class SurveyBentoCard extends StatelessWidget {
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _downloadButtonRow() {
+    if (isDownloaded) {
+      return Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_rounded, size: 12, color: Colors.green),
+                const SizedBox(width: 4),
+                Text(
+                  'Siap offline',
+                  style: GoogleFonts.inter(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.green.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (isDownloading) {
+      return const Row(
+        children: [
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
+          ),
+          SizedBox(width: 8),
+          Text('Mengunduh...', style: TextStyle(fontSize: 10, color: AppTheme.onSurfaceVariant)),
+        ],
+      );
+    }
+
+    if (downloadFailed) {
+      return Container(
+        height: 32,
+        decoration: BoxDecoration(
+          color: AppTheme.error.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onRetryDownload,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.refresh_rounded, size: 14, color: AppTheme.error),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Coba lagi',
+                    style: GoogleFonts.manrope(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.error,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Default: show download button
+    return Container(
+      height: 32,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.primary.withOpacity(0.9), AppTheme.primary.withOpacity(0.7)],
+        ),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primary.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onDownload,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.download_rounded, size: 14, color: Colors.white),
+                const SizedBox(width: 4),
+                Text(
+                  'Download offline',
+                  style: GoogleFonts.manrope(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
                   ),
                 ),
               ],

@@ -22,6 +22,9 @@ class SurveyProvider extends ChangeNotifier {
   // Map untuk menyimpan status jawaban user per survey slug
   Map<String, bool> _userAnswerStatus = {};
 
+  // Set untuk menyimpan survey yang sudah didownload
+  Set<String> _downloadedSlugs = {};
+
   bool _isLoading = false;
   bool _isLoadingDetail = false;
   bool _isLoadingReport = false;
@@ -47,6 +50,24 @@ class SurveyProvider extends ChangeNotifier {
   // Getter untuk status jawaban user per survey
   bool hasUserAnswered(String surveySlug) =>
       _userAnswerStatus[surveySlug] ?? false;
+
+  // Getter untuk status download survey
+  bool isSurveyDownloaded(String surveySlug) =>
+      _downloadedSlugs.contains(surveySlug);
+
+  void refreshDownloadedStatuses(String projectSlug) {
+    final cached = _storage.getAllCachedSurveys();
+    _downloadedSlugs = cached
+        .where((s) => s.projectSlug == projectSlug || s.slug.contains(projectSlug))
+        .map((s) => s.slug)
+        .toSet();
+    notifyListeners();
+  }
+
+  void markSurveyDownloaded(String surveySlug) {
+    _downloadedSlugs.add(surveySlug);
+    notifyListeners();
+  }
 
   // ── LOAD SURVEYS ──────────────────────────────────────────
   Future<void> loadSurveys(
@@ -95,6 +116,7 @@ class SurveyProvider extends ChangeNotifier {
       if (data != null) {
         _surveys = data;
         _errorMessage = null;
+        refreshDownloadedStatuses(projectSlug);
       } else {
         _errorMessage = isOnline ? "Data tidak ditemukan" : "Kuesioner tidak tersedia offline. Unduh data terlebih dahulu.";
       }

@@ -90,6 +90,14 @@ class LocalStorageService {
     return box.values.toList();
   }
 
+  SurveyCache? getSurveyBySlug(String slug) {
+    final box = Hive.box<SurveyCache>(surveyBoxName);
+    for (final survey in box.values) {
+      if (survey.slug == slug) return survey;
+    }
+    return null;
+  }
+
   // --- ANSWER OFFLINE METHODS ---
 
   Future<void> saveAnswer(AnswerOffline answer) async {

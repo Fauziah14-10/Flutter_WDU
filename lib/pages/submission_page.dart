@@ -872,12 +872,23 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
 
       // If offline or API failed, try cache
       if (data == null) {
-        final cached = LocalStorageService().getAllCachedSurveys()
-            .find((s) => s.slug == widget.surveySlug);
+        final localStorage = LocalStorageService();
+        // Try lookup by slug first (from downloaded surveys)
+        final cachedBySlug = localStorage.getSurveyBySlug(widget.surveySlug);
         
-        if (cached != null) {
-          data = SurveySubmissionData.fromJson(Map<String, dynamic>.from(cached.surveyData));
-          debugPrint("Loaded survey from local cache");
+        if (cachedBySlug != null) {
+          data = SurveySubmissionData.fromJson(Map<String, dynamic>.from(cachedBySlug.surveyData));
+          debugPrint("Loaded survey from local cache by slug");
+        } else {
+          // Fallback: search all cached surveys
+          final cached = localStorage.getAllCachedSurveys()
+              .where((s) => s.slug == widget.surveySlug)
+              .firstOrNull;
+          
+          if (cached != null) {
+            data = SurveySubmissionData.fromJson(Map<String, dynamic>.from(cached.surveyData));
+            debugPrint("Loaded survey from local cache (fallback)");
+          }
         }
       }
 

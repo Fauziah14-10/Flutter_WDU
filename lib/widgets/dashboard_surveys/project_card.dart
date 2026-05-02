@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/connectivity_service.dart';
 import '../../models/user_project_model.dart';
 import '../../models/project_model.dart';
 import '../../service/offline_download_service.dart';
@@ -133,7 +134,12 @@ class _ProjectCardState extends State<ProjectCard>
   Widget build(BuildContext context) {
     final p = widget.project;
 
-    return Padding(
+    return FutureBuilder<bool>(
+      future: ConnectivityService().isOffline,
+      builder: (context, snapshot) {
+        final isOffline = snapshot.data ?? false;
+
+        return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: FadeTransition(
         opacity: _fade,
@@ -153,7 +159,9 @@ class _ProjectCardState extends State<ProjectCard>
                 ),
               ],
               border: Border.all(
-                color: AppTheme.outlineVariant.withOpacity(0.1),
+                color: (isOffline && !_isAlreadyDownloaded)
+                    ? AppTheme.error.withOpacity(0.2)
+                    : AppTheme.outlineVariant.withOpacity(0.1),
               ),
             ),
             child: Column(
@@ -217,6 +225,58 @@ class _ProjectCardState extends State<ProjectCard>
                 ),
                 const SizedBox(height: 8),
 
+                // ── OFFLINE BADGE ──
+                if (isOffline && _isAlreadyDownloaded)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.wifi_off_rounded, size: 12, color: AppTheme.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Mode Offline - Survey tersedia',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (isOffline && !_isAlreadyDownloaded)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.error.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.error.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off_rounded, size: 12, color: AppTheme.error),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Belum di-download - Hubungkan internet',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // ── DIVIDER ──
                 Divider(
                   color: AppTheme.outlineVariant.withOpacity(0.1),
@@ -271,19 +331,24 @@ class _ProjectCardState extends State<ProjectCard>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    _isDownloading 
+                    _isDownloading
                       ? const Padding(
                           padding: EdgeInsets.only(right: 12),
                           child: SizedBox(
-                            width: 24, 
-                            height: 24, 
+                            width: 24,
+                            height: 24,
                             child: CircularProgressIndicator(strokeWidth: 2)
                           ),
                         )
                       : IconButton(
-                          onPressed: _downloadData,
-                          icon: const Icon(Icons.download_for_offline_rounded, color: AppTheme.primary),
-                          tooltip: 'Download for Offline',
+                          onPressed: isOffline ? null : _downloadData,
+                          icon: Icon(
+                            Icons.download_for_offline_rounded,
+                            color: isOffline ? AppTheme.outline : AppTheme.primary,
+                          ),
+                          tooltip: isOffline
+                              ? 'Hubungkan ke internet untuk download'
+                              : 'Download for Offline',
                         ),
                     const SizedBox(width: 8),
                     GradientButton(
@@ -298,6 +363,8 @@ class _ProjectCardState extends State<ProjectCard>
           ),
         ),
       ),
+    );
+      },
     );
   }
 }
