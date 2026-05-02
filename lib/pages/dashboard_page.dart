@@ -100,28 +100,29 @@ class _DashboardViewState extends State<_DashboardView>
                   delegate: SliverChildListDelegate([
                     const SizedBox(height: 12),
 
-                  // 🔥 PROJECT LIST (FIX animDelay)
-                  if (provider.filteredProjects.isNotEmpty)
-                    ...provider.filteredProjects.asMap().entries.map((entry) {
-                      final i = entry.key;
-                      final project = entry.value;
+                    // 🔥 PROJECT LIST (FIX animDelay)
+                    if (provider.filteredProjects.isNotEmpty)
+                      ...provider.filteredProjects.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final project = entry.value;
 
-                      return ProjectCard(
-                        project: project,
-                        animDelay: Duration(milliseconds: 100 + i * 150),
-                      );
-                    }),
+                        return ProjectCard(
+                          project: project,
+                          animDelay: Duration(milliseconds: 100 + i * 150),
+                        );
+                      }),
 
-                  /*
-                  const SizedBox(height: 20),
+                    /*
+                    const SizedBox(height: 20),
 
-                  // 🔥 CLIENT SECTION
-                  _ClientsSection(provider: provider),
-                  */
-                ]),
+                    // 🔥 CLIENT SECTION
+                    _ClientsSection(provider: provider),
+                    */
+                  ]),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
