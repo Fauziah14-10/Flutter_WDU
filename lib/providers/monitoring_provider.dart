@@ -7,12 +7,14 @@ class MonitoringProvider extends ChangeNotifier {
   final String clientSlug;
   final String projectSlug;
   final String surveySlug;
+  final int? currentUserId;
 
   MonitoringProvider({
     required this.surveyName,
     required this.clientSlug,
     required this.projectSlug,
     required this.surveySlug,
+    this.currentUserId,
   });
 
   final SurveyService _service = SurveyService();
@@ -82,6 +84,12 @@ class MonitoringProvider extends ChangeNotifier {
     }
 
     responses = _rawResponses.where((r) {
+      // Filter by User ID if provided
+      if (currentUserId != null) {
+        final userId = int.tryParse((r['user_id'] ?? (r['user']?['id']) ?? '0').toString()) ?? 0;
+        if (userId != currentUserId) return false;
+      }
+
       if (startDate == null || endDate == null) return true;
       final dateStr =
           r['updated_at']?.toString() ?? r['created_at']?.toString() ?? '';

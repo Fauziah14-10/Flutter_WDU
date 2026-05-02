@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
+import '../providers/auth_provider.dart';
 import '../providers/monitoring_provider.dart';
 import '../widgets/monitoring_surveys/list_respon_widget.dart';
 import 'cek_edit_monitor.dart';
@@ -63,12 +64,16 @@ class _MonitoringSurveyPageState extends State<MonitoringSurveyPage>
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.read<AuthProvider>();
+    final currentUserId = int.tryParse(authProvider.user?['id']?.toString() ?? '');
+
     return ChangeNotifierProvider(
       create: (_) => MonitoringProvider(
         surveyName: widget.surveyName,
         clientSlug: widget.clientSlug,
         projectSlug: widget.projectSlug,
         surveySlug: widget.surveySlug,
+        currentUserId: currentUserId,
       )..loadSurvey(),
       child: Consumer<MonitoringProvider>(
         builder: (context, provider, _) {
