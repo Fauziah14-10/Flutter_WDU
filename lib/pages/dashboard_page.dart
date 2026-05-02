@@ -12,6 +12,7 @@ import 'settings_page.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../widgets/ringing_bell_icon.dart';
+import '../providers/sync_provider.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -100,28 +101,29 @@ class _DashboardViewState extends State<_DashboardView>
                   delegate: SliverChildListDelegate([
                     const SizedBox(height: 12),
 
-                  // 🔥 PROJECT LIST (FIX animDelay)
-                  if (provider.filteredProjects.isNotEmpty)
-                    ...provider.filteredProjects.asMap().entries.map((entry) {
-                      final i = entry.key;
-                      final project = entry.value;
+                    // 🔥 PROJECT LIST (FIX animDelay)
+                    if (provider.filteredProjects.isNotEmpty)
+                      ...provider.filteredProjects.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final project = entry.value;
 
-                      return ProjectCard(
-                        project: project,
-                        animDelay: Duration(milliseconds: 100 + i * 150),
-                      );
-                    }),
+                        return ProjectCard(
+                          project: project,
+                          animDelay: Duration(milliseconds: 100 + i * 150),
+                        );
+                      }),
 
-                  /*
-                  const SizedBox(height: 20),
+                    /*
+                    const SizedBox(height: 20),
 
-                  // 🔥 CLIENT SECTION
-                  _ClientsSection(provider: provider),
-                  */
-                ]),
+                    // 🔥 CLIENT SECTION
+                    _ClientsSection(provider: provider),
+                    */
+                  ]),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     ),
@@ -155,10 +157,34 @@ class _DashboardViewState extends State<_DashboardView>
         ),
       ),
       actions: [
+        _buildSyncButton(context),
         _buildFontSizeButton(context),
         const RingingBellIcon(),
         _buildSettingsButton(context),
       ],
+    );
+  }
+
+  Widget _buildSyncButton(BuildContext context) {
+    return Consumer<SyncProvider>(
+      builder: (context, syncProvider, _) {
+        if (syncProvider.isSyncing) {
+          return Container(
+            margin: const EdgeInsets.all(12),
+            width: 24,
+            height: 24,
+            child: const CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
+            ),
+          );
+        }
+        return IconButton(
+          icon: Icon(Icons.sync_rounded, color: AppTheme.primary),
+          tooltip: 'Sinkronisasi Data',
+          onPressed: () => syncProvider.syncData(),
+        );
+      },
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'pages/login_page.dart';
 import 'pages/dashboard_page.dart';
@@ -16,15 +17,19 @@ import 'providers/auth_provider.dart';
 import 'providers/survey_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/font_size_provider.dart';
+import 'providers/sync_provider.dart';
 import 'models/client_model.dart';
 import 'models/provinsi_model.dart';
 
+import 'service/local_storage_service.dart';
 import 'core/utils/storage.dart';
 import 'core/utils/route_observer.dart';
 import 'core/utils/logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  await LocalStorageService().init();
 
   if (kDebugMode) {
     FlutterError.onError = (details) {
@@ -83,6 +88,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SurveyProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => FontSizeProvider()),
+        ChangeNotifierProvider(create: (_) => SyncProvider()),
       ],
       child: Consumer<FontSizeProvider>(
         builder: (context, fontSizeProvider, _) {
