@@ -20,6 +20,7 @@ import 'providers/font_size_provider.dart';
 import 'models/client_model.dart';
 import 'models/provinsi_model.dart';
 
+import 'service/local_storage_service.dart';
 import 'core/utils/storage.dart';
 import 'core/utils/route_observer.dart';
 import 'core/utils/logger.dart';
@@ -27,6 +28,7 @@ import 'core/utils/logger.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
+  await LocalStorageService().init();
 
   if (kDebugMode) {
     FlutterError.onError = (details) {
