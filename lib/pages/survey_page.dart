@@ -92,19 +92,26 @@ class _SurveyBpkPageState extends State<SurveyBpkPage> {
                 )
                 .toList();
 
-            return CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                _buildAppBar(),
-                SliverToBoxAdapter(child: _buildOldStyleHeader()),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                    child: _buildSearchSection(),
+            return RefreshIndicator(
+              onRefresh: () async {
+                await provider.loadSurveys(widget.clientSlug, widget.projectSlug);
+                await provider.loadUserAnswerStatus(widget.clientSlug, widget.projectSlug);
+              },
+              color: AppTheme.primary,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  _buildAppBar(),
+                  SliverToBoxAdapter(child: _buildOldStyleHeader()),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                      child: _buildSearchSection(),
+                    ),
                   ),
-                ),
-                _buildSurveyGrid(filtered, provider),
-              ],
+                  _buildSurveyGrid(filtered, provider),
+                ],
+              ),
             );
           },
         ),

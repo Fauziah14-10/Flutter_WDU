@@ -86,15 +86,19 @@ class _DashboardViewState extends State<_DashboardView>
       backgroundColor: AppTheme.background,
       body: FadeTransition(
         opacity: _fadeAnim,
-        child: CustomScrollView(
-          slivers: [
-            _buildAppBar(),
+        child: RefreshIndicator(
+          onRefresh: () => provider.init(),
+          color: AppTheme.primary,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              _buildAppBar(),
 
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  const SizedBox(height: 12),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    const SizedBox(height: 12),
 
                   // 🔥 PROJECT LIST (FIX animDelay)
                   if (provider.filteredProjects.isNotEmpty)
