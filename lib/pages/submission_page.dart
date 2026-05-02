@@ -60,6 +60,7 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
   int _currentPageIndex = 0;
   late PageController _pageController;
   bool _hasDraft = false;
+  bool _isDirty = false;
 
   bool _isListening = false;
   String _voiceResult = '';
@@ -431,10 +432,13 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
 
     await LocalStorageService().saveAnswer(draft);
     
-    if (mounted && !isAutoSave) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Draft berhasil disimpan"), backgroundColor: Colors.green),
-      );
+    if (mounted) {
+      if (!isAutoSave) {
+        setState(() => _isDirty = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Draft berhasil disimpan"), backgroundColor: Colors.green),
+        );
+      }
     }
   }
 
@@ -811,11 +815,43 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
     });
 
     try {
-      final data = await _service.getSubmission(
-        clientSlug: widget.clientSlug,
-        projectSlug: widget.projectSlug,
-        surveySlug: widget.surveySlug,
-      );
+      final isOnline = await ConnectivityService().isOnline;
+      SurveySubmissionData? data;
+
+      if (isOnline) {
+        try {
+          data = await _service.getSubmission(
+            clientSlug: widget.clientSlug,
+            projectSlug: widget.projectSlug,
+            surveySlug: widget.surveySlug,
+          );
+          
+          // Cache it for offline use
+          if (data != null && data.survey != null) {
+            await LocalStorageService().saveSurvey(SurveyCache(
+              surveyId: data.survey!.id,
+              title: data.survey!.title,
+              slug: widget.surveySlug,
+              surveyData: data.toJson(),
+              version: 1,
+              lastUpdated: DateTime.now(),
+            ));
+          }
+        } catch (e) {
+          debugPrint("API Load failed, trying cache: $e");
+        }
+      }
+
+      // If offline or API failed, try cache
+      if (data == null) {
+        final cached = LocalStorageService().getAllCachedSurveys()
+            .find((s) => s.slug == widget.surveySlug);
+        
+        if (cached != null) {
+          data = SurveySubmissionData.fromJson(Map<String, dynamic>.from(cached.surveyData));
+          debugPrint("Loaded survey from local cache");
+        }
+      }
 
       if (data != null) {
         setState(() {
@@ -824,7 +860,7 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
         });
       } else {
         setState(() {
-          _errorMessage = "Data tidak ditemukan";
+          _errorMessage = isOnline ? "Data tidak ditemukan" : "Data tidak tersedia offline. Silakan unduh data saat online terlebih dahulu.";
           _isLoading = false;
         });
       }
@@ -837,6 +873,8 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
   }
 
   Future<bool> _onWillPop() async {
+    if (!_isDirty) return true;
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1340,6 +1378,7 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
                 locationData['district'] = '';
                 locationData['village'] = '';
                 _answers[q.id] = {'locationDropdown': locationData};
+                _isDirty = true;
                 if (val != null && val.isNotEmpty) {
                   if (q.includeDistrictVillage) {
                     _fetchDistricts(q.id, val);
@@ -1373,6 +1412,7 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
                 locationData['district_name'] = dist?['name'] ?? '';
                 locationData['village'] = '';
                 _answers[q.id] = {'locationDropdown': locationData};
+                _isDirty = true;
                 if (val != null && val.isNotEmpty) {
                   _fetchVillages(q.id, val);
                 }
@@ -1666,7 +1706,8 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
       onChanged: (val) {
         setState(() {
           _answers[q.id] = val;
-          if (val != null) _errors.remove(q.id);
+          _isDirty = true;
+          _errors.remove(q.id);
         });
       },
       icon: const Icon(
@@ -1812,6 +1853,7 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
       onChanged: (val) {
         setState(() {
           _answers[q.id] = val;
+          _isDirty = true;
           if (val.trim().isNotEmpty) _errors.remove(q.id);
         });
       },
@@ -1844,6 +1886,7 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
       onChanged: (val) {
         setState(() {
           _answers[q.id] = val;
+          _isDirty = true;
           if (val.trim().isNotEmpty) _errors.remove(q.id);
         });
       },
@@ -1875,6 +1918,7 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
       onChanged: (val) {
         setState(() {
           _answers[q.id] = val;
+          _isDirty = true;
           if (val.trim().isNotEmpty) _errors.remove(q.id);
         });
       },
@@ -1918,7 +1962,8 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
       onChanged: (val) {
         setState(() {
           _answers[q.id] = val;
-          if (val != null) _errors.remove(q.id);
+          _isDirty = true;
+          _errors.remove(q.id);
         });
       },
       icon: const Icon(
@@ -2193,7 +2238,7 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
 
         bool match = false;
         if (flowData.questionId != null) {
-          final answer = _answers[flowData.questionId] ?? _answers[flowData.questionId.toString()];
+          final answer = _answers[flowData.questionId];
           
           if (answer != null) {
             if (answer is List) {
@@ -2359,6 +2404,8 @@ class _SubmissionPageState extends State<SubmissionPage> with WidgetsBindingObse
     await StorageHelper.deleteDraftPhoto(widget.surveySlug);
 
     if (!mounted) return;
+    
+    setState(() => _isDirty = false);
 
     if (isOffline) {
       ScaffoldMessenger.of(context).showSnackBar(

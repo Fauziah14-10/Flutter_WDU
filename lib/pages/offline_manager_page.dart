@@ -118,7 +118,7 @@ class _OfflineManagerPageState extends State<OfflineManagerPage> with SingleTick
   }
 
   Widget _buildSyncQueueTab() {
-    final queue = _storage.getPendingQueue();
+    final queue = _storage.getAllQueueItems();
 
     if (queue.isEmpty) {
       return _buildEmptyState(Icons.cloud_done_outlined, 'Antrean kirim kosong');
@@ -159,16 +159,55 @@ class _OfflineManagerPageState extends State<OfflineManagerPage> with SingleTick
             itemCount: queue.length,
             itemBuilder: (context, index) {
               final item = queue[index];
-              final surveyTitle = 'Kuesioner #${item.surveyId}'; // We could improve this by caching titles in queue too
+              final surveyTitle = 'Kuesioner #${item.surveyId}';
+              
+              Color statusColor = Colors.orange;
+              IconData statusIcon = Icons.cloud_upload_outlined;
+              
+              if (item.status == 'DONE') {
+                statusColor = Colors.green;
+                statusIcon = Icons.check_circle_outline;
+              } else if (item.status == 'FAILED') {
+                statusColor = Colors.red;
+                statusIcon = Icons.error_outline;
+              } else if (item.status == 'PROCESSING') {
+                statusColor = Colors.blue;
+                statusIcon = Icons.sync;
+              }
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: ListTile(
-                  leading: const Icon(Icons.cloud_upload_outlined, color: AppTheme.monGreenMid),
+                  leading: Icon(statusIcon, color: statusColor),
                   title: Text(surveyTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Text('Dibuat: ${DateFormat('dd MMM HH:mm').format(item.createdAt)}', style: const TextStyle(fontSize: 12)),
-                  trailing: Text(item.status, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.orange)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Dibuat: ${DateFormat('dd MMM HH:mm').format(item.createdAt)}', style: const TextStyle(fontSize: 12)),
+                      if (item.status == 'FAILED' && item.lastError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Error: ${item.lastError}',
+                            style: const TextStyle(fontSize: 10, color: Colors.red),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      item.status,
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor),
+                    ),
+                  ),
                 ),
               );
             },

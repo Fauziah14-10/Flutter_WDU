@@ -3,11 +3,17 @@ import '../service/auth_service.dart';
 import '../service/client_service.dart';
 import '../models/client_model.dart';
 import '../models/user_project_model.dart';
+import '../models/project_model.dart';
 import '../core/utils/storage.dart';
+import '../service/offline_download_service.dart';
+import '../core/utils/connectivity_service.dart';
 
-class DashboardProvider extends ChangeNotifier {
-  final AuthService _authService = AuthService();
-  final ClientService _clientService = ClientService();
+class DashboardProvider with ChangeNotifier {
+  final AuthService authService = AuthService();
+  final ClientService clientService = ClientService();
+  final OfflineDownloadService _downloadService = OfflineDownloadService();
+  final ConnectivityService _connectivity = ConnectivityService();
+
 
   Map<String, dynamic>? user;
   List<Client> clients = [];
@@ -40,11 +46,37 @@ class DashboardProvider extends ChangeNotifier {
   Future<void> init() async {
     await loadUser(); // ✅ tunggu token tersimpan dulu
     await loadClients(); // ✅ baru fetch clients
+    autoDownloadOfflineSurveys(); // ✅ background download
+  }
+
+  Future<void> autoDownloadOfflineSurveys() async {
+    if (await _connectivity.isOffline) return;
+    if (projects.isEmpty) return;
+
+    debugPrint('🚀 [DashboardProvider] Starting background auto-download...');
+    for (var project in projects) {
+      try {
+        final apiProject = Project(
+          projectName: project.projectName,
+          slug: project.slug,
+          client: project.clientSlug.isNotEmpty 
+            ? Project.fromJson({'client': {'slug': project.clientSlug}}).client 
+            : null,
+        );
+        // Only download if we have a slug
+        if (apiProject.slug != null) {
+          await _downloadService.downloadSurveyData(apiProject);
+        }
+      } catch (e) {
+        debugPrint('⚠️ [DashboardProvider] Auto-download failed for project ${project.projectName}: $e');
+      }
+    }
+    debugPrint('✅ [DashboardProvider] Background auto-download finished.');
   }
 
   Future<void> loadUser() async {
     try {
-      user = await _authService.getUser();
+      user = await authService.getUser();
     } catch (e) {
       error = e.toString();
     } finally {
@@ -59,7 +91,7 @@ class DashboardProvider extends ChangeNotifier {
       clientsLoading = true;
       notifyListeners();
 
-      final data = await _clientService.getDashboardData();
+      final data = await clientService.getDashboardData();
 
       final List<dynamic> rawClients =
           (data['clients'] as List<dynamic>?) ?? [];

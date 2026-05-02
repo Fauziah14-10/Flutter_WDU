@@ -104,7 +104,12 @@ class LocalStorageService {
 
   List<SyncQueueItem> getPendingQueue() {
     final box = Hive.box<SyncQueueItem>(queueBoxName);
-    return box.values.where((item) => item.status == 'PENDING').toList();
+    return box.values.where((item) => item.status == 'PENDING' || item.status == 'FAILED').toList();
+  }
+
+  List<SyncQueueItem> getAllQueueItems() {
+    final box = Hive.box<SyncQueueItem>(queueBoxName);
+    return box.values.toList();
   }
 
   Future<void> clearSyncedItems() async {

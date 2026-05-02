@@ -63,7 +63,13 @@ class SyncProvider with ChangeNotifier {
         final String clientSlug = item.payload['clientSlug'] ?? '';
         final String projectSlug = item.payload['projectSlug'] ?? '';
         final String surveySlug = item.payload['surveySlug'] ?? '';
-        final Map<String, dynamic> answers = item.payload['answers'] ?? {};
+        final Map<String, dynamic> answers = Map<String, dynamic>.from(item.payload['answers'] ?? {});
+        
+        // Add GPS data to answers if available
+        if (item.payload['lat'] != null) answers['lat'] = item.payload['lat'];
+        if (item.payload['lng'] != null) answers['lng'] = item.payload['lng'];
+
+        debugPrint('📤 Syncing item ${item.respondentId} for survey $surveySlug...');
 
         final success = await _api.submitSurvey(
           clientSlug: clientSlug,
@@ -73,6 +79,7 @@ class SyncProvider with ChangeNotifier {
         );
 
         if (success) {
+          debugPrint('✅ Sync SUCCESS for ${item.respondentId}');
           item.status = 'DONE';
           successCount++;
           
@@ -84,9 +91,10 @@ class SyncProvider with ChangeNotifier {
             await localAnswer.save();
           }
         } else {
+          debugPrint('❌ Sync FAILED (API returned false) for ${item.respondentId}');
           item.status = 'FAILED';
           item.retryCount++;
-          item.lastError = 'Server returned failure';
+          item.lastError = 'Server returned failure (false)';
           failCount++;
         }
       } catch (e) {
