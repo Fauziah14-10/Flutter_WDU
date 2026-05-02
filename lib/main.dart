@@ -17,6 +17,7 @@ import 'providers/auth_provider.dart';
 import 'providers/survey_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/font_size_provider.dart';
+import 'providers/sync_provider.dart';
 import 'models/client_model.dart';
 import 'models/provinsi_model.dart';
 
@@ -87,6 +88,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SurveyProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => FontSizeProvider()),
+        ChangeNotifierProvider(create: (_) => SyncProvider()),
       ],
       child: Consumer<FontSizeProvider>(
         builder: (context, fontSizeProvider, _) {
